@@ -93,3 +93,43 @@ Check that Test Runner is installed and running without problems and that it is 
 
 ### Observation results are reporting large number of missing frames:
 Check the quality of the recording. Ensure that the camera/device set up described earlier has been followed.
+
+# Release Notes for Interim Release v0.2.0
+
+This is an interim release for tool validation purposes.
+Code was verified using Test Runner version:
+* https://github.com/cta-wave/dpctf-deploy revision 43bfcd19683af64fbbbe2e19160c63515e0b3c92
+* https://github.com/cta-wave/dpctf-tests revision d724f6df10ef6830102179183c66ba082a47ea3c
+* https://github.com/cta-wave/dpctf-test-runner revision 75054f0a7fd4a675723507311f6dbdd2c5fd5509
+
+
+## Implemented:
+* Interim installation and usage instructions (in this README).
+* Simple installation script.
+* End-to-end Observation Framework functionality.
+* Analysis of multiple tests in one session recording.
+* Result reporting to DPCTF Test Runner.
+* QR code based video tests implemented for:
+  * 8.2  /avc/sequential-track-playback-manual__stream__.html
+  * 8.3  /avc/random-access-to-fragment-manual__stream__.html
+  * 8.4  /avc/random-access-to-time-manual__stream__.html
+  * 8.6  /avc/regular-playback-of-chunked-content-manual__stream__.html
+  * 8.7  /avc/regular-playback-of-chunked-content-non-aligned-append-manual__stream__.html
+  * 8.9  /avc/out-of-order-loading-manual__stream__.html
+  * 8.11 /avc/fullscreen-playback-of-switching-sets-manual__stream__.html
+ 
+
+## TODO:
+* Full installation and usage documentation, including how to add new test code and observations.
+* Final installation steps.
+* QR code based video tests to be implemented for:
+  * 8.5 Switching Set Playback
+  * 8.8 Playback over WAVE Baseline Splice Constraints
+  * 8.10 Overlapping Fragments
+  * 8.12 Playback of Encrypted Content
+  * 8.13 Restricted Splicing of Encrypted Content
+  * 8.14 Sequential Playback of Encrypted and Non-Encrypted Baseline Content
+  * 9.2 Regular Playback of a CMAF Presentation
+  * 9.3 Random Access of a WAVE Presentation
+  * 9.4 Splicing of WAVE Program with Baseline Constraints
+
