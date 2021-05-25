@@ -21,10 +21,12 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 
+from .observation import Observation
 from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 
@@ -32,22 +34,18 @@ from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 logger = logging.getLogger(__name__)
 
 
-class StartUpDelay:
+class StartUpDelay(Observation):
     """StartUpDelay class
     The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax..
     """
 
-    result: Dict[str, str]
-
     def __init__(self, _):
-        self.result = {
-            "status": "NOT_RUN",
-            "message": "",
-            "name": "[OF] The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax.",
-        }
+        super().__init__(
+            "[OF] The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax."
+        )
 
+    @staticmethod
     def _get_play_event(
-        self,
         test_status_qr_codes: List[TestStatusDecodedQr],
         camera_frame_duration_ms: float,
     ) -> (bool, float):
@@ -65,7 +63,7 @@ class StartUpDelay:
             current_status = test_status_qr_codes[i]
 
             # check for the 1st play action from TR events
-            if (current_status.last_action == "play"):
+            if current_status.last_action == "play":
                 play_event_camera_frame_num = current_status.camera_frame_num
 
                 if i + 1 < len(test_status_qr_codes):
@@ -81,6 +79,7 @@ class StartUpDelay:
 
     def make_observation(
         self,
+        _unused,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
@@ -91,6 +90,7 @@ class StartUpDelay:
         start_up_delay < TSMax
 
         Args:
+            _unused:
             mezzanine_qr_codes: detected QR codes list from Mezzanine
             test_status_qr_codes: detected QR codes list from test runner
             parameters_dict: parameters are from test runner config file and some are generated from OF
@@ -102,9 +102,7 @@ class StartUpDelay:
 
         if not mezzanine_qr_codes:
             self.result["status"] = "FAIL"
-            self.result[
-                "message"
-            ] = f"No QR mezzanine code detected."
+            self.result["message"] = f"No QR mezzanine code detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result
 

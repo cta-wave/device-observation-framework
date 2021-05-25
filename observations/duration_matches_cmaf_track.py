@@ -21,10 +21,12 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 
+from .observation import Observation
 from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr
 from global_configurations import GlobalConfigurations
@@ -34,22 +36,15 @@ logger = logging.getLogger(__name__)
 DURATION_TOLERANCE_MS = 10
 
 
-class DurationMatchesCMAFTrack:
+class DurationMatchesCMAFTrack(Observation):
     """DurationMatchesCMAFTrack class
     The playback duration of the playback matches the duration of the CMAF Track, i.e. TR [k, S] = TR [k, 1] + td[k].
     """
-
-    result: Dict[str, str]
-    tolerances: Dict[str, int]
-
     def __init__(self, global_configurations: GlobalConfigurations):
-        self.result = {
-            "status": "NOT_RUN",
-            "message": "",
-            "name": "[OF] The playback duration of the playback matches the duration of the CMAF Track, "
+        super().__init__(
+            "[OF] The playback duration of the playback matches the duration of the CMAF Track, "
             "i.e. TR [k, S] = TR [k, 1] + td[k].",
-        }
-        self.tolerances = global_configurations.get_tolerances()
+            global_configurations)
 
     def _get_starting_missing_frame(
         self, expected_first_frame_num: int, first_qr_code: MezzanineDecodedQr
@@ -63,7 +58,7 @@ class DurationMatchesCMAFTrack:
             first_qr_code: first MezzanineDecodedQr from MezzanineDecodedQr lists
 
         Returns:
-            int: missing frame numbers on strating that take account in duration check
+            int: missing frame numbers on starting that take account in duration check
         """
         start_frame_num_tolerance = self.tolerances["start_frame_num_tolerance"]
         missing_frames = first_qr_code.frame_number - expected_first_frame_num
@@ -96,7 +91,11 @@ class DurationMatchesCMAFTrack:
         return missing_frames
 
     def make_observation(
-        self, mezzanine_qr_codes: List[MezzanineDecodedQr], _, parameters_dict: dict
+        self,
+        _unused1,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        _unused2,
+        parameters_dict: dict
     ) -> Dict[str, str]:
         """Implements the logic:
         (QRn.last_camera_frame_num - QRa.first_camera_frame_num) * camera_frame_duration_ms
@@ -113,10 +112,12 @@ class DurationMatchesCMAFTrack:
             return self.result
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
+        first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
+        last_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
         playback_duration = (
-            mezzanine_qr_codes[-1].last_camera_frame_num
+            mezzanine_qr_codes[-1].first_camera_frame_num
             - mezzanine_qr_codes[0].first_camera_frame_num
-        ) * camera_frame_duration_ms
+        ) * camera_frame_duration_ms + last_frame_duration
         expected_track_duration = parameters_dict["expected_track_duration"]
 
         starting_missing_frame = self._get_starting_missing_frame(
@@ -125,11 +126,14 @@ class DurationMatchesCMAFTrack:
         ending_missing_frame = self._get_ending_missing_frame(
             parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
         )
-        frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
 
         # adjust expected track duration based on the missing frames
-        expected_track_duration = (expected_track_duration
-                                   - (starting_missing_frame + ending_missing_frame) * frame_duration)
+        expected_track_duration = (
+            expected_track_duration
+            - starting_missing_frame * first_frame_duration
+            + ending_missing_frame * last_frame_duration
+        )
+        
         if abs(expected_track_duration - playback_duration) > DURATION_TOLERANCE_MS:
             self.result["status"] = "FAIL"
             self.result["message"] = (

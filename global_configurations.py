@@ -22,7 +22,8 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import configparser
 import logging
@@ -40,7 +41,7 @@ class GlobalConfigurations:
 
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read("config.ini")
+        self.config.read("config.ini", "UTF-8")
 
     def get_system_mode(self) -> str:
         try:
@@ -50,12 +51,36 @@ class GlobalConfigurations:
 
         return system_mode
 
-    def get_log_file(self) -> str:
+    def get_sort_input_files_by(self) -> str:
         try:
-            log_file = self.config["GENERAL"]["log_file"]
+            sort_input_files_by = self.config["GENERAL"]["sort_input_files_by"]
         except KeyError:
-            log_file = "logs/observation_framework.log"
-        return log_file
+            sort_input_files_by = ""
+
+        return sort_input_files_by
+
+    def get_log_file_path(self) -> str:
+        try:
+            log_file_path = self.config["GENERAL"]["log_file_path"]
+        except KeyError:
+            log_file_path = "logs"
+        return log_file_path
+
+    def get_result_file_path(self) -> str:
+        try:
+            result_file_path = self.config["GENERAL"]["result_file_path"]
+        except KeyError:
+            result_file_path = "results"
+        return result_file_path
+
+    def get_session_log_threshold(self) -> int:
+        try:
+            session_log_threshold = int(
+                self.config["GENERAL"]["session_log_threshold"]
+            )
+        except KeyError:
+            session_log_threshold = 100
+        return session_log_threshold
 
     def get_test_runner_url(self) -> str:
         try:
@@ -64,11 +89,40 @@ class GlobalConfigurations:
             test_runner_url = "http://web-platform.test:8000"
         return test_runner_url
 
+    def get_missing_frame_threshold(self) -> int:
+        try:
+            missing_frame_threshold = int(
+                self.config["GENERAL"]["missing_frame_threshold"]
+            )
+        except KeyError:
+            missing_frame_threshold = 0
+        return missing_frame_threshold
+
+    def get_end_of_session_timeout(self) -> int:
+        try:
+            end_of_session_timeout = int(
+                self.config["GENERAL"]["end_of_session_timeout"]
+            )
+        except KeyError:
+            end_of_session_timeout = 10
+        return end_of_session_timeout
+
+    def get_no_qr_code_timeout(self) -> int:
+        try:
+            no_qr_code_timeout = int(
+                self.config["GENERAL"]["no_qr_code_timeout"]
+            )
+        except KeyError:
+            no_qr_code_timeout = 5
+        return no_qr_code_timeout
+
     def get_tolerances(self) -> Dict[str, int]:
         tolerances = {
             "start_frame_num_tolerance": 0,
             "end_frame_num_tolerance": 0,
             "mid_frame_num_tolerance": 0,
+            "splice_start_frame_num_tolerance": 0,
+            "splice_end_frame_num_tolerance": 0,
         }
         try:
             tolerances["start_frame_num_tolerance"] = int(
@@ -79,6 +133,12 @@ class GlobalConfigurations:
             )
             tolerances["mid_frame_num_tolerance"] = int(
                 self.config["TOLERANCES"]["mid_frame_num_tolerance"]
+            )
+            tolerances["splice_start_frame_num_tolerance"] = int(
+                self.config["TOLERANCES"]["splice_start_frame_num_tolerance"]
+            )
+            tolerances["splice_end_frame_num_tolerance"] = int(
+                self.config["TOLERANCES"]["splice_end_frame_num_tolerance"]
             )
         except KeyError:
             pass

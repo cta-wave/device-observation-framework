@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code regular_playback_of_chunked_content_non_aligned_append_manual
+"""DPCTF device observation test code switching_set_playback
 
-test regular_playback_of_chunked_content_non_aligned_append_manual
+test switching_set_playback
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,19 +21,35 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .sequential_track_playback_manual import SequentialTrackPlaybackManual
+from .sequential_track_playback import SequentialTrackPlayback
+from .test import TestType
 
 logger = logging.getLogger(__name__)
 
 
-class RegularPlaybackOfChunkedContentNonAlignedAppendManual(
-    SequentialTrackPlaybackManual
-):
-    """RegularPlaybackOfChunkedContentNonAlignedAppendManual to handle test
-    regular-playback-of-chunked-content-non-aligned-append-manual.html.
-    This class is derived from SequentialTrackPlaybackManual and uses the same observations logic.
+class SwitchingSetPlayback(SequentialTrackPlayback):
+    """SwitchingSetPlayback to handle test
+    switching-set-playback.html
+    overlapping-fragments.html
+    This class is derived from SequentialTrackPlayback and uses the same observations logic.
     """
-    pass
+
+    def _set_test_type(self) -> None:
+        """set test type SEQUENTIAL|SWITCHING|SPLICING"""
+        self.test_type = TestType.SWITCHING
+
+    def _init_parameters(self) -> None:
+        """initialise the test_config_parameters required for the test"""
+        self.parameters = [
+            "ts_max",
+            "tolerance",
+            "playout"
+        ]
+        self.content_parameters = [
+            "cmaf_track_duration",
+            "fragment_duration"
+        ]

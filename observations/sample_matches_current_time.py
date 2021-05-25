@@ -21,16 +21,18 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import sys
 
+from .observation import Observation
 from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+from test_code.test import TestType
 
 logger = logging.getLogger(__name__)
-
 
 REPORT_NUM_OF_FAILURE = 50
 CAMERA_FRAME_ADJUSTMENT = 0.5
@@ -39,28 +41,26 @@ to account for the possibility that the QR code was
 discernible between capture frames"""
 
 
-class SampleMatchesCurrentTime:
+class SampleMatchesCurrentTime(Observation):
     """SampleMatchesCurrentTime class
     The presented sample matches the one reported by the currentTime value within the tolerance of the sample duration.
     """
 
-    result: Dict[str, str]
+    def __init__(self, _, name: str = None):
+        if name is None:
+            name = (
+                "[OF] The presented sample matches the one reported by the currentTime value within the "
+                "tolerance of the sample duration."
+            )
+        super().__init__(name)
 
-    def __init__(self, _):
-        self.result = {
-            "status": "NOT_RUN",
-            "message": "",
-            "name": "[OF] The presented sample matches the one reported by the currentTime value within "
-            "the tolerance of the sample duration.",
-        }
-
+    @staticmethod
     def _get_target_camera_frame_num(
-        self,
         camera_frame_num: int,
         delay: int,
         camera_frame_duration_ms: float,
         camera_frame_rate: float,
-        mezzanine_frame_rate: float,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
     ) -> (float, float):
         """Calculate expected target camera frame numbers of the current time event
         by compensating for the delay in the QR code generation and applying tolerances.
@@ -71,13 +71,21 @@ class SampleMatchesCurrentTime:
             camera_frame_num (int): camera frame on which the status event QR code was first seen.
             delay (int): time taken to generate the status event QR code in msecs.
             camera_frame_duration_ms (float): duration of a camera frame on msecs.
+            camera_frame_rate: recording frame rate
+            mezzanine_qr_codes (List[MezzanineDecodedQr]): Ordered list of unique mezzanine QR codes found.
 
         Returns:
             First and last possible camera frame numbers which we expect may match the status event QR currentTime.
         """
-        sample_tolerance_in_recording = camera_frame_rate / mezzanine_frame_rate
-
         target_camera_frame_num = camera_frame_num - delay / camera_frame_duration_ms
+
+        mezzanine_frame_rate = mezzanine_qr_codes[0].frame_rate
+        for i in range(0, len(mezzanine_qr_codes)):
+            if mezzanine_qr_codes[i].first_camera_frame_num > target_camera_frame_num:
+                mezzanine_frame_rate = mezzanine_qr_codes[i - 1].frame_rate
+                break
+
+        sample_tolerance_in_recording = camera_frame_rate / mezzanine_frame_rate
         first_possible = (
             target_camera_frame_num
             - CAMERA_FRAME_ADJUSTMENT
@@ -91,8 +99,8 @@ class SampleMatchesCurrentTime:
 
         return first_possible, last_possible
 
+    @staticmethod
     def _find_diff_within_tolerance(
-        self,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         current_status: TestStatusDecodedQr,
         first_possible: float,
@@ -138,6 +146,7 @@ class SampleMatchesCurrentTime:
 
     def make_observation(
         self,
+        test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
@@ -163,18 +172,41 @@ class SampleMatchesCurrentTime:
 
         if not mezzanine_qr_codes:
             self.result["status"] = "FAIL"
-            self.result[
-                "message"
-            ] = f"No QR mezzanine code detected."
+            self.result["message"] = f"No QR mezzanine code detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        mezzanine_frame_rate = mezzanine_qr_codes[0].frame_rate
         allowed_tolerance = parameters_dict["tolerance"]
         failure_report_count = 0
         self.result["message"] += f" Allowed tolerance is {allowed_tolerance}."
+
+        # for splicing test adjust media time in mezzanine_qr_codes
+        # media time for period 2 starts from 0 so the actual media time is += period_duration[0]
+        # media time for period 3 starts from where it was left but need to add the ad insertion duration
+        # so the actual media time is += period_duration[1]
+        if test_type == TestType.SPLICING:
+            period_index = 0
+            current_content_id = mezzanine_qr_codes[0].content_id
+            for i in range(1, len(mezzanine_qr_codes)):
+                if mezzanine_qr_codes[i].content_id != current_content_id:
+                    # the content did change
+                    period_index += 1
+                    current_content_id = mezzanine_qr_codes[i].content_id
+
+                if period_index > 0:
+                    mezzanine_qr_codes[i].media_time += parameters_dict[
+                        "period_duration"
+                    ][period_index - 1]
+
+                if period_index > len(parameters_dict["period_duration"]):
+                    self.result["status"] = "FAIL"
+                    self.result[
+                        "message"
+                    ] += f" The number of periods does not match with the configuration. "
+                    logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+                    return self.result
 
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
@@ -189,7 +221,7 @@ class SampleMatchesCurrentTime:
                         test_status_qr_codes[i + 1].delay,
                         camera_frame_duration_ms,
                         camera_frame_rate,
-                        mezzanine_frame_rate,
+                        mezzanine_qr_codes,
                     )
                     diff_found, time_diff = self._find_diff_within_tolerance(
                         mezzanine_qr_codes,

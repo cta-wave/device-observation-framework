@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""qr decoder base class
+"""DPCTF device observation test code 
+splicing_of_wave_program_with_baseline_constraints
 
-stores the detected QR code in string 
-this is the base class to inherit other classes
-to handle more complex qr code translation
+test splicing_of_wave_program_with_baseline_constraints
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -27,33 +26,21 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+from .playback_over_wave_baseline_splice_constraints import PlaybackOverWaveBaselineSpliceConstraints
 
 logger = logging.getLogger(__name__)
 
-class DecodedQr:
-    """Base class for decoded QR codes.
+
+class SplicingOfWaveProgramWithBaselineConstraints(PlaybackOverWaveBaselineSpliceConstraints):
+    """SplicingOfWaveProgramWithBaselineConstraints to handle test 
+    splicing-of-wave-program-with-baseline-constraints.html.
+    This class is derived from PlaybackOverWaveBaselineSpliceConstraints and uses the same observations logic.
     """
 
-    data: str
-    """ qr code string"""
-
-    def __init__(
-        self,
-        data: str
-    ):
-        self.data = data
-
-    def __eq__(self, other) -> bool:
-        if (isinstance(other, DecodedQr)):
-            return self.data == other.data
-
-
-class QrDecoder:
-    """Qr decoder - base class
-    """
-
-    def translate_qr(self, data: str) -> DecodedQr:
-        """Base function for translate_qr
-        """
-        decoded_qr = DecodedQr(data)
-        return decoded_qr
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        self.observations = [
+            ("every_sample_rendered_in_cmaf_presentation", "EverySampleRenderedInCMAFPresentation"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("earliest_sample_same_presentation_time", "EarliestSampleSamePresentationTime"),
+        ]

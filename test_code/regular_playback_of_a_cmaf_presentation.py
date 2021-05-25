@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code regular_playback_of_chunked_content_manual
+"""DPCTF device observation test code regular_playback_of_a_cmaf_presentation
 
-test regular_playback_of_chunked_content_manual
+test regular_playback_of_a_cmaf_presentation
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,17 +21,24 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .sequential_track_playback_manual import SequentialTrackPlaybackManual
+from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
 
 
-class RegularPlaybackOfChunkedContentManual(SequentialTrackPlaybackManual):
-    """RegularPlaybackOfChunkedContentManual to handle test regular-playback-of-chunked-content-manual.html
-    This class is derived from SequentialTrackPlaybackManual and uses the same observations logic.
+class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
+    """RegularPlaybackOfACmafPresentation to handle test regular-playback-of-a-cmaf-presentation.html
+    This class is derived from SequentialTrackPlayback but different observations.
     """
 
-    pass
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        self.observations = [
+            ("every_sample_rendered_in_cmaf_presentation", "EverySampleRenderedInCMAFPresentation"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("earliest_sample_same_presentation_time", "EarliestSampleSamePresentationTime"),
+        ]

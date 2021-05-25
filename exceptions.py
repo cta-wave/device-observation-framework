@@ -19,7 +19,8 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 
 
@@ -37,3 +38,10 @@ class ObsFrameError(Exception):
 
     def __str__(self) -> str:
         return self.__message
+
+
+class ObsFrameTerminate(ObsFrameError):
+    """Specific exceptions thrown by Observation Framework.
+    when this is raised the Observation Framework will be terminated.
+    """
+    pass

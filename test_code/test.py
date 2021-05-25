@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code out_of_order_loading_manual
-
-test out_of_order_loading_manual
+""" Defines test types
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,17 +19,20 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
-import logging
-from .sequential_track_playback_manual import SequentialTrackPlaybackManual
-
-logger = logging.getLogger(__name__)
+from enum import Enum
 
 
-class OutOfOrderLoadingManual(SequentialTrackPlaybackManual):
-    """OutOfOrderLoadingManual to handle test out-of-order-loading-manual.html.
-    This class is derived from SequentialTrackPlaybackManual and uses the same observations logic.
+class TestType(Enum):
+    """TestType Enum
+    SEQUENTIAL: general playback test with contents played back from starting point to the end.
+    SWITCHING: switching test that contents switches between representations.
+    SPLICING: splicing test which is concatenates different content at any point during the playback.
+        The original content may then be returned to (such as an advert insertion test).
     """
 
-    pass
+    SEQUENTIAL = 1
+    SWITCHING = 2
+    SPLICING = 3
