@@ -22,7 +22,8 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import re
 import logging
@@ -33,7 +34,7 @@ from qr_recognition.qr_decoder import DecodedQr, QrDecoder
 logger = logging.getLogger(__name__)
 
 _mezzanine_qr_data_re = re.compile(
-    r"([A-Z][0-9]);(\d{2}:[0-6][0-9]:[0-6][0-9].\d{3});(\d{7});([0-9.]+)"
+    r"(.+);(\d{2}:[0-6][0-9]:[0-6][0-9].\d{3});(\d{7});([0-9.]+)"
 )
 
 
@@ -150,15 +151,30 @@ class DPCTFQrDecoder(QrDecoder):
         except Exception:
             try:
                 code = TestStatusDecodedQr(
-                    data, json_data["s"], json_data["a"], 0, 0, camera_frame_num
+                    data,
+                    json_data["s"],
+                    json_data["a"],
+                    0,
+                    int(json_data["d"]),
+                    camera_frame_num,
                 )
             except Exception:
                 try:
-                    code = PreTestDecodedQr(
-                        data, json_data["session_token"], json_data["test_id"]
+                    code = TestStatusDecodedQr(
+                        data,
+                        json_data["s"],
+                        json_data["a"],
+                        0,
+                        0,
+                        camera_frame_num
                     )
                 except Exception:
-                    logger.error(f"Unrecognised QR code detected: {data}")
+                    try:
+                        code = PreTestDecodedQr(
+                            data, json_data["session_token"], json_data["test_id"]
+                        )
+                    except Exception:
+                        logger.error(f"Unrecognised QR code detected: {data}")
 
         return code
 

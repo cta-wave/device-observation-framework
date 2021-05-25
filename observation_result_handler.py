@@ -24,7 +24,8 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import requests
@@ -38,6 +39,7 @@ from exceptions import ObsFrameError
 
 
 logger = logging.getLogger(__name__)
+OF_RESULT_PREFIX = "[OF]"
 
 
 class ObservationResultHandler:
@@ -93,7 +95,8 @@ class ObservationResultHandler:
 
     def _update_subtest(self, subtests_data: list, observation_results: list) -> list:
         """return updated subtest field
-        remove duplicated result and extend with new result
+        remove previous OF result - remove results that has observation framework prefix
+        extend with new result
         """
         for subtest_result in subtests_data[:]:
             try:
@@ -101,9 +104,8 @@ class ObservationResultHandler:
             except KeyError:
                 continue
 
-            for observation_result in observation_results:
-                if observation_result["name"] == subtest_name:
-                    subtests_data.remove(subtest_result)
+            if OF_RESULT_PREFIX in subtest_name:
+                subtests_data.remove(subtest_result)
 
         subtests_data.extend(observation_results)
         return subtests_data
@@ -188,15 +190,16 @@ class ObservationResultHandler:
         """
         if session_token and test_path and observation_results:
             api_name = test_path.split("/")[0]
+            result_file_path = self.global_configurations.get_result_file_path()
 
-            filename = "results/" + session_token + "/" + api_name + ".json"
+            filename = result_file_path + "/" + session_token + "/" + api_name + ".json"
             self._create_results_dir(filename)
 
             # if conf.ini mode is set to DEBUG then just save results to a file
             # (only used for development)
             if (self.global_configurations.get_system_mode()) == "Debug":
                 debug_result_filename = (
-                    "results/" + session_token + "/" + api_name + "_debug.json"
+                    result_file_path + "/" + session_token + "/" + api_name + "_debug.json"
                 )
                 self._save_result_to_file(debug_result_filename, observation_results)
             else:

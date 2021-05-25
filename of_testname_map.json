@@ -1,0 +1,66 @@
+{
+    "sequential-track-playback.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "random-access-to-fragment.html": [
+        "random_access_to_fragment",
+        "RandomAccessToFragment"
+    ],
+    "random-access-to-time.html": [
+        "random_access_to_time",
+        "RandomAccessToTime"
+    ],
+    "switching-set-playback.html": [
+        "switching_set_playback",
+        "SwitchingSetPlayback"
+    ],
+    "regular-playback-of-chunked-content.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "regular-playback-of-chunked-content-non-aligned-append.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "playback-over-wave-baseline-splice-constraints.html": [
+        "playback_over_wave_baseline_splice_constraints",
+        "PlaybackOverWaveBaselineSpliceConstraints"
+    ],
+    "out-of-order-loading.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "overlapping-fragments.html": [
+        "switching_set_playback",
+        "SwitchingSetPlayback"
+    ],
+    "fullscreen-playback-of-switching-sets.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "playback-of-encrypted-content.html": [
+        "sequential_track_playback",
+        "SequentialTrackPlayback"
+    ],
+    "restricted-splicing-of-encrypted-content-https.html": [
+        "playback_over_wave_baseline_splice_constraints",
+        "PlaybackOverWaveBaselineSpliceConstraints"
+    ],
+    "sequential-playback-of-encrypted-and-non-encrypted-baseline-content-https.html": [
+        "playback_over_wave_baseline_splice_constraints",
+        "PlaybackOverWaveBaselineSpliceConstraints"
+    ],
+    "regular-playback-of-a-cmaf-presentation.html": [
+        "regular_playback_of_a_cmaf_presentation",
+        "RegularPlaybackOfACmafPresentation"
+    ],
+    "random-access-of-a-wave-presentation.html": [
+        "random_access_of_a_wave_presentation",
+        "RandomAccessOfAWavePresentation"
+    ],
+    "splicing-of-wave-program-with-baseline-constraints.html": [
+        "splicing_of_wave_program_with_baseline_constraints",
+        "SplicingOfWaveProgramWithBaselineConstraints"
+    ]
+}

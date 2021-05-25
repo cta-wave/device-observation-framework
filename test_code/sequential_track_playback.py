@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code sequential_track_playback_manual
+"""DPCTF device observation test code sequential_track_playback
 
-test random_access_to_fragment_manual
+test random_access_to_fragment
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,11 +21,13 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import importlib
 import logging
 
+from .test import TestType
 from typing import List
 from configuration_parser import ConfigurationParser
 from global_configurations import GlobalConfigurations
@@ -35,13 +37,26 @@ from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 logger = logging.getLogger(__name__)
 
 
-class SequentialTrackPlaybackManual:
-    """SequentialTrackPlaybackManual to handle test sequential-track-playback-manual.html"""
+class SequentialTrackPlayback:
+    """SequentialTrackPlayback to handle test 
+    sequential-track-playback.html
+    regular-playback-of-chunked-content.html
+    regular-playback-of-chunked-content-non-aligned-append.html
+    out-of-order-loading.html
+    fullscreen-playback-of-switching-sets.html
+    playback-of-encrypted-content.html
+    this is also a base class to other tests"""
 
+    test_type: TestType
+    """test type SEQUENTIAL|SWITCHING|SPLICING"""
     global_configurations: GlobalConfigurations
+    """OF gloabal configuration"""
     observations: list
+    """observations required for the test"""
     parameters: list
+    """parameter list required to be read"""
     content_parameters: list
+    """content related parameter list required to be read"""
     parameters_dict: dict
     """Built dictionary of all the test_config_parameters required by this test"""
 
@@ -63,6 +78,7 @@ class SequentialTrackPlaybackManual:
             camera_frame_rate: Frames per second that the camera was recording at.
             camera_frame_duration_ms: Duration of a single camera frame in msecs.
         """
+        self._set_test_type()
         self._init_observations()
         self._init_parameters()
         self._load_parameters_dict(configuration_parser, test_path, test_code)
@@ -70,6 +86,10 @@ class SequentialTrackPlaybackManual:
         self.global_configurations = global_configurations
         self.parameters_dict["camera_frame_rate"] = camera_frame_rate
         self.parameters_dict["camera_frame_duration_ms"] = camera_frame_duration_ms
+        
+    def _set_test_type(self) -> None:
+        """set test type SEQUENTIAL|SWITCHING|SPLICING"""
+        self.test_type = TestType.SEQUENTIAL
 
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
@@ -101,7 +121,7 @@ class SequentialTrackPlaybackManual:
             )
         )
 
-    def _get_first_frame_num(self, frame_rate: float) -> int:
+    def _get_first_frame_num(self, _) -> int:
         """return first frame number"""
         return 1
 
@@ -110,6 +130,7 @@ class SequentialTrackPlaybackManual:
         return round(self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate)
 
     def _get_expected_track_duration(self) -> float:
+        """return expected track duration"""
         return self.parameters_dict["cmaf_track_duration"]
 
     def make_observations(
@@ -135,7 +156,7 @@ class SequentialTrackPlaybackManual:
                 observation[1],
             )(self.global_configurations)
 
-            frame_rate = mezzanine_qr_codes[0].frame_rate
+            frame_rate = mezzanine_qr_codes[-1].frame_rate
             self.parameters_dict["first_frame_num"] = self._get_first_frame_num(
                 frame_rate
             )
@@ -147,7 +168,10 @@ class SequentialTrackPlaybackManual:
             ] = self._get_expected_track_duration()
 
             result = observation_class.make_observation(
-                mezzanine_qr_codes, test_status_qr_codes, self.parameters_dict
+                self.test_type,
+                mezzanine_qr_codes,
+                test_status_qr_codes,
+                self.parameters_dict
             )
             results.append(result)
 

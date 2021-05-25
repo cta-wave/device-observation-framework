@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code fullscreen_playback_of_switching_sets_manual
+"""observation every_sample_rendered_in_cmaf_presentation
 
-test fullscreen_playback_of_switching_sets_manual
+make observation of every_sample_rendered_in_cmaf_presentation
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,17 +21,26 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .sequential_track_playback_manual import SequentialTrackPlaybackManual
+from .every_sample_rendered import EverySampleRendered
+from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 
 
-class FullscreenPlaybackOfSwitchingSetsManual(SequentialTrackPlaybackManual):
-    """FullscreenPlaybackOfSwitchingSetsManual to handle test fullscreen-playback-of-switching-sets-manual.html
-    This class is derived from SequentialTrackPlaybackManual and uses the same observations logic.
+class EverySampleRenderedInCMAFPresentation(EverySampleRendered):
+    """EverySampleRenderedInCMAFPresentation class
+    Every sample for every media type included in the CMAF Presentation duration shall be rendered
+    and shall be rendered in order.
+    Video only for phase one
     """
 
-    pass
+    def __init__(self, global_configurations: GlobalConfigurations):
+        super().__init__(
+            global_configurations,
+            "[OF] Video only: Every sample for every media type included in the CMAF Presentation duration "
+            "shall be rendered and shall be rendered in order.",
+        )

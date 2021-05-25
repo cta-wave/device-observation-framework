@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code random_access_to_time_manual
+"""DPCTF device observation test code random_access_to_time
 
-test random_access_to_time_manual
+test random_access_to_time
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -21,17 +21,18 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .sequential_track_playback_manual import SequentialTrackPlaybackManual
+from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
 
 
-class RandomAccessToTimeManual(SequentialTrackPlaybackManual):
-    """RandomAccessToTimeManual to handle test random-access-to-time-manual.html.
-    Derived from SequentialTrackPlaybackManual test code. Uses same logic except start frame and duration take
+class RandomAccessToTime(SequentialTrackPlayback):
+    """RandomAccessToTime to handle test random-access-to-time.html.
+    Derived from SequentialTrackPlayback test code. Uses same logic except start frame and duration take
     account of the random start point.
     """
 

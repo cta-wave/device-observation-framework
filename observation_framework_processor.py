@@ -23,11 +23,13 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import importlib
 import cv2
 import logging
+import json
 
 from typing import List
 from dpctf_qr_decoder import (
@@ -41,6 +43,8 @@ from global_configurations import GlobalConfigurations
 from qr_recognition.qr_decoder import DecodedQr
 from qr_recognition.qr_recognition import FrameAnalysis
 from observation_result_handler import ObservationResultHandler
+from exceptions import ObsFrameTerminate
+from log_handler import LogManager
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +52,25 @@ logger = logging.getLogger(__name__)
 class ObservationFrameworkProcessor:
     """Class to handle observation process"""
 
+    log_manager: LogManager
+    """log manager"""
+
     tests: dict
+    """tests codes dictonary to map test code with module and class"""
+
+    last_end_of_test_camera_frame_num: int
+    """recording frame number of the last ended event to check the end of session timeout"""
+    end_of_session_timeout: int
+    """end of session timeout
+    when the gap is bigger that this, assume end of session is reached
+    process stops and discard following recordings"""
+
+    no_qr_code_frame_num: int
+    """recording frame number of the no QR code detected to check the end of session timeout"""
+    no_qr_code_timeout: int
+    """no qr code timeout
+    when the gap is bigger that this assume end of session is reached
+    process stops and discard following recordings"""
 
     decoder: DPCTFQrDecoder
     """WAVE DPCTF QR code decoder to handle QR code translation"""
@@ -81,49 +103,27 @@ class ObservationFrameworkProcessor:
     camera_frame_duration_ms: float
     """camera frame duration in ms based on captured frame rate"""
 
-    def __init__(self, global_configurations: GlobalConfigurations, fps: float):
+    def __init__(
+        self,
+        log_manager: LogManager,
+        global_configurations: GlobalConfigurations,
+        fps: float,
+    ):
         """dict {test_code : (module_name, class_name)}
         test_code: test code from test runner configuration, this mapped from test ID from pre-test QR code
             with the tests.config file
         module_name: file name where the test handler is defined
         class_name: class name to handle each test code
         """
-        self.tests = {
-            "sequential-track-playback-manual.html": (
-                "sequential_track_playback_manual",
-                "SequentialTrackPlaybackManual",
-            ),
-            "random-access-to-fragment-manual.html": (
-                "random_access_to_fragment_manual",
-                "RandomAccessToFragmentManual",
-            ),
-            "random-access-to-time-manual.html": (
-                "random_access_to_time_manual",
-                "RandomAccessToTimeManual",
-            ),
-            "regular-playback-of-chunked-content-manual.html": (
-                "regular_playback_of_chunked_content_manual",
-                "RegularPlaybackOfChunkedContentManual",
-            ),
-            "regular-playback-of-chunked-content-non-aligned-append-manual.html": (
-                "regular_playback_of_chunked_content_non_aligned_append_manual",
-                "RegularPlaybackOfChunkedContentNonAlignedAppendManual",
-            ),
-            "out-of-order-loading-manual.html": (
-                "out_of_order_loading_manual",
-                "OutOfOrderLoadingManual",
-            ),
-            "fullscreen-playback-of-switching-sets-manual.html": (
-                "fullscreen_playback_of_switching_sets_manual",
-                "FullscreenPlaybackOfSwitchingSetsManual",
-            ),
-            "playback-of-encrypted-content-manual.html": (
-                "playback_of_encrypted_content_manual",
-                "PlaybackOfEncryptedContentManual",
-            ),
-        }
+        with open("of_testname_map.json") as f:
+            self.tests = json.load(f)
 
+        self.log_manager = log_manager
+        self.last_end_of_test_camera_frame_num = 0
+        self.no_qr_code_frame_num = 0
         self.global_configurations = global_configurations
+        self.end_of_session_timeout = global_configurations.get_end_of_session_timeout()
+        self.no_qr_code_timeout = global_configurations.get_no_qr_code_timeout()
         self.decoder = DPCTFQrDecoder()
         self.configuration_parser = ConfigurationParser(self.global_configurations)
         self.observation_result_handler = ObservationResultHandler(
@@ -223,23 +223,26 @@ class ObservationFrameworkProcessor:
         observations being made
         """
         if self.test_class:
-            results = self.test_class.make_observations(
-                self.mezzanine_qr_codes, self.test_status_qr_codes
-            )
+            try:
+                results = self.test_class.make_observations(
+                    self.mezzanine_qr_codes, self.test_status_qr_codes
+                )
+            except ObsFrameTerminate as e:
+                results = []
+                result = {
+                    "status": "ERROR",
+                    "message": f"{e}",
+                    "name": "[OF] Too many missing frames are found.",
+                }
+                results.append(result)
+                self.observation_result_handler.post_result(
+                    self.pre_test_qr_code.session_token, self.test_path, results
+                )
+                raise ObsFrameTerminate(result["message"])
+
             self.observation_result_handler.post_result(
                 self.pre_test_qr_code.session_token, self.test_path, results
             )
-
-        if len(self.mezzanine_qr_codes) > 1:
-            percentage = (
-                len(self.mezzanine_qr_codes)
-                / self.mezzanine_qr_codes[-1].frame_number
-                * 100
-            )
-            lost_num = self.mezzanine_qr_codes[-1].frame_number - len(
-                self.mezzanine_qr_codes
-            )
-            logger.debug(f"{percentage}'%' frames captured, and {lost_num} frames lost")
 
     def _process_mezzanine_qr_codes(
         self, new_mezzanine_qr_codes: List[MezzanineDecodedQr]
@@ -268,12 +271,20 @@ class ObservationFrameworkProcessor:
         )
         self.test_status_qr_codes.append(new_test_status_qr_code)
 
+        # when status ended is detected make observation
+        if new_test_status_qr_code.status == "ended":
+            self.last_end_of_test_camera_frame_num = (
+                new_test_status_qr_code.camera_frame_num
+            )
+            self._make_observations()
+
     def _process_pre_test_qr_code(self, new_pre_test_qr_code: PreTestDecodedQr) -> None:
         """Process newly detected pre-test QR code"""
         # get session token and validation recording should contain only one test session
         if (
             self.pre_test_qr_code.session_token != ""
-            and self.pre_test_qr_code.session_token != new_pre_test_qr_code.session_token
+            and self.pre_test_qr_code.session_token
+            != new_pre_test_qr_code.session_token
         ):
             raise Exception(
                 f"session_token does not match, recording should contain only one test session! "
@@ -281,14 +292,66 @@ class ObservationFrameworkProcessor:
                 f"current session={new_pre_test_qr_code.session_token}"
             )
 
-        # When a new pre test QR code is detected make current observation then load next test
+        if (
+            self.pre_test_qr_code.session_token == ""
+            and new_pre_test_qr_code.session_token != ""
+        ):
+            session_log_file = (
+                self.global_configurations.get_log_file_path()
+                + "/"
+                + new_pre_test_qr_code.session_token
+                + ".log"
+            )
+            logger.info(f"Entering log file: {session_log_file}")
+            self.log_manager.redirect_logfile(session_log_file)
+
+        # When a new pre test QR code is detected then load next test
         if self.pre_test_qr_code.test_id != new_pre_test_qr_code.test_id:
-            self._make_observations()
+            self.last_end_of_test_camera_frame_num = 0
             self.pre_test_qr_code = new_pre_test_qr_code
             self._load_new_test()
 
-    def iter_qr_codes_in_video(self, vidcap) -> None:
-        """Iterate video frame by frame and detect QR codes"""
+    def check_timeout(
+        self, last_frame_num: int, current_frame_num: int, timeout: int
+    ) -> bool:
+        """check timeout and log error message when timedout
+        this is used to detect ened of sesssion:
+            timeout after the last status=ended is recived untill the next pre-test QR code
+            and idle time when there is no QR code detected
+
+        Args:
+            last_frame_num: last recording frame number to check the timeout from
+                this is 0 when it is not set
+            current_frame_num: current recording frame
+            timeout: configured timeout in seconds from config.ini
+
+        Return:
+            True: when timedout
+        """
+        result = False
+
+        if last_frame_num > 0:
+            diff = current_frame_num - last_frame_num
+            time_diff = round(diff / self.camera_frame_rate)
+            if time_diff > timeout:
+                result = True
+                logger.info(
+                    f"End of recorded session reached. "
+                    f"({int(time_diff)} seconds passed while waiting for the next test. "
+                    f"Timeout is set to {timeout} seconds)."
+                )
+        return result
+
+    def iter_qr_codes_in_video(self, vidcap, starting_camera_frame_number: int) -> int:
+        """Iterate video frame by frame and detect QR codes.
+
+        Args:
+            vidcap: VideoCapture instance for the current file.
+            starting_camera_frame_number: Camera frame number to begin numbering at.
+
+        Returns:
+            Last camera frame number in this file +1 (i.e. can be used as input to the next call).
+        """
         capture_frame_num = 0
         len_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -297,16 +360,40 @@ class ObservationFrameworkProcessor:
             if not got_frame:
                 # work around for gopro
                 continue
-                # break
 
-            analysis = FrameAnalysis(capture_frame_num, self.decoder)
+            camera_frame_number = starting_camera_frame_number + capture_frame_num
+
+            # check timeout after the last test ended event
+            if self.check_timeout(
+                self.last_end_of_test_camera_frame_num,
+                camera_frame_number,
+                self.end_of_session_timeout,
+            ):
+                break
+
+            # check timeout when no qr code is detected
+            if self.check_timeout(
+                self.no_qr_code_frame_num, camera_frame_number, self.no_qr_code_timeout
+            ):
+                break
+
+            analysis = FrameAnalysis(camera_frame_number, self.decoder)
             analysis.scan_all(image)
+            detected_qr_codes = analysis.all_codes()
+            if detected_qr_codes:
+                self.no_qr_code_frame_num = 0
+            else:
+                self.no_qr_code_frame_num = camera_frame_number
+
+            # print out where the processing is currently
+            if camera_frame_number % 10 == 0:
+                print(f"Processed to frame {camera_frame_number}...")
 
             (
                 new_mezzanine_qr_codes,
                 new_test_status_qr_code,
                 new_pre_test_qr_code,
-            ) = self._discard_duplicated_qr_code(analysis.all_codes())
+            ) = self._discard_duplicated_qr_code(detected_qr_codes)
 
             if new_mezzanine_qr_codes:
                 self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
@@ -317,5 +404,4 @@ class ObservationFrameworkProcessor:
 
             capture_frame_num += 1
 
-        # Make observations when recording reached the end
-        self._make_observations()
+        return capture_frame_num

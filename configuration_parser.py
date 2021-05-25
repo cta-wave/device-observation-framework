@@ -22,7 +22,8 @@ notice.
 
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
-Licensor: Eurofins Digital Product Testing UK Limited
+Licensor: Consumer Technology Association
+Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 from typing import Dict
@@ -48,8 +49,7 @@ class ConfigurationParser:
     test_config: str
     """configuration part extracted from test.json file"""
 
-    def __init__(self,
-                 global_configurations: GlobalConfigurations):
+    def __init__(self, global_configurations: GlobalConfigurations):
         self.server_url = global_configurations.get_test_runner_url()
 
         # if conf.ini DEBUG mode is set then read test configuration settings from
@@ -80,16 +80,22 @@ class ConfigurationParser:
         parameters_dict = {}
 
         for parameter in parameters:
-            try:
-                config_value = isodate.parse_duration(self.test_config[parameter])
-                ms = config_value.microseconds / 1000
-                s_to_ms = config_value.seconds * 1000
-                value = ms + s_to_ms
-                parameters_dict[parameter] = value
-            except KeyError as e:
-                raise Exception(
-                    f"Failed to get a parameter:{e} for the test '{test_path}'"
-                )
+            if parameter == "period_duration":
+                # TODO: hardcode this for now until the configuration is avalible on TR
+                # assume the period_duration 2 or 3 if not raise exception here
+                parameters_dict[parameter] = [20000, 20000, 20000]
+                # parameters_dict[parameter] = [20000, 20000]
+            else:
+                try:
+                    config_value = isodate.parse_duration(self.test_config[parameter])
+                    ms = config_value.microseconds / 1000
+                    s_to_ms = config_value.seconds * 1000
+                    value = ms + s_to_ms
+                    parameters_dict[parameter] = value
+                except KeyError as e:
+                    raise Exception(
+                        f"Failed to get a parameter:{e} for the test '{test_path}'"
+                    )
 
         return parameters_dict
 
