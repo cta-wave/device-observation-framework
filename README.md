@@ -82,6 +82,8 @@ The camera's requirements are:
 ### Recording environment set up
 The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
 
+**More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
+
 For the initial set up, in Test Runner select and run the "*/avc/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ).
 
 For the camera/device set up:
