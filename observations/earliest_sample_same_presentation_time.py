@@ -52,6 +52,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
+        _unused2,
     ) -> Dict[str, str]:
         """Observation is derived from SampleMatchesCurrentTime and uses the same observations logic
         But it checks for the 1st event only.

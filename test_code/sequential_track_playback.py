@@ -102,8 +102,13 @@ class SequentialTrackPlayback:
 
     def _init_parameters(self) -> None:
         """initialise the test_config_parameters required for the test"""
-        self.parameters = ["ts_max", "tolerance"]
-        self.content_parameters = ["cmaf_track_duration"]
+        self.parameters = [
+            "ts_max",
+            "tolerance"
+        ]
+        self.content_parameters = [
+            "cmaf_track_duration"
+        ]
 
     def _load_parameters_dict(
         self, configuration_parser: ConfigurationParser, test_path: str, test_code: str
@@ -137,6 +142,7 @@ class SequentialTrackPlayback:
         self,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
+        time_diff_file: str,
     ) -> List[dict]:
         """Make observations for the Test 8.2
 
@@ -171,7 +177,8 @@ class SequentialTrackPlayback:
                 self.test_type,
                 mezzanine_qr_codes,
                 test_status_qr_codes,
-                self.parameters_dict
+                self.parameters_dict,
+                time_diff_file,
             )
             results.append(result)
 

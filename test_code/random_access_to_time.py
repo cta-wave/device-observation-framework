@@ -37,8 +37,14 @@ class RandomAccessToTime(SequentialTrackPlayback):
     """
 
     def _init_parameters(self) -> None:
-        self.parameters = ["ts_max", "tolerance", "random_access_time"]
-        self.content_parameters = ["cmaf_track_duration"]
+        self.parameters = [
+            "ts_max",
+            "tolerance",
+            "random_access_time"
+        ]
+        self.content_parameters = [
+            "cmaf_track_duration"
+        ]
 
     def _get_first_frame_num(self, frame_rate: float) -> int:
         """return first frame number"""

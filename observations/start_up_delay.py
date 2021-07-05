@@ -83,6 +83,7 @@ class StartUpDelay(Observation):
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
+        _unused2,
     ) -> Dict[str, str]:
         """Implements the logic:
         start_up_delay = (QRa.first_camera_frame_num * camera_frame_duration_ms)
@@ -100,16 +101,19 @@ class StartUpDelay(Observation):
         """
         logger.info(f"Making observation {self.result['name']}...")
 
-        if not mezzanine_qr_codes:
+        if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "FAIL"
-            self.result["message"] = f"No QR mezzanine code detected."
+            self.result[
+                "message"
+            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result
 
         max_permitted_startup_delay_ms = parameters_dict["ts_max"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         first_frame_current_time = (
-            mezzanine_qr_codes[0].first_camera_frame_num * camera_frame_duration_ms
+            mezzanine_qr_codes[1].first_camera_frame_num * camera_frame_duration_ms
+            - float(1000 / mezzanine_qr_codes[0].frame_rate)
         )
 
         event_found, play_current_time = self._get_play_event(

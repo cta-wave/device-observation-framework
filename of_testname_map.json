@@ -36,8 +36,8 @@
         "SwitchingSetPlayback"
     ],
     "fullscreen-playback-of-switching-sets.html": [
-        "sequential_track_playback",
-        "SequentialTrackPlayback"
+        "switching_set_playback",
+        "SwitchingSetPlayback"
     ],
     "playback-of-encrypted-content.html": [
         "sequential_track_playback",

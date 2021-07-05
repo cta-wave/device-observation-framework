@@ -95,7 +95,8 @@ class DurationMatchesCMAFTrack(Observation):
         _unused1,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         _unused2,
-        parameters_dict: dict
+        parameters_dict: dict,
+        _unused3,
     ) -> Dict[str, str]:
         """Implements the logic:
         (QRn.last_camera_frame_num - QRa.first_camera_frame_num) * camera_frame_duration_ms
@@ -103,21 +104,21 @@ class DurationMatchesCMAFTrack(Observation):
         """
         logger.info(f"Making observation {self.result['name']}...")
 
-        if not mezzanine_qr_codes:
+        if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "FAIL"
             self.result[
                 "message"
-            ] = f"No mezzanine QR code detected."
+            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
-        last_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
+        last_frame_duration = 1000 / mezzanine_qr_codes[-1].frame_rate
         playback_duration = (
             mezzanine_qr_codes[-1].first_camera_frame_num
-            - mezzanine_qr_codes[0].first_camera_frame_num
-        ) * camera_frame_duration_ms + last_frame_duration
+            - mezzanine_qr_codes[1].first_camera_frame_num
+        ) * camera_frame_duration_ms + last_frame_duration + first_frame_duration
         expected_track_duration = parameters_dict["expected_track_duration"]
 
         starting_missing_frame = self._get_starting_missing_frame(

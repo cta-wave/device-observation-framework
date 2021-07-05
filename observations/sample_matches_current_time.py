@@ -26,9 +26,10 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import sys
+import csv
 
 from .observation import Observation
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from test_code.test import TestType
 
@@ -144,12 +145,28 @@ class SampleMatchesCurrentTime(Observation):
 
         return diff_found, time_diff
 
+    @staticmethod
+    def _write_time_differences(
+        time_diff_file: str, time_differences: List[Tuple[int, int]]
+    ):
+        """export time differences to csv file
+        """
+        logger.debug(f"Exporting time differences to csv file {time_diff_file}...")
+
+        with open(time_diff_file, "a") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Current Time", "Time Difference"])
+
+            for pairs in time_differences:
+                writer.writerow([pairs[0], round(pairs[1], 4)])
+
     def make_observation(
         self,
         test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
+        time_diff_file: str,
     ) -> Dict[str, str]:
         """Implements the logic:
         sample_tolerance_in_recording = 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
@@ -189,11 +206,14 @@ class SampleMatchesCurrentTime(Observation):
         if test_type == TestType.SPLICING:
             period_index = 0
             current_content_id = mezzanine_qr_codes[0].content_id
+            current_frame_rate = mezzanine_qr_codes[0].frame_rate
             for i in range(1, len(mezzanine_qr_codes)):
-                if mezzanine_qr_codes[i].content_id != current_content_id:
+                if (mezzanine_qr_codes[i].content_id != current_content_id or
+                    mezzanine_qr_codes[i].frame_rate != current_frame_rate):
                     # the content did change
                     period_index += 1
                     current_content_id = mezzanine_qr_codes[i].content_id
+                    current_frame_rate = mezzanine_qr_codes[i].frame_rate
 
                 if period_index > 0:
                     mezzanine_qr_codes[i].media_time += parameters_dict[
@@ -208,21 +228,22 @@ class SampleMatchesCurrentTime(Observation):
                     logger.debug(f"[{self.result['status']}]: {self.result['message']}")
                     return self.result
 
+        time_differences = []
+        
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
-            if (
-                current_status.status == "playing"
-                and current_status.last_action == "play"
-            ):
-
-                if i + 1 < len(test_status_qr_codes):
+            if i + 1 < len(test_status_qr_codes):
+                if (
+                    current_status.status == "playing"
+                    and current_status.last_action == "play"
+                ):
                     first_possible, last_possible = self._get_target_camera_frame_num(
-                        current_status.camera_frame_num,
-                        test_status_qr_codes[i + 1].delay,
-                        camera_frame_duration_ms,
-                        camera_frame_rate,
-                        mezzanine_qr_codes,
-                    )
+                            current_status.camera_frame_num,
+                            test_status_qr_codes[i + 1].delay,
+                            camera_frame_duration_ms,
+                            camera_frame_rate,
+                            mezzanine_qr_codes,
+                        )
                     diff_found, time_diff = self._find_diff_within_tolerance(
                         mezzanine_qr_codes,
                         current_status,
@@ -230,6 +251,9 @@ class SampleMatchesCurrentTime(Observation):
                         last_possible,
                         allowed_tolerance,
                     )
+                    # The multiplication happens so that we get the results in ms
+                    time_differences.append((current_status.current_time * 1000, time_diff))  
+
                     if not diff_found:
                         self.result["status"] = "FAIL"
                         if failure_report_count == 0:
@@ -254,4 +278,9 @@ class SampleMatchesCurrentTime(Observation):
             self.result["status"] = "PASS"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+
+        # Exporting time diff data to a CSV file
+        if time_diff_file and time_differences:
+            self._write_time_differences(time_diff_file, time_differences)
+
         return self.result
