@@ -30,30 +30,31 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class DecodedQr:
-    """Base class for decoded QR codes.
-    """
+    """Base class for decoded QR codes."""
 
     data: str
     """ qr code string"""
 
-    def __init__(
-        self,
-        data: str
-    ):
+    location: list
+    """qr code location"""
+
+    def __init__(self, data: str, location: list):
         self.data = data
+        self.location = location
 
     def __eq__(self, other) -> bool:
-        if (isinstance(other, DecodedQr)):
+        if isinstance(other, DecodedQr):
             return self.data == other.data
 
 
 class QrDecoder:
-    """Qr decoder - base class
-    """
+    """Qr decoder - base class"""
 
-    def translate_qr(self, data: str) -> DecodedQr:
-        """Base function for translate_qr
-        """
-        decoded_qr = DecodedQr(data)
+    def translate_qr(
+        self, data: str, location: list, camera_frame_num: int
+    ) -> DecodedQr:
+        """Base function for translate_qr"""
+        decoded_qr = DecodedQr(data, location)
         return decoded_qr

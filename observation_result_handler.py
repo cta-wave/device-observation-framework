@@ -35,7 +35,7 @@ import json
 from json.decoder import JSONDecodeError
 from typing import List
 from global_configurations import GlobalConfigurations
-from exceptions import ObsFrameError
+from exceptions import ObsFrameError, ConfigError
 
 
 logger = logging.getLogger(__name__)
@@ -127,6 +127,7 @@ class ObservationResultHandler:
     ) -> None:
         """Update result json file to add observation result to subtest section"""
         try:
+            matching_test_found = False
             with open(filename) as json_file:
                 data = json.load(json_file)
 
@@ -136,6 +137,14 @@ class ObservationResultHandler:
                             result_data["subtests"], observation_results
                         )
                         self._write_json(data, filename)
+                        matching_test_found = True
+                        break
+
+            if not matching_test_found:
+                raise ConfigError(
+                    f"Failed to find matching test from test result file, observation results cannot be updated. "
+                    f"Test path from tests.json is /{test_path}."
+                )
         except IOError as e:
             raise ObsFrameError(
                 f"Error: Unable to open the result file {filename}"
@@ -199,7 +208,10 @@ class ObservationResultHandler:
             # (only used for development)
             if (self.global_configurations.get_system_mode()) == "Debug":
                 debug_result_filename = (
-                    result_file_path + "/" + session_token + "/" + api_name + "_debug.json"
+                    result_file_path + "/"
+                    + session_token + "/"
+                    + test_path.replace("/", "-").replace(".html", "")
+                    + "_debug.json"
                 )
                 self._save_result_to_file(debug_result_filename, observation_results)
             else:

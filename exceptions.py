@@ -23,7 +23,6 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 
-
 class ObsFrameError(Exception):
     """Base for specific exceptions thrown by Observation Framework.
 
@@ -44,4 +43,9 @@ class ObsFrameTerminate(ObsFrameError):
     """Specific exceptions thrown by Observation Framework.
     when this is raised the Observation Framework will be terminated.
     """
+    pass
+
+
+class ConfigError(ObsFrameError):
+    """Specific exception to indicate config errors"""
     pass

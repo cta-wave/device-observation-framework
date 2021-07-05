@@ -41,6 +41,8 @@ _mezzanine_qr_data_re = re.compile(
 class MezzanineDecodedQr(DecodedQr):
     data: str
     """qr code string"""
+    location: list
+    """qr code location"""
 
     """A decoded QR code from Mezzanine content
     ID;HH:MM:SS.MMM;<frame #>;<frame-rate>
@@ -62,14 +64,16 @@ class MezzanineDecodedQr(DecodedQr):
     def __init__(
         self,
         data: str,
+        location: list,
         content_id: str,
         media_time: float,
         frame_number: int,
         frame_rate: float,
         camera_frame_num: int,
     ):
-        super().__init__(data)
+        super().__init__(data, location)
         self.data = data
+        self.location = location
         self.content_id = content_id
         self.media_time = media_time
         self.frame_number = frame_number
@@ -81,6 +85,8 @@ class MezzanineDecodedQr(DecodedQr):
 class TestStatusDecodedQr(DecodedQr):
     data: str
     """ qr code string"""
+    location: list
+    """qr code location"""
 
     """A decoded QR code for Test Runner status
     QR code in json format contain following info
@@ -96,14 +102,16 @@ class TestStatusDecodedQr(DecodedQr):
     def __init__(
         self,
         data: str,
+        location: list,
         status: str,
         last_action: str,
         current_time: float,
         delay: int,
         camera_frame_num: int,
     ):
-        super().__init__(data)
+        super().__init__(data, location)
         self.data = data
+        self.location = location
         self.status = status
         self.last_action = last_action
         self.current_time = current_time
@@ -114,6 +122,8 @@ class TestStatusDecodedQr(DecodedQr):
 class PreTestDecodedQr(DecodedQr):
     data: str
     """ qr code string"""
+    location: list
+    """qr code location"""
 
     """A decoded QR code for pre test
     QR code in json format contain following info
@@ -125,23 +135,25 @@ class PreTestDecodedQr(DecodedQr):
     """test id encoded in the test runner QR code.
     """
 
-    def __init__(self, data: str, session_token: str, test_id: str):
-        super().__init__(data)
+    def __init__(self, data: str, location: list, session_token: str, test_id: str):
+        super().__init__(data, location)
         self.data = data
+        self.location = location
         self.session_token = session_token
         self.test_id = test_id
 
 
 class DPCTFQrDecoder(QrDecoder):
     def _translate_qr_test_runner(
-        self, data: str, json_data, camera_frame_num: int
+        self, data: str, location: list, json_data, camera_frame_num: int
     ) -> DecodedQr:
         """translate different type of test runner qr code"""
-        code = DecodedQr("")
+        code = DecodedQr("", [])
 
         try:
             code = TestStatusDecodedQr(
                 data,
+                location,
                 json_data["s"],
                 json_data["a"],
                 float(json_data["ct"]),
@@ -152,6 +164,7 @@ class DPCTFQrDecoder(QrDecoder):
             try:
                 code = TestStatusDecodedQr(
                     data,
+                    location,
                     json_data["s"],
                     json_data["a"],
                     0,
@@ -162,16 +175,20 @@ class DPCTFQrDecoder(QrDecoder):
                 try:
                     code = TestStatusDecodedQr(
                         data,
+                        location,
                         json_data["s"],
                         json_data["a"],
                         0,
                         0,
-                        camera_frame_num
+                        camera_frame_num,
                     )
                 except Exception:
                     try:
                         code = PreTestDecodedQr(
-                            data, json_data["session_token"], json_data["test_id"]
+                            data,
+                            location,
+                            json_data["session_token"],
+                            json_data["test_id"],
                         )
                     except Exception:
                         logger.error(f"Unrecognised QR code detected: {data}")
@@ -196,7 +213,9 @@ class DPCTFQrDecoder(QrDecoder):
 
         return media_time
 
-    def translate_qr(self, data: str, camera_frame_num: int) -> DecodedQr:
+    def translate_qr(
+        self, data: str, location: list, camera_frame_num: int
+    ) -> DecodedQr:
         """Given a QR code as reported by pyzbar, parse the data and convert it to
         the format we use.
 
@@ -204,7 +223,7 @@ class DPCTFQrDecoder(QrDecoder):
 
         Mezzanine QR code is higher priority and test status than the start test QR code.
         """
-        code = DecodedQr("")
+        code = DecodedQr("", [])
 
         match = _mezzanine_qr_data_re.match(data)
         if match:
@@ -212,6 +231,7 @@ class DPCTFQrDecoder(QrDecoder):
             media_time = self._media_time_str_to_ms(match.group(2))
             code = MezzanineDecodedQr(
                 data,
+                location,
                 match.group(1),
                 media_time,
                 int(match.group(3)),
@@ -221,8 +241,12 @@ class DPCTFQrDecoder(QrDecoder):
         else:
             try:
                 json_data = json.loads(data)
-                code = self._translate_qr_test_runner(data, json_data, camera_frame_num)
+                code = self._translate_qr_test_runner(
+                    data, location, json_data, camera_frame_num
+                )
             except json.decoder.JSONDecodeError as e:
-                logger.error(f"Unrecognised QR code JSON detected in '{data}'. JSON err: {e}")
+                logger.error(
+                    f"Unrecognised QR code JSON detected in '{data}'. JSON err: {e}"
+                )
 
         return code

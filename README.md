@@ -82,7 +82,7 @@ The camera's requirements are:
 ### Recording environment set up
 The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
 
-**More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/How-to-take-clear-recordings-v2.pptx.zip .**
+**More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
 
 For the initial set up, in Test Runner select and run the "*/avc/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ).
 
@@ -94,6 +94,9 @@ For the camera/device set up:
 * The camera must be set to record at a minimum of 119 frames per second in full HD.
 * The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
 * Depending on the device and sofware being used to run the tests, some device/software specific configuration may be required. For e.g. by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into e.g. a "full screen" mode. If any part of a QR code is obscured then the Observation Framework cannot operate.
+
+Note: Minimizing time between the start of recording and when the pre-test QR code shows up 
+helps Device Observation Framework to process faster and give test results quicker.
 
 ### **Clear capture example:**
 
@@ -115,12 +118,19 @@ To run DPCTF Device Observation Framework enter:
 
 ```shell
 cd device-observation-framework
-python observation_framework.py --input <file>
+
+python observation_framework.py --input <file> --log <info|debug> --scan <general|intensive>
+
 OR
-python3 observation_framework.py --input <file>
+
+python3 observation_framework.py --input <file> --log <info|debug> --scan <general|intensive>
 
 (n.b. Python version must be 3.6 or greater)
 ```
+
+where **log** (optional) specifies log level. Default value is "info" when not specified. See "Additional Options" section below for more details.
+
+where **scan** (optional) specifies scan method to be used. Default value is "general" when not specified. See "Additional Options" section below for more details.
 
 where **file** specifies the path to the recording to be analysed:
 
@@ -136,11 +146,20 @@ alphabetically sort the filenames and use this as the recording order. If for a 
   If both these approaches fail then the user will need to rename the files such that when alphabetically
   sorted they are in the correct order.
 
-
 The Observation Framework will analyse the recording and post the results to the Test Runner for viewing on Test Runner's results pages. Note that the observation processing may take considerable time, depending on the duration of the session recording.
+
+When a selected test includes an observation *"The presented sample matches the one reported by the currentTime value within the tolerance of the sample duration."*, a CSV file contains observation data will be generated at ```logs/<session-id>/<test-path>_time_diff.csv```. Where is contains current times and calculated time differences between current time and media time.
 
 At the end of the process the Observation Framework will rename the file recording to:
 ```<file_name>_dpctf_<session-id>.<extension>```
+
+**Additional Options:**
+* When ```--log debug``` is selected, full QR code detection will be extracted to a CSV file at ```logs/<session-id>/qr_code_list.csv```, and the system displays more information to the terminal as well as to a log file ```logs/<session-id>/session.log```.
+This includes information such as decoding of QR codes:
+    * Content ID, Media Time, Frame Number, Frame Rate
+    * Status, Action, Current Time, Delay
+
+* ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adpativethresholded scan, however this will increase prossing time. This option is to be used where it is difficult to take clear repcordings, such as testing on a small screen devices like mobile phones.
 
 ## Troubleshooting
 

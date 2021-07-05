@@ -64,7 +64,6 @@ class LogManager:
 
         # define a Handler which writes INFO messages and higher to sys.stderr
         console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
         formatter = logging.Formatter("%(levelname)-8s %(message)s")
         console.setFormatter(formatter)
         logging.getLogger("").addHandler(console)

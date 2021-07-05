@@ -46,8 +46,14 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
 
     def _init_parameters(self) -> None:
         """initialise the test_config_parameters required for the test"""
-        self.parameters = ["ts_max", "tolerance"]
-        self.content_parameters = ["cmaf_track_duration", "period_duration"]
+        self.parameters = [
+            "ts_max",
+            "tolerance"
+        ]
+        self.content_parameters = [
+            "cmaf_track_duration",
+            "period_duration"
+        ]
 
     def _get_last_frame_num(self, frame_rate: float) -> int:
         """return last frame number

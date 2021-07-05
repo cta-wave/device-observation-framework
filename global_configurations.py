@@ -98,6 +98,15 @@ class GlobalConfigurations:
             missing_frame_threshold = 0
         return missing_frame_threshold
 
+    def get_consecutive_no_qr_threshold(self) -> int:
+        try:
+            consecutive_no_qr_threshold = int(
+                self.config["GENERAL"]["consecutive_no_qr_threshold"]
+            )
+        except KeyError:
+            consecutive_no_qr_threshold = 0
+        return consecutive_no_qr_threshold
+
     def get_end_of_session_timeout(self) -> int:
         try:
             end_of_session_timeout = int(
@@ -115,6 +124,24 @@ class GlobalConfigurations:
         except KeyError:
             no_qr_code_timeout = 5
         return no_qr_code_timeout
+
+    def get_search_qr_area_to(self) -> int:
+        try:
+            search_qr_area_to = int(
+                self.config["GENERAL"]["search_qr_area_to"]
+            )
+        except KeyError:
+            search_qr_area_to = 60
+        return search_qr_area_to
+
+    def get_qr_area_margin(self) -> int:
+        try:
+            qr_area_margin = int(
+                self.config["GENERAL"]["qr_area_margin"]
+            )
+        except KeyError:
+            qr_area_margin = 50
+        return qr_area_margin
 
     def get_tolerances(self) -> Dict[str, int]:
         tolerances = {

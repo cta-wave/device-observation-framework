@@ -51,5 +51,5 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
         ]
         self.content_parameters = [
             "cmaf_track_duration",
-            "fragment_duration"
+            "fragment_duration_list"
         ]
