@@ -159,7 +159,7 @@ This includes information such as decoding of QR codes:
     * Content ID, Media Time, Frame Number, Frame Rate
     * Status, Action, Current Time, Delay
 
-* ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adpativethresholded scan, however this will increase prossing time. This option is to be used where it is difficult to take clear repcordings, such as testing on a small screen devices like mobile phones.
+* ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adaptive thresholded scan, however this will increase prossing time. This option is to be used where it is difficult to take clear repcordings, such as testing on a small screen devices like mobile phones.
 
 ## Troubleshooting
 
