@@ -48,29 +48,29 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         """initialise the test_config_parameters required for the test"""
         self.parameters = [
             "ts_max",
-            "tolerance"
+            "tolerance",
+            "playout"
         ]
         self.content_parameters = [
-            "cmaf_track_duration",
-            "period_duration"
+            "fragment_duration_multi_mpd"
         ]
 
     def _get_last_frame_num(self, frame_rate: float) -> int:
         """return last frame number
-        this is calculated based on last period duration
+        this is calculated based on last track duration
         """
-        last_frame_num = round(
-            self.parameters_dict["period_duration"][-1]
-            / 1000
-            * frame_rate
-        )
+        last_playout = self.parameters_dict["playout"][-1]
+        fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][(last_playout[0], last_playout[1])]
+        last_track_duration = fragment_duration * last_playout[2]
+        last_frame_num = round(last_track_duration / 1000 * frame_rate)
         return last_frame_num
 
     def _get_expected_track_duration(self) -> float:
         """return expected CMAF duration
-        for splicing test this is sum of all period duration
+        for splicing test this is sum of all fragment duration from the playout
         """
         cmaf_track_duration = 0
-        for duration in self.parameters_dict["period_duration"]:
-            cmaf_track_duration += duration
+        for playout in self.parameters_dict["playout"]:
+            fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][(playout[0], playout[1])]
+            cmaf_track_duration += fragment_duration
         return cmaf_track_duration

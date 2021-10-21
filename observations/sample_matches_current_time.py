@@ -32,6 +32,8 @@ from .observation import Observation
 from typing import List, Dict, Tuple
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from test_code.test import TestType
+from configuration_parser import PlayoutParser
+from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +49,13 @@ class SampleMatchesCurrentTime(Observation):
     The presented sample matches the one reported by the currentTime value within the tolerance of the sample duration.
     """
 
-    def __init__(self, _, name: str = None):
+    def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
         if name is None:
             name = (
                 "[OF] The presented sample matches the one reported by the currentTime value within the "
                 "tolerance of the sample duration."
             )
-        super().__init__(name)
+        super().__init__(name, global_configurations)
 
     @staticmethod
     def _get_target_camera_frame_num(
@@ -62,7 +64,8 @@ class SampleMatchesCurrentTime(Observation):
         camera_frame_duration_ms: float,
         camera_frame_rate: float,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
-    ) -> (float, float):
+        ct_frame_tolerance: int
+    ) -> (Tuple[float, float]):
         """Calculate expected target camera frame numbers of the current time event
         by compensating for the delay in the QR code generation and applying tolerances.
         sample_tolerance_in_recording = 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
@@ -74,6 +77,7 @@ class SampleMatchesCurrentTime(Observation):
             camera_frame_duration_ms (float): duration of a camera frame on msecs.
             camera_frame_rate: recording frame rate
             mezzanine_qr_codes (List[MezzanineDecodedQr]): Ordered list of unique mezzanine QR codes found.
+            ct_frame_tolerance(int): OF tolerance of frame number configured in config.ini
 
         Returns:
             First and last possible camera frame numbers which we expect may match the status event QR currentTime.
@@ -86,7 +90,7 @@ class SampleMatchesCurrentTime(Observation):
                 mezzanine_frame_rate = mezzanine_qr_codes[i - 1].frame_rate
                 break
 
-        sample_tolerance_in_recording = camera_frame_rate / mezzanine_frame_rate
+        sample_tolerance_in_recording = ct_frame_tolerance * camera_frame_rate / mezzanine_frame_rate
         first_possible = (
             target_camera_frame_num
             - CAMERA_FRAME_ADJUSTMENT
@@ -107,7 +111,8 @@ class SampleMatchesCurrentTime(Observation):
         first_possible: float,
         last_possible: float,
         allowed_tolerance: float,
-    ) -> (bool, float):
+        ct_frame_tolerance: int
+    ) -> (Tuple[bool, float]):
         """Applies the logic:
         for first_possible_camera_frame_num_of_target to last_possible_camera_frame_num_of_target
             foreach mezzanine_qr_code on camera_frame
@@ -120,6 +125,7 @@ class SampleMatchesCurrentTime(Observation):
             first_possible (float): First point (as fractional camera frame number) that could contain currentTime.
             last_possible (float): Last point (as fractional camera frame number) that could contain currentTime.
             allowed_tolerance (float): Test-specific tolerance as specified in test-config.json.
+            ct_frame_tolerance(int): OF tolerance of frame number configured in config.ini.
 
         Returns:
             (bool, float): True if time difference passed, Actual time difference detected.
@@ -139,7 +145,7 @@ class SampleMatchesCurrentTime(Observation):
                 if new_time_diff < time_diff:
                     time_diff = new_time_diff
 
-                if time_diff <= allowed_tolerance + 1000 / code.frame_rate:
+                if time_diff <= allowed_tolerance + ct_frame_tolerance * 1000 / code.frame_rate:
                     diff_found = True
                     break
 
@@ -169,9 +175,9 @@ class SampleMatchesCurrentTime(Observation):
         time_diff_file: str,
     ) -> Dict[str, str]:
         """Implements the logic:
-        sample_tolerance_in_recording = 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
-            = camera_frame_rate/mezzanine_frame_rate
-        sample_tolerance = 1000/mezzanine_frame_rate
+        sample_tolerance_in_recording = ct_frame_tolerance * 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
+            = ct_frame_tolerance * camera_frame_rate/mezzanine_frame_rate
+        sample_tolerance = ct_frame_tolerance * 1000/mezzanine_frame_rate
 
         target_camera_frame_num_of_ct_event
             = ct_event.first_seen_camera_frame_num - (ct_event.d / camera_frame_duration_ms)
@@ -195,6 +201,7 @@ class SampleMatchesCurrentTime(Observation):
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
+        ct_frame_tolerance = self.tolerances["ct_frame_tolerance"]
         allowed_tolerance = parameters_dict["tolerance"]
         failure_report_count = 0
         self.result["message"] += f" Allowed tolerance is {allowed_tolerance}."
@@ -204,29 +211,28 @@ class SampleMatchesCurrentTime(Observation):
         # media time for period 3 starts from where it was left but need to add the ad insertion duration
         # so the actual media time is += period_duration[1]
         if test_type == TestType.SPLICING:
+            period_list = PlayoutParser.get_splicing_period_list(
+                parameters_dict["playout"], parameters_dict["fragment_duration_multi_mpd"]
+            )
+            change_type_list = PlayoutParser.get_change_type_list(parameters_dict["playout"])
+
             period_index = 0
+            change_count = 0
             current_content_id = mezzanine_qr_codes[0].content_id
             current_frame_rate = mezzanine_qr_codes[0].frame_rate
             for i in range(1, len(mezzanine_qr_codes)):
                 if (mezzanine_qr_codes[i].content_id != current_content_id or
                     mezzanine_qr_codes[i].frame_rate != current_frame_rate):
                     # the content did change
-                    period_index += 1
+                    change_count += 1
                     current_content_id = mezzanine_qr_codes[i].content_id
                     current_frame_rate = mezzanine_qr_codes[i].frame_rate
 
-                if period_index > 0:
-                    mezzanine_qr_codes[i].media_time += parameters_dict[
-                        "period_duration"
-                    ][period_index - 1]
+                    if change_type_list[change_count-1] == "splicing":
+                        period_index += 1
 
-                if period_index > len(parameters_dict["period_duration"]):
-                    self.result["status"] = "FAIL"
-                    self.result[
-                        "message"
-                    ] += f" The number of periods does not match with the configuration. "
-                    logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-                    return self.result
+                if period_index > 0:
+                    mezzanine_qr_codes[i].media_time += period_list[period_index - 1]
 
         time_differences = []
         
@@ -243,6 +249,7 @@ class SampleMatchesCurrentTime(Observation):
                             camera_frame_duration_ms,
                             camera_frame_rate,
                             mezzanine_qr_codes,
+                            ct_frame_tolerance
                         )
                     diff_found, time_diff = self._find_diff_within_tolerance(
                         mezzanine_qr_codes,
@@ -250,6 +257,7 @@ class SampleMatchesCurrentTime(Observation):
                         first_possible,
                         last_possible,
                         allowed_tolerance,
+                        ct_frame_tolerance
                     )
                     # The multiplication happens so that we get the results in ms
                     time_differences.append((current_status.current_time * 1000, time_diff))  

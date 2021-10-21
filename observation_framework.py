@@ -49,7 +49,7 @@ from log_handler import LogManager
 
 MAJOR = 1
 MINOR = 0
-PATCH = 1
+PATCH = 2
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
 
 logger = logging.getLogger(__name__)

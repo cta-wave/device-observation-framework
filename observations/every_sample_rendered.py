@@ -32,6 +32,7 @@ from dpctf_qr_decoder import MezzanineDecodedQr
 from global_configurations import GlobalConfigurations
 from exceptions import ObsFrameTerminate
 from test_code.test import TestType
+from configuration_parser import PlayoutParser
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +207,53 @@ class EverySampleRendered(Observation):
 
         return check
 
+    def get_content_change_position(
+        self,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+    ) -> List[int]:
+        """ loop through the detected mezzanine list to save 
+        content change positions
+        """
+        current_content_id = mezzanine_qr_codes[0].content_id
+        current_frame_rate = mezzanine_qr_codes[0].frame_rate
+        change_starting_index_list = [0]
+        for i in range(1, len(mezzanine_qr_codes)):
+            if (
+                mezzanine_qr_codes[i].content_id != current_content_id
+                or mezzanine_qr_codes[i].frame_rate != current_frame_rate
+            ):
+                # the content did change save the starting index
+                change_starting_index_list.append(i)
+                current_content_id = mezzanine_qr_codes[i].content_id
+                current_frame_rate = mezzanine_qr_codes[i].frame_rate
+        return change_starting_index_list
+
+    def check_every_frame_by_block(
+        self,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        change_index_list: List[int],
+        playout_sequence: List[int]
+    ) -> bool:
+        """check mid frames for block by block
+        each block is different track
+        """
+        mid_frame_result = True
+        for i, starting_index in enumerate(change_index_list):   
+            if starting_index == change_index_list[-1]:
+                # check mid frames for last block
+                mid_frame_result = mid_frame_result and self._check_every_frame(
+                    mezzanine_qr_codes[change_index_list[-1]:],
+                    playout_sequence[-1]
+                )
+            else:
+                last_index = change_index_list[i + 1] - 1
+                mid_frame_result = mid_frame_result and self._check_every_frame(
+                    mezzanine_qr_codes[starting_index:last_index],
+                    playout_sequence[i]
+                )
+
+        return mid_frame_result
+
     def observe_switching_mid_frame(
         self,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
@@ -216,37 +264,25 @@ class EverySampleRendered(Observation):
         playback more than one representations
 
         Parse playout parameter to a list of switching point in media timeline
-        switching_times: a list of switching point in media timeline
+        switching_positions: a list of switching position in media timeline
 
         check every switching points starting frame and ending frame
         check that the samples shall be rendered in increasing order within the same representations
         for QRb to QRn: QR[i-1].mezzanine_frame_num + 1 == QR[i].mezzanine_frame_num
         """
-        switching_times = []
-        switching_point = 0
-        switching_times.append(switching_point)
-        playout_sequence = [playout[0]]
+        switching_positions = []
+        switching_position = 0
+        switching_positions.append(switching_position)
         for i in range(1, len(playout)):
-            switching_point += fragment_duration_list[playout[i]]
+            switching_position += fragment_duration_list[playout[i]]
+            # when track change
             if playout[i] != playout[i - 1]:
-                switching_times.append(switching_point)
-                playout_sequence.append(playout[i])
+                switching_positions.append(switching_position)
 
-        current_content_id = mezzanine_qr_codes[0].content_id
-        current_frame_rate = mezzanine_qr_codes[0].frame_rate
-        change_switching_index_list = [0]
-        for i in range(1, len(mezzanine_qr_codes)):
-            if (
-                mezzanine_qr_codes[i].content_id != current_content_id
-                or mezzanine_qr_codes[i].frame_rate != current_frame_rate
-            ):
-                # the content did change
-                change_switching_index_list.append(i)
-                current_content_id = mezzanine_qr_codes[i].content_id
-                current_frame_rate = mezzanine_qr_codes[i].frame_rate
+        change_switching_index_list = self.get_content_change_position(mezzanine_qr_codes)
 
-        # check configuration and actual switching matches and validate configuration
-        configured_switching_num = len(switching_times)
+        # check configuration and actual switching matches
+        configured_switching_num = len(switching_positions)
         actual_switching_num = len(change_switching_index_list)
         if actual_switching_num != configured_switching_num:
             self.result["message"] += (
@@ -256,37 +292,18 @@ class EverySampleRendered(Observation):
             )
             return False
 
-        if configured_switching_num == 1:
-            self.result["message"] += (
-                f" Switching test configuration is not correct on Test Runner. "
-                f"The switching test should switch at least once. "
-            )
-            return False
-
         # check mid frames block by block
-        
-        mid_frame_result = True
-        for i, starting_index in enumerate(change_switching_index_list):            
-            if starting_index == change_switching_index_list[-1]:
-                # check mid frames for last block
-                check_frame_result = self._check_every_frame(
-                    mezzanine_qr_codes[change_switching_index_list[-1]:],
-                    playout_sequence[-1]
-                )
-                mid_frame_result = mid_frame_result and check_frame_result
-            else:
-                last_index = change_switching_index_list[i + 1] - 1
-                check_frame_result = self._check_every_frame(
-                    mezzanine_qr_codes[starting_index:last_index],
-                    playout_sequence[i]
-                )
-                mid_frame_result = mid_frame_result and check_frame_result
+        playout_sequence = PlayoutParser.get_playout_sequence(playout)
+        mid_frame_result = self.check_every_frame_by_block(
+            mezzanine_qr_codes, change_switching_index_list, playout_sequence
+        )
+        for i, starting_index in enumerate(change_switching_index_list):
             if i > 0:
                 # check previous ending frame and new starting frame numbers
                 # the expected frame number position in the content being switched from is the expected relative time
                 # of the switch (derived from the test config) * that content's frames per second
                 previous_ending_frame_num = round(
-                    switching_times[i]
+                    switching_positions[i]
                     / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
@@ -307,7 +324,7 @@ class EverySampleRendered(Observation):
                 # compare expected with the actual frame number detected at this switch point
                 current_starting_frame_num = (
                     round(
-                        switching_times[i]
+                        switching_positions[i]
                         / 1000
                         * mezzanine_qr_codes[starting_index].frame_rate
                     )
@@ -327,75 +344,64 @@ class EverySampleRendered(Observation):
         return mid_frame_result
 
     def observe_splicing_mid_frame(
-        self, mezzanine_qr_codes: List[MezzanineDecodedQr], period_duration: List[float]
+        self, mezzanine_qr_codes: List[MezzanineDecodedQr],
+        playouts: List[List[int]],
+        fragment_duration_multi_mpd: dict
     ) -> bool:
-        """splicing set tests has 2 or 3 playback periods
-        3 perids: main content - ad insertion - main content
-        2 perids: main content - ad insertion
+        """playout[i]: Provides the triple (Switching Set, CMAF track number, Fragment number) 
+        for every playout position i=1,…,N that is be played out.
 
         on each splicing point:
             check previous ending and new starting frames are correct for each periods
             check that the samples shall be rendered in increasing order within the same period
             for QRb to QRn: QR[i-1].mezzanine_frame_num + 1 == QR[i].mezzanine_frame_num
         """
-        current_content_id = mezzanine_qr_codes[0].content_id
-        current_frame_rate = mezzanine_qr_codes[0].frame_rate
-        period_starting_index_list = [0]
-        for i in range(1, len(mezzanine_qr_codes)):
-            if (
-                mezzanine_qr_codes[i].content_id != current_content_id
-                or mezzanine_qr_codes[i].frame_rate != current_frame_rate
-            ):
-                # the content did change
-                period_starting_index_list.append(i)
-                current_content_id = mezzanine_qr_codes[i].content_id
-                current_frame_rate = mezzanine_qr_codes[i].frame_rate
-
-        configured_splicing_num = len(period_duration)
-        actual_splicing_num = len(period_starting_index_list)
-        if actual_splicing_num != configured_splicing_num:
-            self.result["message"] += (
-                f" Number of splices does not match. "
-                f"Test is configured to splice {configured_splicing_num} times. "
-                f"Actual number of splices is {actual_splicing_num}. "
-            )
-            return False
-
-        if configured_splicing_num != 3 and configured_splicing_num != 2:
-            self.result["message"] += (
-                f" Number of splices is incorrect. "
-                f"The splicing test should splice 2 or 3 times. "
-                f"but the configured number of splices is {configured_splicing_num}. "
-            )
-            return False
-
         splice_start_frame_num_tolerance = self.tolerances[
             "splice_start_frame_num_tolerance"
         ]
         splice_end_frame_num_tolerance = self.tolerances[
             "splice_end_frame_num_tolerance"
         ]
-        # check mid frames block by block
+
+        change_starting_index_list = self.get_content_change_position(mezzanine_qr_codes)
+        change_type_list = PlayoutParser.get_change_type_list(playouts)
+        ending_playout_list = PlayoutParser.get_ending_playout_list(playouts)
+        starting_playout_list = PlayoutParser.get_starting_playout_list(playouts)
+
+        # check if the configured content change and actual content change matches
+        # if not report error
+        actual_change_num = len(change_starting_index_list)
+        configured_change_num = len(change_type_list) + 1
+        if actual_change_num != configured_change_num:
+            self.result["message"] += (
+                f" Number of changes does not match the 'playout' configuration. "
+                f"Test is configured to change {configured_change_num} times. "
+                f"Actual number of change is {actual_change_num}. "
+            )
+            return False
+        # check mid frames block by block based on the starting index of content change
         mid_frame_result = True
-        for i, starting_index in enumerate(period_starting_index_list):
-            if starting_index == period_starting_index_list[-1]:
+        for i, starting_index in enumerate(change_starting_index_list):
+            if starting_index == change_starting_index_list[-1]:
                 # check mid frames for last block
-                mid_frame_result = mid_frame_result and self._check_every_frame(
-                    mezzanine_qr_codes[period_starting_index_list[-1]:]
+                check_frame_result = mid_frame_result and self._check_every_frame(
+                    mezzanine_qr_codes[change_starting_index_list[-1]:]
                 )
+                mid_frame_result = mid_frame_result and check_frame_result
             else:
-                last_index = period_starting_index_list[i + 1] - 1
-                mid_frame_result = mid_frame_result and self._check_every_frame(
+                last_index = change_starting_index_list[i + 1] - 1
+                check_frame_result = mid_frame_result and self._check_every_frame(
                     mezzanine_qr_codes[starting_index:last_index]
                 )
+                mid_frame_result = mid_frame_result and check_frame_result
 
             if i > 0:
                 # check previous ending frame and new starting frame numbers
-                # the expected frame number position in the content being switched from is the expected relative time
-                # of the switch (derived from the test config) * that content's frames per second
+                ending_playout = ending_playout_list[i -1]
+                ending_fragment_duration = fragment_duration_multi_mpd[(ending_playout[0], ending_playout[1])]
+                ending_fragment_num = ending_playout[2]
                 previous_ending_frame_num = round(
-                    period_duration[i]
-                    / 1000
+                    ending_fragment_num * ending_fragment_duration / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
 
@@ -405,41 +411,58 @@ class EverySampleRendered(Observation):
                     - previous_ending_frame_num
                 )
 
-                if diff_ending_frame > splice_end_frame_num_tolerance:
-                    mid_frame_result = False
-                    self.result["message"] += (
-                        f" Ending with incorrect frame when splicing at period number {i}. "
-                        f"Ending frame found is {mezzanine_qr_codes[starting_index -1].frame_number }, "
-                        f"expected to end with {previous_ending_frame_num}. "
-                        f"Splice end frame tolerance is {splice_end_frame_num_tolerance}."
-                    )
-
-                if i == 2:
-                    # if splice back to the main content start from where it left off
-                    current_starting_frame_num = (
-                        round(
-                            period_duration[0]
-                            / 1000
-                            * mezzanine_qr_codes[starting_index].frame_rate
+                if change_type_list[i-1] == "splicing":
+                    if diff_ending_frame > splice_end_frame_num_tolerance:
+                        mid_frame_result = False
+                        self.result["message"] += (
+                            f" Ending with incorrect frame when splicing at period number {i}. "
+                            f"Ending frame found is {mezzanine_qr_codes[starting_index -1].frame_number }, "
+                            f"expected to end with {previous_ending_frame_num}. "
+                            f"Splice end frame tolerance is {splice_end_frame_num_tolerance}."
                         )
-                        + 1
-                    )
                 else:
-                    current_starting_frame_num = 1
+                    if diff_ending_frame > 0:
+                        mid_frame_result = False
+                        self.result["message"] += (
+                            f" Ending with incorrect frame when switching at number {i}. "
+                            f"Ending frame found is {mezzanine_qr_codes[starting_index -1].frame_number }, "
+                            f"expected to end with {previous_ending_frame_num}. "
+                        )
+
+                starting_playout = starting_playout_list[i -1]
+                starting_fragment_duration = fragment_duration_multi_mpd[(starting_playout[0], starting_playout[1])]
+                starting_fragment_num = starting_playout[2] - 1
+                current_starting_frame_num = (
+                    round(
+                        starting_fragment_num * starting_fragment_duration / 1000
+                        * mezzanine_qr_codes[starting_index].frame_rate
+                    )
+                    + 1
+                )
 
                 # compare expected with the actual frame number detected at this splice point
                 diff_starting_frame = abs(
                     mezzanine_qr_codes[starting_index].frame_number
                     - current_starting_frame_num
                 )
-                if diff_starting_frame > splice_start_frame_num_tolerance:
-                    mid_frame_result = False
-                    self.result["message"] += (
-                        f" Starting from incorrect frame when splicing at period number {i + 1}. "
-                        f"Starting frame found is {mezzanine_qr_codes[starting_index].frame_number }, "
-                        f"expected to start from {current_starting_frame_num}. "
-                        f"Splice start frame tolerance is {splice_start_frame_num_tolerance}."
-                    )
+
+                if change_type_list[i-1] == "splicing":
+                    if diff_starting_frame > splice_start_frame_num_tolerance:
+                        mid_frame_result = False
+                        self.result["message"] += (
+                            f" Starting from incorrect frame when splicing at period number {i + 1}. "
+                            f"Starting frame found is {mezzanine_qr_codes[starting_index].frame_number }, "
+                            f"expected to start from {current_starting_frame_num}. "
+                            f"Splice start frame tolerance is {splice_start_frame_num_tolerance}."
+                        )
+                else:
+                    if diff_starting_frame > 0:
+                        mid_frame_result = False
+                        self.result["message"] += (
+                            f" Starting from incorrect frame when switching at number {i + 1}. "
+                            f"Starting frame found is {mezzanine_qr_codes[starting_index].frame_number }, "
+                            f"expected to start from {current_starting_frame_num}. "
+                        )
 
         return mid_frame_result
 
@@ -488,14 +511,17 @@ class EverySampleRendered(Observation):
         )
 
         if test_type == TestType.SWITCHING:
+            switching_playout = PlayoutParser.get_switching_playout(parameters_dict["playout"])
             mid_frame_result = self.observe_switching_mid_frame(
                 mezzanine_qr_codes,
-                parameters_dict["playout"],
+                switching_playout,
                 parameters_dict["fragment_duration_list"],
             )
         elif test_type == TestType.SPLICING:
             mid_frame_result = self.observe_splicing_mid_frame(
-                mezzanine_qr_codes, parameters_dict["period_duration"]
+                mezzanine_qr_codes,
+                parameters_dict["playout"],
+                parameters_dict["fragment_duration_multi_mpd"],
             )
         else:
             # check that the samples shall be rendered in increasing order:

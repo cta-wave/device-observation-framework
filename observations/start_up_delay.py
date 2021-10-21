@@ -44,39 +44,6 @@ class StartUpDelay(Observation):
             "[OF] The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax."
         )
 
-    @staticmethod
-    def _get_play_event(
-        test_status_qr_codes: List[TestStatusDecodedQr],
-        camera_frame_duration_ms: float,
-    ) -> (bool, float):
-        """loop through event qr code to find 1st playing play event
-
-        Args:
-            test_status_qr_codes (List[TestStatusDecodedQr]): Test Status QR codes list containing
-                currentTime as reported by MSE.
-            camera_frame_duration_ms (float): duration of a camera frame on msecs.
-
-        Returns:
-            (bool, float): True if the 1st play event is found, play_current_time from the 1st test runner play event.
-        """
-        for i in range(0, len(test_status_qr_codes)):
-            current_status = test_status_qr_codes[i]
-
-            # check for the 1st play action from TR events
-            if current_status.last_action == "play":
-                play_event_camera_frame_num = current_status.camera_frame_num
-
-                if i + 1 < len(test_status_qr_codes):
-                    next_status = test_status_qr_codes[i + 1]
-                    previous_qr_generation_delay = next_status.delay
-                    play_current_time = (
-                        play_event_camera_frame_num * camera_frame_duration_ms
-                    ) - previous_qr_generation_delay
-                    return True, play_current_time
-                break
-
-        return False, 0
-
     def make_observation(
         self,
         _unused,
@@ -111,22 +78,33 @@ class StartUpDelay(Observation):
 
         max_permitted_startup_delay_ms = parameters_dict["ts_max"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        first_frame_current_time = (
-            mezzanine_qr_codes[1].first_camera_frame_num * camera_frame_duration_ms
-            - float(1000 / mezzanine_qr_codes[0].frame_rate)
-        )
 
-        event_found, play_current_time = self._get_play_event(
+        event_found, play_ct = Observation._get_play_event(
             test_status_qr_codes, camera_frame_duration_ms
         )
+
+        frame_change_found = False
+        for mezzanine_qr_code in mezzanine_qr_codes:
+            frame_ct = (
+                mezzanine_qr_code.first_camera_frame_num * camera_frame_duration_ms
+            )
+            if frame_ct > play_ct:
+                frame_change_found = True
+                break
+        
         if not event_found:
             self.result["status"] = "FAIL"
             self.result["message"] = (
                 f"A test status QR code with first 'play' last_action "
                 f"followed by a further test status QR code was not found."
             )
+        elif not frame_change_found:
+            self.result["status"] = "FAIL"
+            self.result["message"] = (
+                f"No frame change detected after 'play'."
+            )
         else:
-            start_up_delay = first_frame_current_time - play_current_time
+            start_up_delay = frame_ct - play_ct
             self.result["message"] = (
                 f"Maximum permitted startup delay is {max_permitted_startup_delay_ms}ms."
                 f"The presentation start up delay is {round(start_up_delay, 4)}ms"

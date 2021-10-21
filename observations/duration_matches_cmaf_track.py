@@ -28,13 +28,10 @@ import logging
 
 from .observation import Observation
 from typing import List, Dict
-from dpctf_qr_decoder import MezzanineDecodedQr
+from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
-
-DURATION_TOLERANCE_MS = 10
-
 
 class DurationMatchesCMAFTrack(Observation):
     """DurationMatchesCMAFTrack class
@@ -50,59 +47,65 @@ class DurationMatchesCMAFTrack(Observation):
         self, expected_first_frame_num: int, first_qr_code: MezzanineDecodedQr
     ) -> int:
         """return missing starting frame numbers that take account in duration check
-        when missing_frames exceed the start_frame_num_tolerance
-        duration check only take account start_frame_num_tolerance 
-
         Args:
             expected_first_frame_num: expected frame number of the first frame
             first_qr_code: first MezzanineDecodedQr from MezzanineDecodedQr lists
-
         Returns:
             int: missing frame numbers on starting that take account in duration check
         """
-        start_frame_num_tolerance = self.tolerances["start_frame_num_tolerance"]
         missing_frames = first_qr_code.frame_number - expected_first_frame_num
-
-        if start_frame_num_tolerance < abs(missing_frames):
-            missing_frames = start_frame_num_tolerance
-
         return missing_frames
 
     def _get_ending_missing_frame(
         self, expected_last_frame_num: int, last_qr_code: MezzanineDecodedQr
     ) -> int:
         """Return missing ending frame numbers that take account in duration check
-        when missing_frames exceed the end_frame_num_tolerance
-        duration check only take account end_frame_num_tolerance 
-
         Args:
             expected_last_frame_num: expected frame number of the last frame
             last_qr_code: last  MezzanineDecodedQr from MezzanineDecodedQr lists
-
         Returns:
-            int: missing frame numbers om ending that take account in duration check
+            int: missing frame numbers on ending that take account in duration check
         """
-        end_frame_num_tolerance = self.tolerances["end_frame_num_tolerance"]
         missing_frames = expected_last_frame_num - last_qr_code.frame_number
-
-        if end_frame_num_tolerance < abs(missing_frames):
-            missing_frames = end_frame_num_tolerance
-
         return missing_frames
+
+    @staticmethod
+    def get_frame_change_after_play(
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        test_status_qr_codes: List[TestStatusDecodedQr],
+        camera_frame_duration_ms: dict,
+    ) -> int:
+        first_play_qr_index = 0
+        event_found, play_ct = Observation._get_play_event(
+            test_status_qr_codes, camera_frame_duration_ms
+        )
+
+        if event_found:
+            for i, mezzanine_qr_code in enumerate(mezzanine_qr_codes):
+                frame_ct = (
+                    mezzanine_qr_code.first_camera_frame_num * camera_frame_duration_ms
+                )
+                print("play_ct", play_ct, "frame_ct", frame_ct)
+                if frame_ct >= play_ct:
+                    first_play_qr_index = i
+                    break
+        print(first_play_qr_index)
+        return first_play_qr_index
 
     def make_observation(
         self,
         _unused1,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
-        _unused2,
+        test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
-        _unused3,
+        _unused2,
     ) -> Dict[str, str]:
         """Implements the logic:
         (QRn.last_camera_frame_num - QRa.first_camera_frame_num) * camera_frame_duration_ms
         == expected_track_duration +/- tolerance
         """
         logger.info(f"Making observation {self.result['name']}...")
+        duration_tolerance_ms = self.tolerances["duration_tolerance_ms"]
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "FAIL"
@@ -113,45 +116,50 @@ class DurationMatchesCMAFTrack(Observation):
             return self.result
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
-        last_frame_duration = 1000 / mezzanine_qr_codes[-1].frame_rate
-        playback_duration = (
-            mezzanine_qr_codes[-1].first_camera_frame_num
-            - mezzanine_qr_codes[1].first_camera_frame_num
-        ) * camera_frame_duration_ms + last_frame_duration + first_frame_duration
-        expected_track_duration = parameters_dict["expected_track_duration"]
-
+        first_play_qr_index = self.get_frame_change_after_play(
+            mezzanine_qr_codes, test_status_qr_codes, camera_frame_duration_ms
+        )
         starting_missing_frame = self._get_starting_missing_frame(
             parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
         )
         ending_missing_frame = self._get_ending_missing_frame(
             parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
         )
+        first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
+        last_frame_duration = 1000 / mezzanine_qr_codes[-1].frame_rate
+
+        # playback duration get measured from the frame change after play()
+        # till the last detected frame
+        playback_duration = (
+            mezzanine_qr_codes[-1].first_camera_frame_num
+            - mezzanine_qr_codes[first_play_qr_index].first_camera_frame_num
+        ) * camera_frame_duration_ms + last_frame_duration
 
         # adjust expected track duration based on the missing frames
-        expected_track_duration = (
-            expected_track_duration
-            - starting_missing_frame * first_frame_duration
-            + ending_missing_frame * last_frame_duration
+        start_frames_to_take_out = starting_missing_frame + first_play_qr_index
+        expected_duration = (
+            parameters_dict["expected_track_duration"]
+            - start_frames_to_take_out * first_frame_duration
+            - ending_missing_frame * last_frame_duration
         )
-        
-        if abs(expected_track_duration - playback_duration) > DURATION_TOLERANCE_MS:
+
+        if abs(expected_duration - playback_duration) > duration_tolerance_ms:
             self.result["status"] = "FAIL"
             self.result["message"] = (
                 f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
-                f"{round(expected_track_duration, 2)}ms +/- tolerance of {DURATION_TOLERANCE_MS}ms."
+                f"{round(expected_duration, 2)}ms +/- tolerance of {duration_tolerance_ms}ms."
             )
         else:
             self.result["status"] = "PASS"
             self.result["message"] = (
-                f"Playback duration is {round(playback_duration, 2)}ms, CMAF track duration is "
-                f"{expected_track_duration}ms."
+                f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
+                f"{round(expected_duration, 2)}ms."
             )
         
         self.result["message"] += (
-            f" Allowed tolerance is {DURATION_TOLERANCE_MS}ms."
-            f" Starting missing frame tolerance is {starting_missing_frame}."
-            f" Ending missing frame tolerance is {ending_missing_frame}."
+            f" Allowed tolerance is {duration_tolerance_ms}ms."
+            f" Starting missing frame number is {starting_missing_frame}."
+            f" Ending missing frame number is {ending_missing_frame}."
         )
 
         logger.debug(f"[{self.result['status']}] {self.result['message']}")

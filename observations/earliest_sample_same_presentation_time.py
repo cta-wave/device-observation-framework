@@ -28,6 +28,7 @@ import logging
 from .sample_matches_current_time import SampleMatchesCurrentTime
 from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,9 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
     presentation time.
     """
 
-    def __init__(self, _):
+    def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
-            None,
+            global_configurations,
             "[OF] Video only: The presentation starts with the earliest video sample and the audio sample "
             "that corresponds to the same presentation time.",
         )
@@ -67,6 +68,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
+        ct_frame_tolerance = self.tolerances["ct_frame_tolerance"]
         allowed_tolerance = parameters_dict["tolerance"]
         self.result["message"] += f"Allowed tolerance is {allowed_tolerance}."
 
@@ -84,6 +86,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
                         camera_frame_duration_ms,
                         camera_frame_rate,
                         mezzanine_qr_codes,
+                        ct_frame_tolerance
                     )
                     diff_found, time_diff = self._find_diff_within_tolerance(
                         mezzanine_qr_codes,
@@ -91,6 +94,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
                         first_possible,
                         last_possible,
                         allowed_tolerance,
+                        ct_frame_tolerance
                     )
                     if not diff_found:
                         self.result["status"] = "FAIL"
