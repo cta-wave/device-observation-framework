@@ -24,8 +24,9 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 
-from typing import Dict
+from typing import List, Dict, Tuple
 from global_configurations import GlobalConfigurations
+from dpctf_qr_decoder import TestStatusDecodedQr
 
 logger = logging.getLogger(__name__)
 
@@ -62,3 +63,36 @@ class Observation:
         else:
             self.tolerances = global_configurations.get_tolerances()
             self.missing_frame_threshold = global_configurations.get_missing_frame_threshold()
+
+    @staticmethod
+    def _get_play_event(
+        test_status_qr_codes: List[TestStatusDecodedQr],
+        camera_frame_duration_ms: float,
+    ) -> (Tuple[bool, float]):
+        """loop through event qr code to find 1st playing play event
+
+        Args:
+            test_status_qr_codes (List[TestStatusDecodedQr]): Test Status QR codes list containing
+                currentTime as reported by MSE.
+            camera_frame_duration_ms (float): duration of a camera frame on msecs.
+
+        Returns:
+            (bool, float): True if the 1st play event is found, play_current_time from the 1st test runner play event.
+        """
+        for i in range(0, len(test_status_qr_codes)):
+            current_status = test_status_qr_codes[i]
+
+            # check for the 1st play action from TR events
+            if current_status.last_action == "play":
+                play_event_camera_frame_num = current_status.camera_frame_num
+
+                if i + 1 < len(test_status_qr_codes):
+                    next_status = test_status_qr_codes[i + 1]
+                    previous_qr_generation_delay = next_status.delay
+                    play_current_time = (
+                        play_event_camera_frame_num * camera_frame_duration_ms
+                    ) - previous_qr_generation_delay
+                    return True, play_current_time
+                break
+
+        return False, 0

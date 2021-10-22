@@ -28,7 +28,7 @@ import importlib
 import logging
 
 from .test import TestType
-from typing import List
+from typing import List, Optional
 from configuration_parser import ConfigurationParser
 from global_configurations import GlobalConfigurations
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
@@ -122,7 +122,7 @@ class SequentialTrackPlayback:
         )
         self.parameters_dict.update(
             configuration_parser.parse_tests_json_content_config(
-                self.content_parameters, test_path
+                self.content_parameters, test_path, "video"
             )
         )
 

@@ -236,7 +236,7 @@ For example:
 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
-# Release Notes for Release v1.0.1
+# Release Notes for Release v1.0.2
 
 ## Implemented:
 * Installation and usage instructions (in this README).
@@ -251,19 +251,13 @@ Add the new test name, python module, and class name to the *"of_testname_map.js
   * 8.5 switching-set-playback.html
   * 8.6 regular-playback-of-chunked-content.html
   * 8.7 regular-playback-of-chunked-content-non-aligned-append.html
+  * 8.8 playback-over-wave-baseline-splice-constraints.html
   * 8.9 out-of-order-loading.html
   * 8.10 overlapping-fragments.html
   * 8.11 fullscreen-playback-of-switching-sets.html
   * 8.12 playback-of-encrypted-content.html
+  * 8.13 restricted-splicing-of-encrypted-content-https.html
+  * 8.14 sequential-playback-of-encrypted-and-non-encrypted-baseline-content-https.html
   * 9.2 regular-playback-of-a-cmaf-presentation.html
   * 9.3 random-access-of-a-wave-presentation.html
-
-**NOTE:** Due to lack of test content/configuration support, the following functionality has been implemented
-but only with hard-coded parameters. These will need amending when support is available:
-* 8.8 playback-over-wave-baseline-splice-constraints.html
-* 8.13 restricted-splicing-of-encrypted-content-https.html
-* 8.14 sequential-playback-of-encrypted-and-non-encrypted-baseline-content-https.html
-* 9.4 splicing-of-wave-program-with-baseline-constraints.html
-
-## TODO
-* Final splicing test changes when the test content and configurations are available.
+  * 9.4 Splicing of WAVE Program with Baseline Constraints

@@ -32,6 +32,7 @@ import requests
 import os
 import json
 
+from datetime import datetime
 from json.decoder import JSONDecodeError
 from typing import List
 from global_configurations import GlobalConfigurations
@@ -48,12 +49,15 @@ class ObservationResultHandler:
     result_url: str
     """test runner server url to download and post result"""
     global_configurations: GlobalConfigurations
+    observation_config: List[dict]
+    """list of OF configuration dictionary"""
 
     def __init__(self, global_configurations: GlobalConfigurations):
         self.result_url = (
             global_configurations.get_test_runner_url() + "/_wave/api/results/"
         )
         self.global_configurations = global_configurations
+        self.observation_config = global_configurations.get_tolerances()
 
     def _download_result(self, url: str, filename: str) -> None:
         """Get session result from the Test Runner
@@ -111,25 +115,43 @@ class ObservationResultHandler:
         return subtests_data
 
     def _save_result_to_file(
-        self, filename: str, observation_results: List[dict]
+        self,
+        filename: str,
+        observation_results: List[dict],
+        observation_time: str
     ) -> None:
         """save observation result to a result file"""
         try:
             with open(filename, "w") as f:
-                json.dump(observation_results, f, indent=4)
+                data = {}
+                data.update({"meta": {}})
+                data["meta"].update({"datetime_observation": observation_time})
+                data["meta"].update({"observation_config": self.observation_config})
+                data.update({"results": observation_results})
+                json.dump(data, f, indent=4)
         except IOError as e:
             raise ObsFrameError(
                 f"Error: Unable to write the result file {filename}."
             ) from e
 
     def _update_result_file(
-        self, filename: str, test_path: str, observation_results: List[dict]
+        self,
+        filename: str,
+        test_path: str,
+        observation_results: List[dict],
+        observation_time: str
     ) -> None:
         """Update result json file to add observation result to subtest section"""
         try:
             matching_test_found = False
             with open(filename) as json_file:
                 data = json.load(json_file)
+
+                # add meta when it is not defined
+                if not "meta" in data:
+                    data.update({"meta": {}})
+                data["meta"].update({"datetime_observation": observation_time})
+                data["meta"].update({"observation_config": self.observation_config})
 
                 for result_data in data["results"]:
                     if ("/" + test_path) == result_data["test"]:
@@ -203,6 +225,7 @@ class ObservationResultHandler:
 
             filename = result_file_path + "/" + session_token + "/" + api_name + ".json"
             self._create_results_dir(filename)
+            observation_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
             # if conf.ini mode is set to DEBUG then just save results to a file
             # (only used for development)
@@ -213,9 +236,13 @@ class ObservationResultHandler:
                     + test_path.replace("/", "-").replace(".html", "")
                     + "_debug.json"
                 )
-                self._save_result_to_file(debug_result_filename, observation_results)
+                self._save_result_to_file(
+                    debug_result_filename, observation_results, observation_time_str
+                )
             else:
                 url = self.result_url + session_token + "/" + api_name + "/json"
                 self._download_result(url, filename)
-                self._update_result_file(filename, test_path, observation_results)
+                self._update_result_file(
+                    filename, test_path, observation_results, observation_time_str
+                )
                 self._import_result(url, filename)

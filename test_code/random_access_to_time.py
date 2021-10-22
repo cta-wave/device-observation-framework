@@ -50,7 +50,7 @@ class RandomAccessToTime(SequentialTrackPlayback):
         """return first frame number"""
         random_access_time = self.parameters_dict["random_access_time"]
         first_frame_num = round(random_access_time * frame_rate)
-        return first_frame_num
+        return first_frame_num + 1
 
     def _get_expected_track_duration(self) -> float:
         """return expected cmaf track duration"""

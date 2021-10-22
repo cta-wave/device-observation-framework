@@ -27,12 +27,11 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 from exceptions import ConfigError
 import logging
-from typing import Dict
+from typing import Dict, List
 
 import requests
 import isodate
 import json
-import sys
 from global_configurations import GlobalConfigurations
 
 
@@ -46,10 +45,12 @@ class ConfigurationParser:
     """test runner server url to get configuration files from"""
     test_config_json: Dict[str, Dict[str, Dict[str, str]]]
     """loaded test_config.json file in string"""
-    tests_json: Dict[str, Dict[str, Dict[str, str]]]
+    tests_json: Dict[str, Dict[str, List[Dict[str, Dict[str, str]]]]]
     """loaded tests_json file in string"""
-    test_config: str
-    """configuration part extracted from test.json file"""
+    video_config: List[Dict[str, Dict[str, str]]]
+    """video configuration part extracted from test.json file"""
+    audio_config: List[Dict[str, Dict[str, str]]]
+    """audio configuration part extracted from test.json file"""
 
     def __init__(self, global_configurations: GlobalConfigurations):
         self.server_url = global_configurations.get_test_runner_url()
@@ -63,6 +64,15 @@ class ConfigurationParser:
             self.test_config_json = self._get_json_from_tr("test-config.json")
             self.tests_json = self._get_json_from_tr("tests.json")
 
+    def parse_config(
+        self, content_type:str
+    ) -> List[Dict[str, Dict[str, str]]]:
+        if content_type == "audio":
+            test_config = self.audio_config
+        else:
+            test_config = self.video_config
+        return test_config
+
     def parse_tests_json(self, test_id: str):
         """Parse tests json configuration data
         save content configuration data to parse separately
@@ -71,7 +81,8 @@ class ConfigurationParser:
             test_path = self.tests_json["tests"][test_id]["path"]
             test_code = self.tests_json["tests"][test_id]["code"]
 
-            self.test_config = self.tests_json["tests"][test_id]["config"]
+            self.video_config = self.tests_json["tests"][test_id]["switchingSets"]["video"]
+            self.audio_config = self.tests_json["tests"][test_id]["switchingSets"]["audio"]
 
             return test_path, test_code
         except KeyError as e:
@@ -80,62 +91,120 @@ class ConfigurationParser:
                 f"Detected test id({test_id}) is not defined in \"tests.json\". "
             )
 
+    def parse_fragment_duration(
+        self,
+        test_path: str,
+        content_type: str,
+        parameter: str,
+        test_config: List[Dict[str, str]]
+    ) -> dict:
+        """parse fragment duration
+        fragment_duration: single track playback
+        fragment_duration_list: switching set
+        fragment_duration_multi_mpd: multi-mpd switching sets
+        """
+        parameters_dict = {}
+        if parameter == "fragment_duration":
+            # fragment_duration is used for test when only one representation is used
+            # for example: sequential playback
+            for representation in test_config[0]["representations"].values():
+                if representation["type"] == content_type:
+                    try:
+                        if representation["fragment_duration"] == None:
+                            raise TypeError
+                        # the multiplication happens so that we get the fragment duration in ms
+                        # we are interested just about the first video representation's fragment duration
+                        parameters_dict[parameter] = representation["fragment_duration"] * 1000
+                        break
+                    except (TypeError, KeyError) as e:
+                        raise ConfigError(
+                            f"Failed to get a parameter:{e} for the test '{test_path}'"
+                        )
+        elif parameter == "fragment_duration_list":
+            # fragment_duration_list is used for tests when more then one representation is used
+            # for example: switching set
+            # this list is needed to identify the switching points, and to calculate durations
+            parameters_dict[parameter] = {}
+            rep_index = 1
+            for representation in test_config[0]["representations"].values():
+                if representation["type"] == content_type:
+                    try:
+                        if representation["fragment_duration"] == None:
+                            raise TypeError
+                        # the multiplication happens so that we get the fragment duration in ms
+                        parameters_dict[parameter][rep_index] = representation["fragment_duration"] * 1000
+                        rep_index += 1
+                    except (TypeError, KeyError) as e:
+                        raise ConfigError(
+                            f"Failed to get a parameter:{e} for the test '{test_path}'"
+                        )
+        elif parameter == "fragment_duration_multi_mpd":
+            # fragment_duration_multi_mpd is used for tests when more then mpd is used
+            # for splicing set. This is an 2D array, this list is needed to identify
+            # the switching points and splicing point, and to calculate durations
+            parameters_dict[parameter] = {}
+            content_index = 1
+            rep_index = 1
+            for config in test_config:
+                for representation in config["representations"].values():
+                    if representation["type"] == content_type:
+                        try:
+                            if representation["fragment_duration"] == None:
+                                raise TypeError
+                            # the multiplication happens so that we get the fragment duration in ms
+                            parameters_dict[parameter][(content_index, rep_index)] = representation["fragment_duration"] * 1000
+                            rep_index += 1
+                        except (TypeError, KeyError) as e:
+                            raise ConfigError(
+                                f"Failed to get a parameter:{e} for the test '{test_path}'"
+                            )
+                content_index += 1
+                rep_index = 1
 
-    def parse_tests_json_content_config(self, parameters: list, test_path: str) -> dict:
+        return parameters_dict
+
+    def parse_cmaf_track_duration(
+        self, test_path: str, test_config: Dict[str, Dict[str, str]]
+    ):
+        """parse cmaf track duration to ms"""
+        parameters_dict = {}
+        try:
+            config_value = isodate.parse_duration(test_config["cmaf_track_duration"])
+            ms = config_value.microseconds / 1000
+            s_to_ms = config_value.seconds * 1000
+            value = ms + s_to_ms
+            parameters_dict["cmaf_track_duration"] = value
+        except KeyError as e:
+            raise ConfigError(
+                f"Failed to get a parameter:{e} for the test '{test_path}'"
+            )
+        return parameters_dict
+
+    def parse_tests_json_content_config(
+        self,
+        parameters: list,
+        test_path: str,
+        content_type: str
+    ) -> dict:
         """parse content related config parameters for current test"""
         parameters_dict = {}
+        
+        # parse video/audio configuration
+        # TODO: audio parsing, audio observation not implemented
+        test_config = self.parse_config(content_type)
 
+        # parse parameter one by one
         for parameter in parameters:
-            if parameter == "period_duration":
-                # TODO: hardcode this for now until the configuration is available on TR
-                # assume the period_duration 2 or 3 if not raise exception here
-                parameters_dict[parameter] = [20000, 20000, 20000]
-                # parameters_dict[parameter] = [20000, 20000]
-            elif parameter == "fragment_duration":
-                # fragment_duration_list is used for test when only one representation is used
-                # for example: sequential playback
-                for representation in self.test_config["representations"].values():
-                    if representation["type"] == "video":
-                        try:
-                            if representation["fragment_duration"] == None:
-                                raise TypeError
-                            # the multiplication happens so that we get the fragment duration in ms
-                            parameters_dict[parameter] = representation["fragment_duration"] * 1000
-                            # we are interested just about the first video representation's fragment duration
-                            break
-                        except (TypeError, KeyError) as e:
-                            raise ConfigError(
-                                f"Failed to get a parameter:{e} for the test '{test_path}'"
-                            )
-            elif parameter == "fragment_duration_list":
-                # fragment_duration_list is used for tests when more then one representation is used
-                # for example: switching set
-                # this list is needed to identify the switching points, and to calculate durations
-                parameters_dict[parameter] = {}
-                counter = 1
-                for representation in self.test_config["representations"].values():
-                    if representation["type"] == "video":
-                        try:
-                            if representation["fragment_duration"] == None:
-                                raise TypeError
-                            # the multiplication happens so that we get the fragment duration in ms
-                            parameters_dict[parameter][counter] = representation["fragment_duration"] * 1000
-                            counter += 1
-                        except (TypeError, KeyError) as e:
-                            raise ConfigError(
-                                f"Failed to get a parameter:{e} for the test '{test_path}'"
-                            )
+            if parameter == "cmaf_track_duration":
+                # cmaf_track_duration is only required in single mpd
+                parameters_dict.update(self.parse_cmaf_track_duration(test_path,
+                                                                      test_config[0]))
             else:
-                try:
-                    config_value = isodate.parse_duration(self.test_config[parameter])
-                    ms = config_value.microseconds / 1000
-                    s_to_ms = config_value.seconds * 1000
-                    value = ms + s_to_ms
-                    parameters_dict[parameter] = value
-                except KeyError as e:
-                    raise ConfigError(
-                        f"Failed to get a parameter:{e} for the test '{test_path}'"
-                    )
+                # parse fragment duration handled differently for single mpd and mutiple
+                parameters_dict.update(self.parse_fragment_duration(test_path,
+                                                                    content_type,
+                                                                    parameter,
+                                                                    test_config))
 
         return parameters_dict
 
@@ -191,3 +260,91 @@ class ConfigurationParser:
                 return config_data
         except requests.exceptions.RequestException as e:
             raise ConfigError(e)
+
+
+class PlayoutParser:
+    """Playout Utility Parsing class"""
+
+    @staticmethod
+    def get_switching_playout(playout: List[List[int]]) -> List[int]:
+        """for switching set to extract track ID list
+        switching set ID column 0 and the fragment ID column 2 
+        are ignored for swithing set tests
+        """
+        switching_playout = [i[1] for i in playout]
+        return switching_playout
+    
+    @staticmethod
+    def get_playout_sequence(switching_playout: List[int]):
+        """for switching set return playout sequence
+        playout_sequence: a list of track number to identify different track changes
+        """
+        playout_sequence = [switching_playout[0]]
+        for i in range(1, len(switching_playout)):
+            # when track change
+            if switching_playout[i] != switching_playout[i - 1]:
+                playout_sequence.append(switching_playout[i])
+        return playout_sequence
+    
+    @staticmethod
+    def get_splicing_period_list(
+        playouts: List[List[int]], fragment_duration_multi_mpd: dict
+    ) -> List[float]:
+        """ return period duration list of splicing
+        e.g: [main duration, ad duration, main duration]
+        """
+        period_list = []
+        current_period = 0
+        switching_set = playouts[0][0]
+        for playout in playouts:
+            if playout[0] != switching_set:
+                period_list.append(current_period)
+                current_period = 0
+                switching_set = playout[0]
+            current_period += fragment_duration_multi_mpd[(playout[0], playout[1])]
+        period_list.append(current_period)
+        return period_list
+
+    @staticmethod
+    def get_change_type_list(playouts: List[List[int]]) -> List[str]:
+        """ save ecah change type in a list
+        """
+        change_type_list = []
+        switching_set = playouts[0][0]
+        track_num = playouts[0][1]
+        for playout in playouts:
+            if playout[0] != switching_set:
+                change_type_list.append("splicing")
+            elif playout[1] != track_num:
+                change_type_list.append("switching")
+            switching_set = playout[0]
+            track_num = playout[1]
+        return change_type_list
+
+    @staticmethod
+    def get_ending_playout_list(playouts: List[List[int]]) -> List[List[int]]:
+        """ when content change save each previous ending playout
+        """
+        ending_playout_list = []
+        switching_set = playouts[0][0]
+        track_num = playouts[0][1]
+        for i, playout in enumerate(playouts):
+            if (playout[0] != switching_set or playout[1] != track_num):
+                ending_playout_list.append(playouts[i-1])
+                switching_set = playout[0]
+                track_num = playout[1]
+        return ending_playout_list
+
+    @staticmethod
+    def get_starting_playout_list(playouts: List[List[int]]) -> List[List[int]]:
+        """ when content change save each current starting playout
+        """
+        starting_playout_list = []
+        switching_set = playouts[0][0]
+        track_num = playouts[0][1]
+        for playout in playouts:
+            if (playout[0] != switching_set or playout[1] != track_num):
+                starting_playout_list.append(playout)
+                switching_set = playout[0]
+                track_num = playout[1]
+        return starting_playout_list
