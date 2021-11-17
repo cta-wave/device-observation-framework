@@ -18,7 +18,8 @@ Please follow the instructions at https://github.com/cta-wave/dpctf-deploy.
 The Observation Framework **must** be installed on same machine as the Test Runner is deployed.
 
 Test Runner is deployed as a service running inside a Docker container.
-For Phase 1, the Observation Framework is installed outside of Docker and run from the command line.
+The Observation Framework **must** be installed outside of Docker or Docker Desktop and run outside of the docker from the windows command line.
+Make sure that the command line or PowerShell that is used for running OF is not inside the docker or docker desktop.
 
 This Observation Framework release has been tested on Ubuntu 18.04 LTS and Windows 10.
 
@@ -84,7 +85,6 @@ The set up needs to be in a light-controlled environment and the camera configur
 
 **More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
 
-For the initial set up, in Test Runner select and run the "*/avc/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ).
 
 For the camera/device set up:
 * The device needs to be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
@@ -94,6 +94,8 @@ For the camera/device set up:
 * The camera must be set to record at a minimum of 119 frames per second in full HD.
 * The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
 * Depending on the device and sofware being used to run the tests, some device/software specific configuration may be required. For e.g. by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into e.g. a "full screen" mode. If any part of a QR code is obscured then the Observation Framework cannot operate.
+
+Once the camera/device are set up, **DO NOT** change or alter settings during the recording. If changes are necessary then a new recording shall be taken. 
 
 Note: Minimizing time between the start of recording and when the pre-test QR code shows up 
 helps Device Observation Framework to process faster and give test results quicker.
@@ -106,6 +108,22 @@ helps Device Observation Framework to process faster and give test results quick
 The QR codes outlined in GREEN were successfully decoded. Those outlined in RED failed to be decoded:
 ![image](images/good_and_bad_capture_example.png)
 
+### How to verify the camera setup
+For the initial set up, we recommand a user try to run a sequential track playback test.
+
+From Test Runner select and run the "*/<selected_tests_group>/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ). 
+
+Once the recording is taken, the following steps should be followed to verify the camera setup and the recording:
+* Try playing back the recording to check that the full duration of the test session is recorded. 
+* The recording captured full clear QR codes. Nothing obscured the screen, there is no blur in the QR codes and they are not too dim or too bright. The focus is stable for the whole duration of the recording.
+* Try to run the OF with the recording, and there shall be no exceptions or error raised by OF. When the camera/device set up does not meet the requirement, which makes it unable to capture clear QR codes, the following exceptions will be raised by OF. 
+
+```shell
+At camera frame N there were X consecutive camera frames where no mezzanine qr codes were detected. Device Observation Framework is exiting, and the remaining tests are not observed.
+```
+* Check the observation result. If there are a lot of missing frames reported, we recommend user to look at the recording manually to observe whether the reported missing frames are actually missing from the recording. This can be done by jumping to any of the previous frames, which are close to the target frame, then go frame by frame. If the reported missing frame is present in the recording, the set up can be improved slightly to get a better recording.
+
+Above steps can be repeated if necessary in order to find the best set up for the selected device and the camera. For a small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lense, such as a micro lens which can capture small detailes, might required for testing on a smaller screen devices. 
 
 ## Using the DPCTF Device Observation Framework
 Once the device and camera setup is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at minimum of 119 fps). Record the Test Runner session from begining to end and then stop the camera recording.
