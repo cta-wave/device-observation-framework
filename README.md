@@ -63,7 +63,7 @@ sudo apt-get install libzbar0
 sudo apt-get install netcat
 ```
 
-### Ontain the Observation Framework
+### Obtain the Observation Framework
 
 Clone this github (i.e. https://github.com/cta-wave/device-observation-framework ) to the same machine/VM as the DPCTF Test Runner installation.
 OR 
