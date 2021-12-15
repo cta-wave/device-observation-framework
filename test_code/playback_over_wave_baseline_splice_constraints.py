@@ -26,6 +26,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+import math
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
 
@@ -49,7 +50,10 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         self.parameters = [
             "ts_max",
             "tolerance",
-            "playout"
+            "frame_tolerance",
+            "playout",
+            "duration_tolerance",
+            "duration_frame_tolerance"
         ]
         self.content_parameters = [
             "fragment_duration_multi_mpd"
@@ -62,7 +66,7 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         last_playout = self.parameters_dict["playout"][-1]
         fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][(last_playout[0], last_playout[1])]
         last_track_duration = fragment_duration * last_playout[2]
-        last_frame_num = round(last_track_duration / 1000 * frame_rate)
+        last_frame_num = math.floor(last_track_duration / 1000 * frame_rate)
         return last_frame_num
 
     def _get_expected_track_duration(self) -> float:

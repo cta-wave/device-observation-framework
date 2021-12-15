@@ -85,11 +85,9 @@ class DurationMatchesCMAFTrack(Observation):
                 frame_ct = (
                     mezzanine_qr_code.first_camera_frame_num * camera_frame_duration_ms
                 )
-                print("play_ct", play_ct, "frame_ct", frame_ct)
                 if frame_ct >= play_ct:
                     first_play_qr_index = i
                     break
-        print(first_play_qr_index)
         return first_play_qr_index
 
     def make_observation(
@@ -105,7 +103,8 @@ class DurationMatchesCMAFTrack(Observation):
         == expected_track_duration +/- tolerance
         """
         logger.info(f"Making observation {self.result['name']}...")
-        duration_tolerance_ms = self.tolerances["duration_tolerance_ms"]
+        duration_tolerance = parameters_dict["duration_tolerance"]
+        duration_frame_tolerance = parameters_dict["duration_frame_tolerance"]
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "FAIL"
@@ -143,11 +142,11 @@ class DurationMatchesCMAFTrack(Observation):
             - ending_missing_frame * last_frame_duration
         )
 
-        if abs(expected_duration - playback_duration) > duration_tolerance_ms:
+        if abs(expected_duration - playback_duration) > duration_tolerance + duration_frame_tolerance * 1000 / mezzanine_qr_codes[-1].frame_rate:
             self.result["status"] = "FAIL"
             self.result["message"] = (
                 f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
-                f"{round(expected_duration, 2)}ms +/- tolerance of {duration_tolerance_ms}ms."
+                f"{round(expected_duration, 2)}ms +/- tolerance of {duration_tolerance}ms."
             )
         else:
             self.result["status"] = "PASS"
@@ -157,7 +156,7 @@ class DurationMatchesCMAFTrack(Observation):
             )
         
         self.result["message"] += (
-            f" Allowed tolerance is {duration_tolerance_ms}ms."
+            f" Allowed tolerance is {duration_tolerance}ms and duration frame tolerance is {duration_frame_tolerance}."
             f" Starting missing frame number is {starting_missing_frame}."
             f" Ending missing frame number is {ending_missing_frame}."
         )

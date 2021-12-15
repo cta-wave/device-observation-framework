@@ -28,7 +28,6 @@ import logging
 from .sample_matches_current_time import SampleMatchesCurrentTime
 from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +39,9 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
     presentation time.
     """
 
-    def __init__(self, global_configurations: GlobalConfigurations):
+    def __init__(self, _):
         super().__init__(
-            global_configurations,
+            None,
             "[OF] Video only: The presentation starts with the earliest video sample and the audio sample "
             "that corresponds to the same presentation time.",
         )
@@ -68,9 +67,9 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        ct_frame_tolerance = self.tolerances["ct_frame_tolerance"]
         allowed_tolerance = parameters_dict["tolerance"]
-        self.result["message"] += f"Allowed tolerance is {allowed_tolerance}."
+        ct_frame_tolerance = parameters_dict["frame_tolerance"]
+        self.result["message"] += f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
 
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]

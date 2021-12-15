@@ -33,7 +33,6 @@ from typing import List, Dict, Tuple
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from test_code.test import TestType
 from configuration_parser import PlayoutParser
-from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +48,13 @@ class SampleMatchesCurrentTime(Observation):
     The presented sample matches the one reported by the currentTime value within the tolerance of the sample duration.
     """
 
-    def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
+    def __init__(self, _, name: str = None):
         if name is None:
             name = (
                 "[OF] The presented sample matches the one reported by the currentTime value within the "
                 "tolerance of the sample duration."
             )
-        super().__init__(name, global_configurations)
+        super().__init__(name)
 
     @staticmethod
     def _get_target_camera_frame_num(
@@ -201,10 +200,10 @@ class SampleMatchesCurrentTime(Observation):
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        ct_frame_tolerance = self.tolerances["ct_frame_tolerance"]
         allowed_tolerance = parameters_dict["tolerance"]
+        ct_frame_tolerance = parameters_dict["frame_tolerance"]
         failure_report_count = 0
-        self.result["message"] += f" Allowed tolerance is {allowed_tolerance}."
+        self.result["message"] += f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
 
         # for splicing test adjust media time in mezzanine_qr_codes
         # media time for period 2 starts from 0 so the actual media time is += period_duration[0]

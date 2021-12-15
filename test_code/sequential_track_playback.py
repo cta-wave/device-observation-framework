@@ -26,6 +26,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import importlib
 import logging
+import math
 
 from .test import TestType
 from typing import List, Optional
@@ -104,7 +105,10 @@ class SequentialTrackPlayback:
         """initialise the test_config_parameters required for the test"""
         self.parameters = [
             "ts_max",
-            "tolerance"
+            "tolerance",
+            "frame_tolerance",
+            "duration_tolerance",
+            "duration_frame_tolerance"
         ]
         self.content_parameters = [
             "cmaf_track_duration"
@@ -132,7 +136,7 @@ class SequentialTrackPlayback:
 
     def _get_last_frame_num(self, frame_rate: float) -> int:
         """return last frame number"""
-        return round(self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate)
+        return math.floor(self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate)
 
     def _get_expected_track_duration(self) -> float:
         """return expected track duration"""
