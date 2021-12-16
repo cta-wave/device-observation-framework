@@ -47,7 +47,10 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
         self.parameters = [
             "ts_max",
             "tolerance",
-            "playout"
+            "frame_tolerance",
+            "playout",
+            "duration_tolerance",
+            "duration_frame_tolerance"
         ]
         self.content_parameters = [
             "cmaf_track_duration",

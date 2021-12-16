@@ -25,6 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+import math
 
 from .observation import Observation
 from typing import List, Dict, Optional
@@ -302,7 +303,7 @@ class EverySampleRendered(Observation):
                 # check previous ending frame and new starting frame numbers
                 # the expected frame number position in the content being switched from is the expected relative time
                 # of the switch (derived from the test config) * that content's frames per second
-                previous_ending_frame_num = round(
+                previous_ending_frame_num = math.floor(
                     switching_positions[i]
                     / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
@@ -323,7 +324,7 @@ class EverySampleRendered(Observation):
                 # of the switch (derived from the test config) * that content's frames per second
                 # compare expected with the actual frame number detected at this switch point
                 current_starting_frame_num = (
-                    round(
+                    math.floor(
                         switching_positions[i]
                         / 1000
                         * mezzanine_qr_codes[starting_index].frame_rate
@@ -400,7 +401,7 @@ class EverySampleRendered(Observation):
                 ending_playout = ending_playout_list[i -1]
                 ending_fragment_duration = fragment_duration_multi_mpd[(ending_playout[0], ending_playout[1])]
                 ending_fragment_num = ending_playout[2]
-                previous_ending_frame_num = round(
+                previous_ending_frame_num = math.floor(
                     ending_fragment_num * ending_fragment_duration / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
@@ -433,7 +434,7 @@ class EverySampleRendered(Observation):
                 starting_fragment_duration = fragment_duration_multi_mpd[(starting_playout[0], starting_playout[1])]
                 starting_fragment_num = starting_playout[2] - 1
                 current_starting_frame_num = (
-                    round(
+                    math.floor(
                         starting_fragment_num * starting_fragment_duration / 1000
                         * mezzanine_qr_codes[starting_index].frame_rate
                     )

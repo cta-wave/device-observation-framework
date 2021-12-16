@@ -14,6 +14,7 @@ Please follow the instructions at https://github.com/cta-wave/dpctf-deploy.
 <span style="color:red">**Check that the Test Runner is functioning correctly and able to run tests prior to installing the Observation Framework.**</span>
 
 ## Setting up the Device Observation Framework
+
 ### Installation
 The Observation Framework **must** be installed on same machine as the Test Runner is deployed.
 
@@ -23,6 +24,21 @@ Make sure that the command line or PowerShell that is used for running OF is not
 
 This Observation Framework release has been tested on Ubuntu 18.04 LTS and Windows 10.
 
+### Updating System Environment for Windows 
+There are a number of points in these instructions that will direct you to add the necessary path(s) to Windows System Variables under the PATH entry. You will need to add the Path(s) to the folder(s) that will contain the WAVE Test Suite files you will create, Python, Docker Desktop, ZBar and any others as noted in these instructions. This is so the system knows where to find them. There may be additional Paths necessary. When a command returns an error such as “file not found” check to see if the Path is in the Environment System Variables under “PATH”. If not, add the missing Path. 
+To add to or modify the System Environment Variables. 
+1.	Follow the instructions in the various ReadMe files for Windows, not Unix/Linux or Mac OS X.
+2.	Run all commands using Windows Terminal/PowerShell. Do not run them using Bash in a Linux terminal. 
+3.	If a command in Windows PowerShell/Terminal stalls or hangs up, use <Control + C> to gracefully exit. 
+
+* Search for “Edit System Environmental Variables” in the search bar. Click on it in the popup. 
+* Select “Environment Variables”
+* Under “System variables” (lower box), select “Path”
+* Then select Edit
+* Select “New” and enter the desired Path.
+* Select “New” again for each new path you wish to add. 
+* When done, close the Environment Variables screens AND the Windows PowerShell/Terminal, if you have it open, to ensure the Paths are updated.
+
 ### Required Libraries
 The Observation Framework requires the 'zbar' bar code reader library to be installed. On Linux this will require a user
 with 'sudo' privilege, and on Windows with Administrator privilege.
@@ -31,37 +47,48 @@ with 'sudo' privilege, and on Windows with Administrator privilege.
 ```
 https://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download
 ```
+After installation of zbar, add the PATH to the system environment variables. See above "Updating System Environment for Windows".
+
 **For Mac OS X**:
 ```
 brew install zbar
 brew install netcat
 ```
-**For Unix** exact installations may vary for different Unix variants, see http://zbar.sourceforge.net/ .
+
+**For Unix** exact installations may vary for different Unix variants, see http://zbar.sourceforge.net/.
+
 **For Linux** a typical installation is:
 ```
 sudo apt-get install libzbar0
 sudo apt-get install netcat
 ```
-### Cloning the GitHub
+
+### Obtain the Observation Framework
 
 Clone this github (i.e. https://github.com/cta-wave/device-observation-framework ) to the same machine/VM as the DPCTF Test Runner installation.
+OR 
+Download the Zip file https://github.com/cta-wave/device-observation-framework/archive/refs/heads/main.zip and extract to your target folder.
+Both can also be found by clicking on the Code tab at the top of the Device Observation Framework landing page. 
 
 ### Installing the required Python packages
 Prior to running the install script, python **version 3.6 or greater** and pip **version 3** must be installed and on the execution PATH.
+On windows, add the Paths to Python to the system environment variables if they were not added during the installation.
 
 **On Linux and Mac OS** systems, prior to each user using the Observation Framework for the first time, run:
 
 ```shell
-cd device-observation-framework
+cd <full path to device-observation-framework>
 ./install.sh
 ```
 
 **On Windows** systems, prior to each user using the Observation Framework for the first time, run:
 
 ```shell
-cd device-observation-framework
+cd <full path to device-observation-framework>
 install_win.bat
 ```
+Note: Makes sure that the WindowsPowerShell is used for the above commands.
+The device-observation-framework folder may also be named device-observation-framework-main
 
 ### Observation Framework Configuration
 
@@ -85,11 +112,10 @@ The set up needs to be in a light-controlled environment and the camera configur
 
 **More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
 
-
 For the camera/device set up:
 * The device needs to be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
 * The device needs to be mounted on a stable stand/support. The camera needs mounting on a stable tripod with lens pointing directly at the device screen at a 90 degree angle.
-* The camera should be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers.
+* The camera should be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers. For longer screens try only include just the aera including the red edge markers but not the device. It is important to make is playback eara as big as possible to capture clear QR code. For smaller and loger devices it is recommended to zoom in as closly as possible and exclude part of the device edge to make the QR code bigger.
 * The camera should be manually focused on the device screen to produce a sharp image.
 * The camera must be set to record at a minimum of 119 frames per second in full HD.
 * The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
@@ -106,6 +132,7 @@ helps Device Observation Framework to process faster and give test results quick
 
 ### **Examples of good and bad captures**
 The QR codes outlined in GREEN were successfully decoded. Those outlined in RED failed to be decoded:
+
 ![image](images/good_and_bad_capture_example.png)
 
 ### How to verify the camera setup
@@ -145,6 +172,14 @@ python3 observation_framework.py --input <file> --log <info|debug> --scan <gener
 
 (n.b. Python version must be 3.6 or greater)
 ```
+
+e.g:
+```shell
+python observation_framework.py --input D:\device-observation-framework-main\recording_file_name.mp4
+```
+IMPORTANT: Make sure Makes sure that the WindowsPowerShell is used for the above commands on windows.
+You **MUST** add the .mp4 extension to the file name.
+
 
 where **log** (optional) specifies log level. Default value is "info" when not specified. See "Additional Options" section below for more details.
 
@@ -254,7 +289,7 @@ For example:
 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
-# Release Notes for Release v1.0.2
+# Release Notes for Release v1.0.3
 
 ## Implemented:
 * Installation and usage instructions (in this README).

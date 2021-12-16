@@ -149,9 +149,7 @@ class GlobalConfigurations:
             "end_frame_num_tolerance": 0,
             "mid_frame_num_tolerance": 0,
             "splice_start_frame_num_tolerance": 0,
-            "splice_end_frame_num_tolerance": 0,
-            "duration_tolerance_ms": 10,
-            "ct_frame_tolerance": 2
+            "splice_end_frame_num_tolerance": 0
         }
         try:
             tolerances["start_frame_num_tolerance"] = int(
@@ -168,12 +166,6 @@ class GlobalConfigurations:
             )
             tolerances["splice_end_frame_num_tolerance"] = int(
                 self.config["TOLERANCES"]["splice_end_frame_num_tolerance"]
-            )
-            tolerances["duration_tolerance_ms"] = int(
-                self.config["TOLERANCES"]["duration_tolerance_ms"]
-            )
-            tolerances["ct_frame_tolerance"] = int(
-                self.config["TOLERANCES"]["ct_frame_tolerance"]
             )
         except KeyError:
             pass

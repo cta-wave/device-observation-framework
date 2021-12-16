@@ -25,6 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+import math
 from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,10 @@ class RandomAccessToFragment(SequentialTrackPlayback):
         self.parameters = [
             "ts_max",
             "tolerance",
-            "random_access_fragment"
+            "frame_tolerance",
+            "random_access_fragment",
+            "duration_tolerance",
+            "duration_frame_tolerance"
         ]
         self.content_parameters = [
             "cmaf_track_duration",
@@ -52,7 +56,7 @@ class RandomAccessToFragment(SequentialTrackPlayback):
         fragment_duration_in_second = self.parameters_dict["fragment_duration"] / 1000
         first_frame_num = random_access_fragment * fragment_duration_in_second * frame_rate + 1
 
-        return round(first_frame_num)
+        return math.floor(first_frame_num)
 
     def _get_expected_track_duration(self) -> float:
         """return expected cmaf track duration
