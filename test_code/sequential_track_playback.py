@@ -27,19 +27,19 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import importlib
 import logging
 import math
+from typing import List, Optional
+
+from configuration_parser import ConfigurationParser
+from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+from global_configurations import GlobalConfigurations
 
 from .test import TestType
-from typing import List, Optional
-from configuration_parser import ConfigurationParser
-from global_configurations import GlobalConfigurations
-from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-
 
 logger = logging.getLogger(__name__)
 
 
 class SequentialTrackPlayback:
-    """SequentialTrackPlayback to handle test 
+    """SequentialTrackPlayback to handle test
     sequential-track-playback.html
     regular-playback-of-chunked-content.html
     regular-playback-of-chunked-content-non-aligned-append.html
@@ -87,7 +87,7 @@ class SequentialTrackPlayback:
         self.global_configurations = global_configurations
         self.parameters_dict["camera_frame_rate"] = camera_frame_rate
         self.parameters_dict["camera_frame_duration_ms"] = camera_frame_duration_ms
-        
+
     def _set_test_type(self) -> None:
         """set test type SEQUENTIAL|SWITCHING|SPLICING"""
         self.test_type = TestType.SEQUENTIAL
@@ -108,11 +108,9 @@ class SequentialTrackPlayback:
             "tolerance",
             "frame_tolerance",
             "duration_tolerance",
-            "duration_frame_tolerance"
+            "duration_frame_tolerance",
         ]
-        self.content_parameters = [
-            "cmaf_track_duration"
-        ]
+        self.content_parameters = ["cmaf_track_duration"]
 
     def _load_parameters_dict(
         self, configuration_parser: ConfigurationParser, test_path: str, test_code: str
@@ -136,7 +134,13 @@ class SequentialTrackPlayback:
 
     def _get_last_frame_num(self, frame_rate: float) -> int:
         """return last frame number"""
-        return math.floor(self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate)
+        return math.floor(
+            self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate
+        )
+
+    def _get_gap_from_and_to_frames(self, _):
+        """return gap from and to frames"""
+        return []
 
     def _get_expected_track_duration(self) -> float:
         """return expected track duration"""
@@ -159,23 +163,22 @@ class SequentialTrackPlayback:
         """
         results = []
 
+        frame_rate = mezzanine_qr_codes[-1].frame_rate
+        self.parameters_dict["first_frame_num"] = self._get_first_frame_num(frame_rate)
+        self.parameters_dict["last_frame_num"] = self._get_last_frame_num(frame_rate)
+        self.parameters_dict[
+            "expected_track_duration"
+        ] = self._get_expected_track_duration()
+        self.parameters_dict[
+            "gap_from_and_to_frames"
+        ] = self._get_gap_from_and_to_frames(frame_rate)
+
         for observation in self.observations:
             # create instance of the relevant observation class
             observation_class = getattr(
                 importlib.import_module("observations." + observation[0]),
                 observation[1],
             )(self.global_configurations)
-
-            frame_rate = mezzanine_qr_codes[-1].frame_rate
-            self.parameters_dict["first_frame_num"] = self._get_first_frame_num(
-                frame_rate
-            )
-            self.parameters_dict["last_frame_num"] = self._get_last_frame_num(
-                frame_rate
-            )
-            self.parameters_dict[
-                "expected_track_duration"
-            ] = self._get_expected_track_duration()
 
             result = observation_class.make_observation(
                 self.test_type,

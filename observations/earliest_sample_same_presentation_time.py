@@ -25,9 +25,11 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .sample_matches_current_time import SampleMatchesCurrentTime
-from typing import List, Dict
+from typing import Dict, List
+
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+
+from .sample_matches_current_time import SampleMatchesCurrentTime
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +37,16 @@ logger = logging.getLogger(__name__)
 class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
     """EarliestSampleSamePresentationTime class
     N.B. Video only for phase one
-    The presentation starts with the earliest video sample and the audio sample that corresponds to the same
+    The presentation starts with the earliest video sample and
+    the audio sample that corresponds to the same
     presentation time.
     """
 
     def __init__(self, _):
         super().__init__(
             None,
-            "[OF] Video only: The presentation starts with the earliest video sample and the audio sample "
-            "that corresponds to the same presentation time.",
+            "[OF] Video only: The presentation starts with the earliest video sample "
+            "and the audio sample that corresponds to the same presentation time.",
         )
 
     def make_observation(
@@ -61,7 +64,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
 
         if not mezzanine_qr_codes:
             self.result["status"] = "FAIL"
-            self.result["message"] = f"No QR mezzanine code detected."
+            self.result["message"] = "No QR mezzanine code detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result
 
@@ -69,7 +72,11 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         allowed_tolerance = parameters_dict["tolerance"]
         ct_frame_tolerance = parameters_dict["frame_tolerance"]
-        self.result["message"] += f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
+        self.result[
+            "message"
+        ] += (
+            f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
+        )
 
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
@@ -85,7 +92,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
                         camera_frame_duration_ms,
                         camera_frame_rate,
                         mezzanine_qr_codes,
-                        ct_frame_tolerance
+                        ct_frame_tolerance,
                     )
                     diff_found, time_diff = self._find_diff_within_tolerance(
                         mezzanine_qr_codes,
@@ -93,7 +100,7 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
                         first_possible,
                         last_possible,
                         allowed_tolerance,
-                        ct_frame_tolerance
+                        ct_frame_tolerance,
                     )
                     if not diff_found:
                         self.result["status"] = "FAIL"

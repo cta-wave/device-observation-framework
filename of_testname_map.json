@@ -62,5 +62,45 @@
     "splicing-of-wave-program-with-baseline-constraints.html": [
         "splicing_of_wave_program_with_baseline_constraints",
         "SplicingOfWaveProgramWithBaselineConstraints"
+    ],
+    "source-buffer-re-initialization-without-changetype.html":[
+        "source_buffer_re_initialization_without_changetype",
+        "SourceBufferReInitializationWithoutChangetype"
+    ],
+    "mse-appendwindow.html":[
+        "mse_append_window",
+        "MseAppendWindow"
+    ],
+    "source-buffer-re-initialization-with-changetype.html":[
+        "source_buffer_re_initialization_with_changetype",
+        "SourceBufferReInitializationWithChangetype"
+    ],
+    "buffer-underrun-and-recovery.html": [
+        "buffer_underrun_and_recovery",
+        "BufferUnderrunAndRecovery"
+    ],
+    "random-access-from-one-place-in-a-stream-to-a-different-place-in-the-same-stream.html":[
+        "random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream",
+        "RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream"
+    ],
+    "truncated-playback-and-restart.html":[
+        "truncated_playback_and_restart",
+        "TruncatedPlaybackAndRestart"
+    ],
+    "low-latency-initialization.html" : [
+        "low_latency_initialization",
+        "LowLatencyInitialization"
+    ],
+    "low-latency-playback-over-gaps.html" : [
+        "low_latency_playback_over_gaps",
+        "LowLatencyPlaybackOverGaps"
+    ],
+    "low-latency-short-buffer-playback.html" : [
+        "buffer_underrun_and_recovery",
+        "BufferUnderrunAndRecovery"
+    ],
+    "long-duration-playback.html":[
+        "long_duration_playback",
+        "LongDurationPlayback"
     ]
 }

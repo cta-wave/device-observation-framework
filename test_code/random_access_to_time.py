@@ -26,6 +26,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+
 from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
@@ -44,11 +45,9 @@ class RandomAccessToTime(SequentialTrackPlayback):
             "frame_tolerance",
             "random_access_time",
             "duration_tolerance",
-            "duration_frame_tolerance"
+            "duration_frame_tolerance",
         ]
-        self.content_parameters = [
-            "cmaf_track_duration"
-        ]
+        self.content_parameters = ["cmaf_track_duration"]
 
     def _get_first_frame_num(self, frame_rate: float) -> int:
         """return first frame number"""

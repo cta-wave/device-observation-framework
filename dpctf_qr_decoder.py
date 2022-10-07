@@ -25,10 +25,11 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
-import re
-import logging
 import json
+import logging
+import re
 from datetime import datetime
+
 from qr_recognition.qr_decoder import DecodedQr, QrDecoder
 
 logger = logging.getLogger(__name__)
@@ -144,8 +145,9 @@ class PreTestDecodedQr(DecodedQr):
 
 
 class DPCTFQrDecoder(QrDecoder):
-    def _translate_qr_test_runner(
-        self, data: str, location: list, json_data, camera_frame_num: int
+    @staticmethod
+    def translate_qr_test_runner(
+        data: str, location: list, json_data, camera_frame_num: int
     ) -> DecodedQr:
         """translate different type of test runner qr code"""
         code = DecodedQr("", [])
@@ -195,14 +197,11 @@ class DPCTFQrDecoder(QrDecoder):
 
         return code
 
-    def _media_time_str_to_ms(self, media_time_str: str) -> float:
+    @staticmethod
+    def media_time_str_to_ms(media_time_str: str) -> float:
         """Change media time string to ms
         return media time from mezzanine QR code in milliseconds
         """
-        # temp bug fix from content to be removed
-        if media_time_str == "00:00:60.000":
-            media_time_str = "00:01:00.000"
-
         media_time_datetime = datetime.strptime(media_time_str, "%H:%M:%S.%f")
 
         ms = media_time_datetime.microsecond / 1000
@@ -228,7 +227,7 @@ class DPCTFQrDecoder(QrDecoder):
         match = _mezzanine_qr_data_re.match(data)
         if match:
             # matches a mezzanine signature so decode it as such
-            media_time = self._media_time_str_to_ms(match.group(2))
+            media_time = DPCTFQrDecoder.media_time_str_to_ms(match.group(2))
             code = MezzanineDecodedQr(
                 data,
                 location,
@@ -241,7 +240,7 @@ class DPCTFQrDecoder(QrDecoder):
         else:
             try:
                 json_data = json.loads(data)
-                code = self._translate_qr_test_runner(
+                code = DPCTFQrDecoder.translate_qr_test_runner(
                     data, location, json_data, camera_frame_num
                 )
             except json.decoder.JSONDecodeError as e:

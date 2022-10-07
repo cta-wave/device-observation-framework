@@ -25,9 +25,11 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+
 from .random_access_to_fragment import RandomAccessToFragment
 
 logger = logging.getLogger(__name__)
+
 
 class RandomAccessOfAWavePresentation(RandomAccessToFragment):
     """RandomAccessOfAWavePresentation to handle test random-access-of-a-wave-presentation.html.
@@ -37,7 +39,13 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            ("every_sample_rendered_in_cmaf_presentation", "EverySampleRenderedInCMAFPresentation"),
+            (
+                "every_sample_rendered_in_cmaf_presentation",
+                "EverySampleRenderedInCMAFPresentation",
+            ),
             ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("earliest_sample_same_presentation_time", "EarliestSampleSamePresentationTime"),
+            (
+                "earliest_sample_same_presentation_time",
+                "EarliestSampleSamePresentationTime",
+            ),
         ]
