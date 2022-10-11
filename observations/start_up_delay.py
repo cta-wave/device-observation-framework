@@ -25,11 +25,11 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+from typing import Dict, List
 
-from .observation import Observation
-from typing import List, Dict
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 
+from .observation import Observation
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class StartUpDelay(Observation):
             if frame_ct > play_ct:
                 frame_change_found = True
                 break
-        
+
         if not event_found:
             self.result["status"] = "FAIL"
             self.result["message"] = (
@@ -100,9 +100,7 @@ class StartUpDelay(Observation):
             )
         elif not frame_change_found:
             self.result["status"] = "FAIL"
-            self.result["message"] = (
-                f"No frame change detected after 'play'."
-            )
+            self.result["message"] = f"No frame change detected after 'play'."
         else:
             start_up_delay = frame_ct - play_ct
             self.result["message"] = (

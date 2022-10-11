@@ -23,10 +23,10 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+from typing import Dict, List, Tuple
 
-from typing import List, Dict, Tuple
+from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
-from dpctf_qr_decoder import TestStatusDecodedQr
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,9 @@ class Observation:
             self.missing_frame_threshold = 0
         else:
             self.tolerances = global_configurations.get_tolerances()
-            self.missing_frame_threshold = global_configurations.get_missing_frame_threshold()
+            self.missing_frame_threshold = (
+                global_configurations.get_missing_frame_threshold()
+            )
 
     @staticmethod
     def _get_play_event(
@@ -96,3 +98,41 @@ class Observation:
                 break
 
         return False, 0
+
+    @staticmethod
+    def get_playback_change_position(
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+    ) -> List[int]:
+        """loop through the detected mezzanine list to save
+        playback change positions including content change
+        and playback switching
+        """
+        current_content_id = mezzanine_qr_codes[0].content_id
+        current_frame_rate = mezzanine_qr_codes[0].frame_rate
+        change_starting_index_list = [0]
+        for i in range(1, len(mezzanine_qr_codes)):
+            if (
+                mezzanine_qr_codes[i].content_id != current_content_id
+                or mezzanine_qr_codes[i].frame_rate != current_frame_rate
+            ):
+                # the content did change save the starting index
+                change_starting_index_list.append(i)
+                current_content_id = mezzanine_qr_codes[i].content_id
+                current_frame_rate = mezzanine_qr_codes[i].frame_rate
+        return change_starting_index_list
+
+    @staticmethod
+    def get_content_change_position(
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+    ) -> List[int]:
+        """loop through the detected mezzanine list to save
+        content ID change positions
+        """
+        current_content_id = mezzanine_qr_codes[0].content_id
+        change_starting_index_list = [0]
+        for i in range(1, len(mezzanine_qr_codes)):
+            if mezzanine_qr_codes[i].content_id != current_content_id:
+                # the content did change save the starting index
+                change_starting_index_list.append(i)
+                current_content_id = mezzanine_qr_codes[i].content_id
+        return change_starting_index_list

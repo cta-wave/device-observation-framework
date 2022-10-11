@@ -25,6 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+
 from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,13 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            ("every_sample_rendered_in_cmaf_presentation", "EverySampleRenderedInCMAFPresentation"),
+            (
+                "every_sample_rendered_in_cmaf_presentation",
+                "EverySampleRenderedInCMAFPresentation",
+            ),
             ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("earliest_sample_same_presentation_time", "EarliestSampleSamePresentationTime"),
+            (
+                "earliest_sample_same_presentation_time",
+                "EarliestSampleSamePresentationTime",
+            ),
         ]

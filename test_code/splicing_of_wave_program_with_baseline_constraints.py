@@ -26,13 +26,17 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from .playback_over_wave_baseline_splice_constraints import PlaybackOverWaveBaselineSpliceConstraints
+
+from .playback_over_wave_baseline_splice_constraints import \
+    PlaybackOverWaveBaselineSpliceConstraints
 
 logger = logging.getLogger(__name__)
 
 
-class SplicingOfWaveProgramWithBaselineConstraints(PlaybackOverWaveBaselineSpliceConstraints):
-    """SplicingOfWaveProgramWithBaselineConstraints to handle test 
+class SplicingOfWaveProgramWithBaselineConstraints(
+    PlaybackOverWaveBaselineSpliceConstraints
+):
+    """SplicingOfWaveProgramWithBaselineConstraints to handle test
     splicing-of-wave-program-with-baseline-constraints.html.
     This class is derived from PlaybackOverWaveBaselineSpliceConstraints and uses the same observations logic.
     """
@@ -40,7 +44,13 @@ class SplicingOfWaveProgramWithBaselineConstraints(PlaybackOverWaveBaselineSplic
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            ("every_sample_rendered_in_cmaf_presentation", "EverySampleRenderedInCMAFPresentation"),
+            (
+                "every_sample_rendered_in_cmaf_presentation",
+                "EverySampleRenderedInCMAFPresentation",
+            ),
             ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("earliest_sample_same_presentation_time", "EarliestSampleSamePresentationTime"),
+            (
+                "earliest_sample_same_presentation_time",
+                "EarliestSampleSamePresentationTime",
+            ),
         ]
