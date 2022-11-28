@@ -25,16 +25,15 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 import math
 
-from .mse_append_window import MseAppendWindow
+from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
 
 logger = logging.getLogger(__name__)
 
 
-class TruncatedPlaybackAndRestart(MseAppendWindow):
+class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
     """TruncatedPlaybackAndRestart to handle test truncated-playback-and-restart.html
-    Derived from PlaybackOverWaveBaselineSpliceConstraints test code. Uses same logic except
-    start_up_delay observation.
+    Derived from SequentialTrackPlayback test code.
     """
 
     def _set_test_type(self) -> None:
@@ -43,6 +42,7 @@ class TruncatedPlaybackAndRestart(MseAppendWindow):
 
     def _init_parameters(self) -> None:
         self.parameters = [
+            "ts_max",
             "tolerance",
             "frame_tolerance",
             "duration_tolerance",

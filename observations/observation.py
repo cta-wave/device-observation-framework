@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=import-error, disable=consider-using-enumerate
 """observation base class
 
 The Software is provided to you by the Licensor under the License, as
@@ -46,7 +47,7 @@ class Observation:
     """
     missing_frame_threshold: int
     """Threshold of missing frame.
-    If the number of missing frames on an individual test is greater than this 
+    If the number of missing frames on an individual test is greater than this
     post error messege and terminate the session.
     """
 
@@ -67,25 +68,28 @@ class Observation:
             )
 
     @staticmethod
-    def _get_play_event(
+    def _find_event(
+        event: str,
         test_status_qr_codes: List[TestStatusDecodedQr],
         camera_frame_duration_ms: float,
     ) -> (Tuple[bool, float]):
-        """loop through event qr code to find 1st playing play event
+        """loop through event qr code to find 1st event
 
         Args:
+            event: 1st event string to find
             test_status_qr_codes (List[TestStatusDecodedQr]): Test Status QR codes list containing
                 currentTime as reported by MSE.
             camera_frame_duration_ms (float): duration of a camera frame on msecs.
 
         Returns:
-            (bool, float): True if the 1st play event is found, play_current_time from the 1st test runner play event.
+            (bool, float): True if the 1st event is found,
+            play_current_time from the 1st test runner event.
         """
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
 
             # check for the 1st play action from TR events
-            if current_status.last_action == "play":
+            if current_status.last_action == event:
                 play_event_camera_frame_num = current_status.camera_frame_num
 
                 if i + 1 < len(test_status_qr_codes):

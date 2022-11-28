@@ -83,8 +83,8 @@ class DurationMatchesCMAFTrack(Observation):
     ) -> int:
         """get fisrt play qr code index"""
         first_play_qr_index = 0
-        event_found, play_ct = Observation._get_play_event(
-            test_status_qr_codes, camera_frame_duration_ms
+        event_found, play_ct = Observation._find_event(
+            "play", test_status_qr_codes, camera_frame_duration_ms
         )
 
         if event_found:
