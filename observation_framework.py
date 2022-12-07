@@ -46,7 +46,7 @@ from qr_recognition.qr_recognition import FrameAnalysis
 MAJOR = 1
 MINOR = 0
 PATCH = 3
-BETA = " beta 1"
+BETA = " beta 2"
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
 logger = logging.getLogger(__name__)
