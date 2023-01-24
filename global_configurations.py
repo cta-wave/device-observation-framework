@@ -36,19 +36,33 @@ class GlobalConfigurations:
     """Global Configurations class"""
 
     config: configparser.RawConfigParser
+    ignore: str
+    """special condition to ignore
+    used to ignore corrupted frames for gopro9"""
+    system_mode: str
+    """system mode for debugging purpose only"""
 
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read("config.ini", "UTF-8")
+        self.ignore = ""
+        self.system_mode = ""
+
+    def set_ignore(self, ignore: str) -> str:
+        """Set ignore"""
+        self.ignore = ignore
+
+    def get_ignore(self) -> str:
+        """Get ignore"""
+        return self.ignore
+
+    def set_system_mode(self, mode: str) -> str:
+        """Set system_mode"""
+        self.system_mode = mode
 
     def get_system_mode(self) -> str:
         """Get system_mode"""
-        try:
-            system_mode = self.config["GENERAL"]["system_mode"]
-        except KeyError:
-            system_mode = ""
-
-        return system_mode
+        return self.system_mode
 
     def get_sort_input_files_by(self) -> str:
         """Get sort_input_files_by"""

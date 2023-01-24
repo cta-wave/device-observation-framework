@@ -582,10 +582,13 @@ class ObservationFrameworkProcessor:
         while (len_frames + corrupted_frame_num) > capture_frame_num:
             got_frame, image = vidcap.read()
             if not got_frame:
-                # work around for gopro
-                corrupted_frame_num += 1
-                capture_frame_num += 1
-                continue
+                if "corrupted" in self.global_configurations.get_ignore():
+                    # work around for gopro
+                    corrupted_frame_num += 1
+                    capture_frame_num += 1
+                    continue
+                else:
+                    break
 
             camera_frame_number = starting_camera_frame_number + capture_frame_num
 

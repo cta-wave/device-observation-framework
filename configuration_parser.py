@@ -54,9 +54,9 @@ class ConfigurationParser:
     def __init__(self, global_configurations: GlobalConfigurations):
         self.server_url = global_configurations.get_test_runner_url()
 
-        # if conf.ini DEBUG mode is set then read test configuration settings from
+        # if debug mode is set then read test configuration settings from
         # a local file (used for development), instead of retrieving from Test Runner.
-        if (global_configurations.get_system_mode()) == "Debug":
+        if (global_configurations.get_system_mode()) == "debug":
             self.test_config_json = self._get_json_from_local("test-config.json")
             self.tests_json = self._get_json_from_local("tests.json")
         else:

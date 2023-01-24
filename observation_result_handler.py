@@ -223,9 +223,9 @@ class ObservationResultHandler:
             self._create_results_dir(filename)
             observation_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-            # if conf.ini mode is set to DEBUG then just save results to a file
+            # if debug mode then just save results to a file
             # (only used for development)
-            if (self.global_configurations.get_system_mode()) == "Debug":
+            if (self.global_configurations.get_system_mode()) == "debug":
                 debug_result_filename = (
                     result_file_path
                     + "/"

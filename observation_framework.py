@@ -83,6 +83,7 @@ def iter_to_get_qr_area(
     height: int,
     end_iter_frame_num: int,
     do_adaptive_threshold_scan: bool,
+    global_configurations: GlobalConfigurations,
 ) -> Tuple:
     """Iterate video frame by frame and detect mezzanine QR codes area.
 
@@ -92,6 +93,7 @@ def iter_to_get_qr_area(
         width: recording image width
         height: recording image height
         end_iter_frame_num: frame number where system stops search qr areas
+        global_configurations: to get configuration from
 
     Returns:
         first_pre_test_qr_time: first pre test qr code detection time in ms
@@ -109,10 +111,13 @@ def iter_to_get_qr_area(
     while (len_frames + corrupted_frame_num) > capture_frame_num:
         got_frame, image = vidcap.read()
         if not got_frame:
-            # work around for gopro
-            corrupted_frame_num += 1
-            capture_frame_num += 1
-            continue
+            if "corrupted" in global_configurations.get_ignore():
+                # work around for gopro
+                corrupted_frame_num += 1
+                capture_frame_num += 1
+                continue
+            else:
+                break
 
         # print out where the processing is currently
         if capture_frame_num % 10 == 0:
@@ -267,6 +272,7 @@ def get_qr_code_area(
                 height,
                 int(fps * search_qr_area_to),
                 do_adaptive_threshold_scan,
+                global_configurations,
             )
         finally:
             vidcap.release()
@@ -324,9 +330,9 @@ def run(
     observation_framework = None
     starting_camera_frame_number = 0
     logger.info(f"Device Observation Framework (V{VERSION}) analysis started!")
-    if (global_configurations.get_system_mode()) == "Debug":
+    if (global_configurations.get_system_mode()) == "debug":
         logger.info(
-            f"Device Observation Framework is running in Debug mode, "
+            f"Device Observation Framework is running in debug mode, "
             f'reads local configuration file from "configuration" folder '
             f"and will not post results back to the Test Runner."
         )
@@ -454,6 +460,17 @@ def main() -> None:
         default="general",
         choices=["general", "intensive"],
     )
+    parser.add_argument(
+        "--mode",
+        help="System mode is for development purposes only.",
+        default="",
+        choices=["", "debug"],
+    )
+    parser.add_argument(
+        "--ignore",
+        help="Specific condition to ignore.",
+        default=""
+    )
     args = parser.parse_args()
 
     do_adaptive_threshold_scan = False
@@ -461,6 +478,8 @@ def main() -> None:
         do_adaptive_threshold_scan = True
 
     global_configurations = GlobalConfigurations()
+    global_configurations.set_ignore(args.ignore)
+    global_configurations.set_system_mode(args.mode)
     log_file_path = global_configurations.get_log_file_path()
 
     log_file = log_file_path + "/events.log"
