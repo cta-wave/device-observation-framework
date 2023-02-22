@@ -27,6 +27,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+from fractions import Fraction
 
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
@@ -58,7 +59,7 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         ]
         self.content_parameters = ["fragment_duration_multi_mpd"]
 
-    def _get_last_frame_num(self, frame_rate: float) -> int:
+    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """

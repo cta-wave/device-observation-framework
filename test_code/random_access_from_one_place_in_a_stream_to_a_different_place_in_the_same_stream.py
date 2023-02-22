@@ -26,6 +26,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+from fractions import Fraction
 
 from .mse_append_window import MseAppendWindow
 from .test import TestType
@@ -59,7 +60,7 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
         ]
         self.content_parameters = ["cmaf_track_duration"]
 
-    def _get_gap_from_and_to_frames(self, frame_rate):
+    def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:
         """return gap from and to frames"""
         random_access_from_frame = math.floor(
             (self.parameters_dict["random_access_from"]) * frame_rate

@@ -27,7 +27,8 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import importlib
 import logging
 import math
-from typing import List, Optional
+from typing import List
+from fractions import Fraction
 
 from configuration_parser import ConfigurationParser
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
@@ -128,17 +129,17 @@ class SequentialTrackPlayback:
             )
         )
 
-    def _get_first_frame_num(self, _) -> int:
+    def _get_first_frame_num(self, _frame_rate: Fraction) -> int:
         """return first frame number"""
         return 1
 
-    def _get_last_frame_num(self, frame_rate: float) -> int:
+    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number"""
         return math.floor(
             self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate
         )
 
-    def _get_gap_from_and_to_frames(self, _):
+    def _get_gap_from_and_to_frames(self, _frame_rate: Fraction):
         """return gap from and to frames"""
         return []
 

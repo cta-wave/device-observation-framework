@@ -24,10 +24,10 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+from fractions import Fraction
 
 from .random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream import \
     RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream
-from .test import TestType
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class LowLatencyPlaybackOverGaps(
         ]
         self.content_parameters = ["cmaf_track_duration", "fragment_duration"]
 
-    def _get_gap_from_and_to_frames(self, frame_rate):
+    def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:
         """return gap from and to frames"""
         gap_from = self.parameters_dict["min_buffer_duration"]
         if "gap_duration" in self.parameters_dict:

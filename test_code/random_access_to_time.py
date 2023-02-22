@@ -26,6 +26,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+from fractions import Fraction
 
 from .sequential_track_playback import SequentialTrackPlayback
 
@@ -49,7 +50,7 @@ class RandomAccessToTime(SequentialTrackPlayback):
         ]
         self.content_parameters = ["cmaf_track_duration"]
 
-    def _get_first_frame_num(self, frame_rate: float) -> int:
+    def _get_first_frame_num(self, frame_rate: Fraction) -> int:
         """return first frame number"""
         random_access_time = self.parameters_dict["random_access_time"]
         first_frame_num = math.floor(random_access_time * frame_rate)

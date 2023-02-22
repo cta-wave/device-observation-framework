@@ -28,6 +28,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import json
 import logging
 from typing import Dict, List
+from fractions import Fraction
 
 import isodate
 import requests
@@ -116,7 +117,7 @@ class ConfigurationParser:
                         # the multiplication happens so that we get the fragment duration in ms
                         # we are interested just about the first video representation's fragment duration
                         parameters_dict[parameter] = (
-                            representation["fragment_duration"] * 1000
+                            Fraction(str(representation["fragment_duration"])) * 1000
                         )
                         break
                     except (TypeError, KeyError) as e:

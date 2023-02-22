@@ -29,6 +29,7 @@ import json
 import logging
 import re
 from datetime import datetime
+from fractions import Fraction
 
 from qr_recognition.qr_decoder import DecodedQr, QrDecoder
 
@@ -54,7 +55,7 @@ class MezzanineDecodedQr(DecodedQr):
     """The media time encoded in this QR code"""
     frame_number: int
     """The media time encoded in this QR code"""
-    frame_rate: float
+    frame_rate: Fraction
     """The frame rate encoded in this QR code"""
 
     first_camera_frame_num: int
@@ -69,7 +70,7 @@ class MezzanineDecodedQr(DecodedQr):
         content_id: str,
         media_time: float,
         frame_number: int,
-        frame_rate: float,
+        frame_rate: Fraction,
         camera_frame_num: int,
     ):
         super().__init__(data, location)
@@ -212,6 +213,20 @@ class DPCTFQrDecoder(QrDecoder):
 
         return media_time
 
+    @staticmethod
+    def frame_rate_str_to_fraction(frame_rate_str: str) -> Fraction:
+        """Convert string frame rate to float
+        fractional frame rate fund match from map to get accurate number"""
+        frame_rate_map = {}
+        with open("frame_rate_map.json") as f:
+            frame_rate_map = json.load(f)
+        try:
+            res = frame_rate_map[frame_rate_str].split('/')
+            frame_rate = Fraction(int(res[0]), int(res[1]))
+        except Exception:
+            frame_rate = Fraction(float(frame_rate_str))
+        return frame_rate
+
     def translate_qr(
         self, data: str, location: list, camera_frame_num: int
     ) -> DecodedQr:
@@ -228,13 +243,14 @@ class DPCTFQrDecoder(QrDecoder):
         if match:
             # matches a mezzanine signature so decode it as such
             media_time = DPCTFQrDecoder.media_time_str_to_ms(match.group(2))
+            frame_rate = DPCTFQrDecoder.frame_rate_str_to_fraction(match.group(4))
             code = MezzanineDecodedQr(
                 data,
                 location,
                 match.group(1),
                 media_time,
                 int(match.group(3)),
-                float(match.group(4)),
+                frame_rate,
                 camera_frame_num,
             )
         else:

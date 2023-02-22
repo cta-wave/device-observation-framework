@@ -257,7 +257,7 @@ Then override the appropriate methods to provide the correct parameters for the 
         def _init_parameters(self) -> None:
             [...]
 
-        def _get_first_frame_num(self, frame_rate: float) -> int:
+        def _get_first_frame_num(self, frame_rate: Fraction) -> int:
             [...]
 
         def _get_expected_track_duration(self) -> float:
