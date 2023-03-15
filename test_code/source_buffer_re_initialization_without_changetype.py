@@ -60,7 +60,10 @@ class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
             (last_playout[0], last_playout[1])
         ]
         last_track_duration = fragment_duration * last_playout[2]
-        last_frame_num = math.floor(last_track_duration / 1000 * frame_rate)
+        half_duration_frame = (1000 / frame_rate) / 2
+        last_frame_num = math.floor(
+            (last_track_duration + half_duration_frame) / 1000 * frame_rate
+        )
         return last_frame_num
 
     def _get_expected_track_duration(self) -> float:

@@ -44,9 +44,9 @@ from observation_framework_processor import ObservationFrameworkProcessor
 from qr_recognition.qr_recognition import FrameAnalysis
 
 MAJOR = 1
-MINOR = 0
-PATCH = 3
-BETA = " beta 2"
+MINOR = 1
+PATCH = 0
+BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
 logger = logging.getLogger(__name__)

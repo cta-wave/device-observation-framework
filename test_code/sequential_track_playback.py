@@ -135,8 +135,10 @@ class SequentialTrackPlayback:
 
     def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number"""
+        half_duration_frame = (1000 / frame_rate) / 2
         return math.floor(
-            self.parameters_dict["cmaf_track_duration"] / 1000 * frame_rate
+            (self.parameters_dict["cmaf_track_duration"] + half_duration_frame)
+            / 1000 * frame_rate
         )
 
     def _get_gap_from_and_to_frames(self, _frame_rate: Fraction):
