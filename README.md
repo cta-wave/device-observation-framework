@@ -289,7 +289,7 @@ For example:
 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
-# Release Notes for Release v1.1.3
+# Release Notes for Release V1.1.0
 
 ## Implemented:
 * Installation and usage instructions (in this README).
