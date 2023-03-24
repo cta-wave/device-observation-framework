@@ -287,8 +287,11 @@ class EverySampleRendered(Observation):
                 # the expected frame number position in the content being switched from is
                 # the expected relative time of the switch
                 # (derived from the test config) * that content's frames per second
+                half_duration_frame = (
+                    (1000 / mezzanine_qr_codes[starting_index - 1].frame_rate) / 2
+                )
                 previous_ending_frame_num = math.floor(
-                    switching_positions[i]
+                    (switching_positions[i] + half_duration_frame)
                     / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
@@ -309,9 +312,12 @@ class EverySampleRendered(Observation):
                 # the expected relative time of the switch
                 # (derived from the test config) * that content's frames per second
                 # compare expected with the actual frame number detected at this switch point
+                half_duration_frame = (
+                    (1000 / mezzanine_qr_codes[starting_index].frame_rate) / 2
+                )
                 current_starting_frame_num = (
                     math.floor(
-                        switching_positions[i]
+                        (switching_positions[i] + half_duration_frame)
                         / 1000
                         * mezzanine_qr_codes[starting_index].frame_rate
                     )
