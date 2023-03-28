@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""observation every_sample_rendered_in_cmaf_presentation
-
-make observation of every_sample_rendered_in_cmaf_presentation
+"""DPCTF device observation test code mse_append_window
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -26,24 +24,21 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 
-from global_configurations import GlobalConfigurations
-
-from .every_sample_rendered import EverySampleRendered
+from .sequential_track_playback import SequentialTrackPlayback
 
 logger = logging.getLogger(__name__)
 
 
-class EverySampleRenderedInCMAFPresentation(EverySampleRendered):
-    """EverySampleRenderedInCMAFPresentation class
-    Every sample for every media type included in the CMAF Presentation duration shall be rendered
-    and shall be rendered in order.
-    Video only for phase one
+class MseAppendWindow(SequentialTrackPlayback):
+    """MseAppendWindow to handle test mse_appendwindow.html
+    Derived from SequentialTrackPlayback test code. Uses same logic except
+    start_up_delay observation.
     """
 
-    def __init__(self, global_configurations: GlobalConfigurations):
-        super().__init__(
-            global_configurations,
-            "[OF] Video only: Every sample for every media type included "
-            "in the CMAF Presentation duration "
-            "shall be rendered and shall be rendered in order.",
-        )
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        self.observations = [
+            ("every_sample_rendered", "EverySampleRendered"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+        ]

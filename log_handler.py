@@ -23,8 +23,8 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from logging.handlers import RotatingFileHandler
 from logging import FileHandler
+from logging.handlers import RotatingFileHandler
 
 MAX_LOGFILE_BYTES = 10 * 1024 * 1024
 BAK_LOG_FILE_NUM = 5

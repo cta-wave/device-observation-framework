@@ -24,14 +24,14 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
-import cv2
 import logging
-import numpy as np
-
 from typing import Any, List
-from pyzbar.pyzbar import decode, ZBarSymbol
-from .qr_decoder import DecodedQr, QrDecoder
 
+import cv2
+import numpy as np
+from pyzbar.pyzbar import ZBarSymbol, decode
+
+from .qr_decoder import DecodedQr, QrDecoder
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class FrameAnalysis:
         self,
         webcam_image: OpenCvImageHint,
         qr_code_areas: list,
-        do_adaptiveThreshold_scan: bool
+        do_adaptive_threshold_scan: bool,
     ) -> None:
         """Do a full scan of the specified webcam capture video frame."""
         image = cv2.cvtColor(webcam_image, cv2.COLOR_BGR2GRAY)
@@ -124,9 +124,8 @@ class FrameAnalysis:
                     self.scan_cropped_image(image, qr_code_areas)
 
         # do adaptiveThreshold scan when it is defined to do so
-        if do_adaptiveThreshold_scan and not self.all_code_found():
+        if do_adaptive_threshold_scan and not self.all_code_found():
             thresholded_image = cv2.adaptiveThreshold(
-                image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 11, 2
+                image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
             )
             self._scan_image(thresholded_image)

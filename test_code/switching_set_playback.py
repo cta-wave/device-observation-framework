@@ -25,6 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
+
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
 
@@ -50,9 +51,6 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
             "frame_tolerance",
             "playout",
             "duration_tolerance",
-            "duration_frame_tolerance"
+            "duration_frame_tolerance",
         ]
-        self.content_parameters = [
-            "cmaf_track_duration",
-            "fragment_duration_list"
-        ]
+        self.content_parameters = ["cmaf_track_duration", "fragment_duration_list"]

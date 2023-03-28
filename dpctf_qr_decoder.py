@@ -25,10 +25,12 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
-import re
-import logging
 import json
+import logging
+import re
 from datetime import datetime
+from fractions import Fraction
+
 from qr_recognition.qr_decoder import DecodedQr, QrDecoder
 
 logger = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ class MezzanineDecodedQr(DecodedQr):
     """The media time encoded in this QR code"""
     frame_number: int
     """The media time encoded in this QR code"""
-    frame_rate: float
+    frame_rate: Fraction
     """The frame rate encoded in this QR code"""
 
     first_camera_frame_num: int
@@ -68,7 +70,7 @@ class MezzanineDecodedQr(DecodedQr):
         content_id: str,
         media_time: float,
         frame_number: int,
-        frame_rate: float,
+        frame_rate: Fraction,
         camera_frame_num: int,
     ):
         super().__init__(data, location)
@@ -144,8 +146,9 @@ class PreTestDecodedQr(DecodedQr):
 
 
 class DPCTFQrDecoder(QrDecoder):
-    def _translate_qr_test_runner(
-        self, data: str, location: list, json_data, camera_frame_num: int
+    @staticmethod
+    def translate_qr_test_runner(
+        data: str, location: list, json_data, camera_frame_num: int
     ) -> DecodedQr:
         """translate different type of test runner qr code"""
         code = DecodedQr("", [])
@@ -195,14 +198,11 @@ class DPCTFQrDecoder(QrDecoder):
 
         return code
 
-    def _media_time_str_to_ms(self, media_time_str: str) -> float:
+    @staticmethod
+    def media_time_str_to_ms(media_time_str: str) -> float:
         """Change media time string to ms
         return media time from mezzanine QR code in milliseconds
         """
-        # temp bug fix from content to be removed
-        if media_time_str == "00:00:60.000":
-            media_time_str = "00:01:00.000"
-
         media_time_datetime = datetime.strptime(media_time_str, "%H:%M:%S.%f")
 
         ms = media_time_datetime.microsecond / 1000
@@ -212,6 +212,20 @@ class DPCTFQrDecoder(QrDecoder):
         media_time = ms + s_to_ms + min_to_ms + h_to_ms
 
         return media_time
+
+    @staticmethod
+    def frame_rate_str_to_fraction(frame_rate_str: str) -> Fraction:
+        """Convert string frame rate to float
+        fractional frame rate fund match from map to get accurate number"""
+        frame_rate_map = {}
+        with open("frame_rate_map.json") as f:
+            frame_rate_map = json.load(f)
+        try:
+            res = frame_rate_map[frame_rate_str].split('/')
+            frame_rate = Fraction(int(res[0]), int(res[1]))
+        except Exception:
+            frame_rate = Fraction(float(frame_rate_str))
+        return frame_rate
 
     def translate_qr(
         self, data: str, location: list, camera_frame_num: int
@@ -228,20 +242,21 @@ class DPCTFQrDecoder(QrDecoder):
         match = _mezzanine_qr_data_re.match(data)
         if match:
             # matches a mezzanine signature so decode it as such
-            media_time = self._media_time_str_to_ms(match.group(2))
+            media_time = DPCTFQrDecoder.media_time_str_to_ms(match.group(2))
+            frame_rate = DPCTFQrDecoder.frame_rate_str_to_fraction(match.group(4))
             code = MezzanineDecodedQr(
                 data,
                 location,
                 match.group(1),
                 media_time,
                 int(match.group(3)),
-                float(match.group(4)),
+                frame_rate,
                 camera_frame_num,
             )
         else:
             try:
                 json_data = json.loads(data)
-                code = self._translate_qr_test_runner(
+                code = DPCTFQrDecoder.translate_qr_test_runner(
                     data, location, json_data, camera_frame_num
                 )
             except json.decoder.JSONDecodeError as e:

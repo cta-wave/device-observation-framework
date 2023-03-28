@@ -27,17 +27,16 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
-import logging
-import requests
-import os
 import json
-
+import logging
+import os
 from datetime import datetime
 from json.decoder import JSONDecodeError
 from typing import List
-from global_configurations import GlobalConfigurations
-from exceptions import ObsFrameError, ConfigError
 
+import requests
+from exceptions import ConfigError, ObsFrameError
+from global_configurations import GlobalConfigurations
 
 logger = logging.getLogger(__name__)
 OF_RESULT_PREFIX = "[OF]"
@@ -115,10 +114,7 @@ class ObservationResultHandler:
         return subtests_data
 
     def _save_result_to_file(
-        self,
-        filename: str,
-        observation_results: List[dict],
-        observation_time: str
+        self, filename: str, observation_results: List[dict], observation_time: str
     ) -> None:
         """save observation result to a result file"""
         try:
@@ -139,7 +135,7 @@ class ObservationResultHandler:
         filename: str,
         test_path: str,
         observation_results: List[dict],
-        observation_time: str
+        observation_time: str,
     ) -> None:
         """Update result json file to add observation result to subtest section"""
         try:
@@ -227,12 +223,14 @@ class ObservationResultHandler:
             self._create_results_dir(filename)
             observation_time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-            # if conf.ini mode is set to DEBUG then just save results to a file
+            # if debug mode then just save results to a file
             # (only used for development)
-            if (self.global_configurations.get_system_mode()) == "Debug":
+            if (self.global_configurations.get_system_mode()) == "debug":
                 debug_result_filename = (
-                    result_file_path + "/"
-                    + session_token + "/"
+                    result_file_path
+                    + "/"
+                    + session_token
+                    + "/"
                     + test_path.replace("/", "-").replace(".html", "")
                     + "_debug.json"
                 )

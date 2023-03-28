@@ -30,9 +30,14 @@ class TestType(Enum):
     SEQUENTIAL: general playback test with contents played back from starting point to the end.
     SWITCHING: switching test that contents switches between representations.
     SPLICING: splicing test which is concatenates different content at any point during the playback.
+    GAPSINPLAYBACK: playback test which contents played back with some gaps between start to end.
+    WAITINGINPLAYBACK: playback test which contents waiting time in playback but no gaps in frames.
         The original content may then be returned to (such as an advert insertion test).
     """
 
     SEQUENTIAL = 1
     SWITCHING = 2
     SPLICING = 3
+    GAPSINPLAYBACK = 4
+    WAITINGINPLAYBACK = 5
+    TRUNCATED = 6
