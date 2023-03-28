@@ -28,32 +28,29 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import csv
 import importlib
-import cv2
-import logging
 import json
+import logging
 import os
-
 from typing import List
-from dpctf_qr_decoder import (
-    DPCTFQrDecoder,
-    MezzanineDecodedQr,
-    TestStatusDecodedQr,
-    PreTestDecodedQr,
-)
+
+import cv2
 from configuration_parser import ConfigurationParser
+from dpctf_qr_decoder import (DPCTFQrDecoder, MezzanineDecodedQr,
+                              PreTestDecodedQr, TestStatusDecodedQr)
+from exceptions import ConfigError, ObsFrameTerminate
 from global_configurations import GlobalConfigurations
+from log_handler import LogManager
+from observation_result_handler import ObservationResultHandler
 from qr_recognition.qr_decoder import DecodedQr
 from qr_recognition.qr_recognition import FrameAnalysis
-from observation_result_handler import ObservationResultHandler
-from exceptions import ObsFrameTerminate, ConfigError
-from log_handler import LogManager
 
 logger = logging.getLogger(__name__)
 
 
 class ObservationFrameworkProcessor:
     """Class to handle observation process"""
-    do_adaptiveThreshold_scan: bool
+
+    do_adaptive_threshold_scan: bool
     """additional adaptiveThreshold in qr code scan"""
 
     log_manager: LogManager
@@ -63,7 +60,7 @@ class ObservationFrameworkProcessor:
     """tests codes dictonary to map test code with module and class"""
 
     last_end_of_test_camera_frame_num: int
-    """recording frame number of the last ended event to check the end of session timeout"""
+    """recording frame number of the last finished event to check the end of session timeout"""
     end_of_session_timeout: int
     """end of session timeout
     when the gap is bigger that this, assume end of session is reached
@@ -87,6 +84,8 @@ class ObservationFrameworkProcessor:
 
     observation_result_handler: ObservationResultHandler
     """Observation result handler to pass result to Test Runner"""
+    duplicated_qr_check_count: int
+    """qr code list check back count for duplicated qr code detection"""
 
     mezzanine_qr_codes: List[MezzanineDecodedQr]
     """detected list of mezzanine qr codes for current test"""
@@ -121,16 +120,18 @@ class ObservationFrameworkProcessor:
     stop counter when mezzanine qr is detected at any time"""
     first_qr_is_detected: bool
     """start consecutive no qr code count after 1st mezzanine qr is detected
-    and stop counting when the status is ended"""
+    and stop counting when the status is finished"""
     test_started: bool
-    """True when pre_test QR code is detected and False when status is ended"""
+    """True when pre_test QR code is detected and False when status is finished"""
+    results: list
+    """ Holds the results of the observations """
 
     def __init__(
         self,
         log_manager: LogManager,
         global_configurations: GlobalConfigurations,
         fps: float,
-        do_adaptiveThreshold_scan: bool
+        do_adaptive_threshold_scan: bool,
     ):
         """dict {test_code : (module_name, class_name)}
         test_code: test code from test runner configuration, this mapped from test ID from pre-test QR code
@@ -153,7 +154,8 @@ class ObservationFrameworkProcessor:
             self.global_configurations
         )
 
-        self.do_adaptiveThreshold_scan = do_adaptiveThreshold_scan
+        self.do_adaptive_threshold_scan = do_adaptive_threshold_scan
+        self.duplicated_qr_check_count = global_configurations.get_duplicated_qr_check_count()
 
         self.mezzanine_qr_codes = []
         self.test_status_qr_codes = []
@@ -173,11 +175,13 @@ class ObservationFrameworkProcessor:
         self.consecutive_no_qr_count = 0
         self.first_qr_is_detected = False
         self.test_started = False
+        self.results = []
 
     def _discard_duplicated_qr_code(self, detected_codes: List[DecodedQr]):
         """discard duplicated qr code by its frame number
         QR codes that are detected on same frame
-        sort it to avoid out of order
+        sort newly detected mazzanine QR codes on same image
+        to avoid false out of order detection
         this function returns QR codes for different type individually
         """
         new_mezzanine_qr_codes = []
@@ -186,8 +190,15 @@ class ObservationFrameworkProcessor:
 
         for detected_code in detected_codes:
             if isinstance(detected_code, MezzanineDecodedQr):
+                check_back_count = 0
                 duplicated = False
                 for qr_code in self.mezzanine_qr_codes[::-1]:
+                    check_back_count += 1
+                    if check_back_count > self.duplicated_qr_check_count:
+                        # add to list even duplicated frame
+                        # duplicated frame normally chack back for duplicated_qr_check_count
+                        # default value is 3 becuase we have only 4 QR code position
+                        break
                     if qr_code == detected_code:
                         duplicated = True
                         # update last appear frame number
@@ -262,7 +273,7 @@ class ObservationFrameworkProcessor:
         except KeyError:
             raise Exception(f"Test '{test_code}' not supported!")
 
-    def _make_observations(self) -> None:
+    def _make_observations(self):
         """make observations when move to next test
         or at the end of the recording
         the observation result is to be posted after
@@ -275,6 +286,8 @@ class ObservationFrameworkProcessor:
                     self.test_status_qr_codes,
                     self.time_diff_file,
                 )
+                self._save_results(results)
+
             except ObsFrameTerminate as e:
                 results = []
                 result = {
@@ -288,9 +301,35 @@ class ObservationFrameworkProcessor:
                 )
                 raise ObsFrameTerminate(result["message"])
 
-            self.observation_result_handler.post_result(
-                self.pre_test_qr_code.session_token, self.test_path, results
-            )
+    def _save_results(self, results: list) -> None:
+        """
+        Save results to self.results
+        when previous presentation result is not empty merge two results.
+        Merge same result and append different result.
+        """
+        if not self.results:
+            self.results = results
+        else:
+            for new_result in results:
+                for result in self.results:
+                    if new_result["name"] == result["name"]:
+                        result["message"] = result["message"] + new_result["message"]
+                        if (
+                            new_result["status"] == "PASS"
+                            and result["status"] == "PASS"
+                        ):
+                            result["status"] == "PASS"
+                        else:
+                            result["status"] = new_result["status"]
+                    else:
+                        self.results.append(new_result)
+
+    def _post_observation_result(self) -> None:
+        """Post observation result to test runner"""
+        self.observation_result_handler.post_result(
+            self.pre_test_qr_code.session_token, self.test_path, self.results
+        )
+        self.results = []
 
     def _process_mezzanine_qr_codes(
         self, new_mezzanine_qr_codes: List[MezzanineDecodedQr]
@@ -318,13 +357,12 @@ class ObservationFrameworkProcessor:
             f"Captured on Frame={new_test_status_qr_code.camera_frame_num}"
         )
         self.test_status_qr_codes.append(new_test_status_qr_code)
-
-        # when status ended is detected make observation
-        if new_test_status_qr_code.status == "ended":
+        if new_test_status_qr_code.status == "finished":
             self.last_end_of_test_camera_frame_num = (
                 new_test_status_qr_code.camera_frame_num
             )
             self._make_observations()
+            self._post_observation_result()
 
     def _process_pre_test_qr_code(self, new_pre_test_qr_code: PreTestDecodedQr) -> None:
         """Process newly detected pre-test QR code"""
@@ -392,7 +430,7 @@ class ObservationFrameworkProcessor:
     ) -> bool:
         """check timeout and log error message when timedout
         this is used to detect ened of sesssion:
-            timeout after the last status=ended is recived untill the next pre-test QR code
+            timeout after the last status=finished is recived untill the next pre-test QR code
             and idle time when there is no QR code detected
 
         Args:
@@ -421,8 +459,7 @@ class ObservationFrameworkProcessor:
     def extract_qr_data_to_csv(
         self, camera_frame_number: int, detected_qr_codes: List[DecodedQr]
     ) -> None:
-        """Extract camera frame number and detected qr code data to a csv file
-        """
+        """Extract camera frame number and detected qr code data to a csv file"""
         if not self.qr_list_file:
             return
 
@@ -486,7 +523,7 @@ class ObservationFrameworkProcessor:
     def check_consecutive_no_qr_code(
         self, camera_frame_number: int, detected_qr_codes: List[DecodedQr]
     ) -> None:
-        """ check the detected qr codes and if there are no mezzanine qr code is detected
+        """check the detected qr codes and if there are no mezzanine qr code is detected
         count the missing code camera frame number, if it exceed the threshold
         terminate system
         """
@@ -498,24 +535,25 @@ class ObservationFrameworkProcessor:
                 # update threshold based on detected qr code frame rate
                 self.consecutive_no_qr_threshold = round(
                     self.global_configurations.get_consecutive_no_qr_threshold()
-                    * self.camera_frame_rate / detected_code.frame_rate
+                    * self.camera_frame_rate
+                    / detected_code.frame_rate
                 )
                 # first qr is detected when a new test is started
                 if self.test_started:
                     self.first_qr_is_detected = True
             if isinstance(detected_code, TestStatusDecodedQr):
-                if detected_code.status == "ended":
+                if detected_code.status == "finished":  # changed from ended
                     self.test_started = False
                     self.first_qr_is_detected = False
             if isinstance(detected_code, PreTestDecodedQr):
                 self.test_started = True
-        
+
         if self.first_qr_is_detected and not mezzanine_qr_is_detected:
             self.consecutive_no_qr_count += 1
 
         if (
-            self.consecutive_no_qr_threshold != 0 and
-            self.consecutive_no_qr_count > self.consecutive_no_qr_threshold
+            self.consecutive_no_qr_threshold != 0
+            and self.consecutive_no_qr_count > self.consecutive_no_qr_threshold
         ):
             raise ObsFrameTerminate(
                 f"At camera frame {camera_frame_number} "
@@ -538,18 +576,23 @@ class ObservationFrameworkProcessor:
             Last camera frame number in this file +1 (i.e. can be used as input to the next call).
         """
         capture_frame_num = 0
+        corrupted_frame_num = 0
         len_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        while len_frames > capture_frame_num:
+        while (len_frames + corrupted_frame_num) > capture_frame_num:
             got_frame, image = vidcap.read()
             if not got_frame:
-                # work around for gopro
-                capture_frame_num += 1
-                continue
+                if "corrupted" in self.global_configurations.get_ignore():
+                    # work around for gopro
+                    corrupted_frame_num += 1
+                    capture_frame_num += 1
+                    continue
+                else:
+                    break
 
             camera_frame_number = starting_camera_frame_number + capture_frame_num
 
-            # check timeout after the last test ended event
+            # check timeout after the last test finished event
             if self.check_timeout(
                 self.last_end_of_test_camera_frame_num,
                 camera_frame_number,
@@ -564,7 +607,7 @@ class ObservationFrameworkProcessor:
                 break
 
             analysis = FrameAnalysis(camera_frame_number, self.decoder)
-            analysis.full_scan(image, qr_code_area, self.do_adaptiveThreshold_scan)
+            analysis.full_scan(image, qr_code_area, self.do_adaptive_threshold_scan)
             detected_qr_codes = analysis.all_codes()
             if detected_qr_codes:
                 self.no_qr_code_frame_num = 0

@@ -27,6 +27,8 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 import math
+from fractions import Fraction
+
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
 
@@ -53,20 +55,23 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             "frame_tolerance",
             "playout",
             "duration_tolerance",
-            "duration_frame_tolerance"
+            "duration_frame_tolerance",
         ]
-        self.content_parameters = [
-            "fragment_duration_multi_mpd"
-        ]
+        self.content_parameters = ["fragment_duration_multi_mpd"]
 
-    def _get_last_frame_num(self, frame_rate: float) -> int:
+    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """
         last_playout = self.parameters_dict["playout"][-1]
-        fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][(last_playout[0], last_playout[1])]
+        fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
+            (last_playout[0], last_playout[1])
+        ]
         last_track_duration = fragment_duration * last_playout[2]
-        last_frame_num = math.floor(last_track_duration / 1000 * frame_rate)
+        half_duration_frame = (1000 / frame_rate) / 2
+        last_frame_num = math.floor(
+            (last_track_duration + half_duration_frame) / 1000 * frame_rate
+        )
         return last_frame_num
 
     def _get_expected_track_duration(self) -> float:
@@ -75,6 +80,8 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         """
         cmaf_track_duration = 0
         for playout in self.parameters_dict["playout"]:
-            fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][(playout[0], playout[1])]
+            fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
+                (playout[0], playout[1])
+            ]
             cmaf_track_duration += fragment_duration
         return cmaf_track_duration

@@ -257,7 +257,7 @@ Then override the appropriate methods to provide the correct parameters for the 
         def _init_parameters(self) -> None:
             [...]
 
-        def _get_first_frame_num(self, frame_rate: float) -> int:
+        def _get_first_frame_num(self, frame_rate: Fraction) -> int:
             [...]
 
         def _get_expected_track_duration(self) -> float:
@@ -289,7 +289,7 @@ For example:
 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
-# Release Notes for Release v1.0.3
+# Release Notes for Release V1.1.0
 
 ## Implemented:
 * Installation and usage instructions (in this README).
@@ -311,6 +311,16 @@ Add the new test name, python module, and class name to the *"of_testname_map.js
   * 8.12 playback-of-encrypted-content.html
   * 8.13 restricted-splicing-of-encrypted-content-https.html
   * 8.14 sequential-playback-of-encrypted-and-non-encrypted-baseline-content-https.html
+  * 8.15 source-buffer-re-initialization-without-changetype.html
+  * 8.16 source-buffer-re-initialization-with-changetype.html
+  * 8.17 buffer-underrun-and-recovery.html
+  * 8.18 truncated-playback-and-restart.html
+  * 8.19 low-latency-initialization.html
+  * 8.20 low-latency-playback-over-gaps.html
+  * 8.21 mse-appendwindow.html
+  * 8.22 low-latency-short-buffer-playback.html
+  * 8.23 random-access-from-one-place-in-a-stream-to-a-different-place-in-the-same-stream.html
   * 9.2 regular-playback-of-a-cmaf-presentation.html
   * 9.3 random-access-of-a-wave-presentation.html
-  * 9.4 Splicing of WAVE Program with Baseline Constraints
+  * 9.4 splicing-of-wave-program-with-baseline-constraints.html
+  * 9.6 long-duration-playback.html

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""observation every_sample_rendered_in_cmaf_presentation
-
-make observation of every_sample_rendered_in_cmaf_presentation
+"""DPCTF device observation test code long_duration_playback
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -26,24 +24,24 @@ Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
 
-from global_configurations import GlobalConfigurations
-
-from .every_sample_rendered import EverySampleRendered
+from .regular_playback_of_a_cmaf_presentation import \
+    RegularPlaybackOfACmafPresentation
 
 logger = logging.getLogger(__name__)
 
 
-class EverySampleRenderedInCMAFPresentation(EverySampleRendered):
-    """EverySampleRenderedInCMAFPresentation class
-    Every sample for every media type included in the CMAF Presentation duration shall be rendered
-    and shall be rendered in order.
-    Video only for phase one
+class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
+    """LongDurationPlayback to handle test long-duration-playback.html
+    Derived from RegularPlaybackOfACmafPresentation test code.
     """
 
-    def __init__(self, global_configurations: GlobalConfigurations):
-        super().__init__(
-            global_configurations,
-            "[OF] Video only: Every sample for every media type included "
-            "in the CMAF Presentation duration "
-            "shall be rendered and shall be rendered in order.",
-        )
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        self.observations = [
+            (
+                "every_sample_rendered_in_cmaf_presentation",
+                "EverySampleRenderedInCMAFPresentation",
+            ),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+        ]
