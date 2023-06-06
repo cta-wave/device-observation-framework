@@ -71,8 +71,11 @@ Download the Zip file https://github.com/cta-wave/device-observation-framework/a
 Both can also be found by clicking on the Code tab at the top of the Device Observation Framework landing page. 
 
 ### Installing the required Python packages
-Prior to running the install script, python **version 3.6 or greater** and pip **version 3** must be installed and on the execution PATH.
-On windows, add the Paths to Python to the system environment variables if they were not added during the installation.
+Prior to running the install script, **python version 3.6 to 3.9** and **pip version 3** must be installed and on the execution PATH.
+
+On windows, add the Paths to Python to the system environment variables if they were not added during the installation. 
+
+Note: If your system uses python version 3.10 or greater you will have to downgrade to one of the supported versions mentioned above. Some of the python packages required by the observation framework are not supported in python version 3.10 or greater.
 
 **On Linux and Mac OS** systems, prior to each user using the Observation Framework for the first time, run:
 
@@ -324,3 +327,6 @@ Add the new test name, python module, and class name to the *"of_testname_map.js
   * 9.3 random-access-of-a-wave-presentation.html
   * 9.4 splicing-of-wave-program-with-baseline-constraints.html
   * 9.6 long-duration-playback.html
+
+## Not yet implemented:
+* Audio observations - audio has been added to the required tests and you will hear white noise (pseudo noise) without any obvious gaps throughout the playback of these tests. Audio observations will be available in a future release.
