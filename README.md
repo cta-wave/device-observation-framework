@@ -22,7 +22,7 @@ Test Runner is deployed as a service running inside a Docker container.
 The Observation Framework **must** be installed outside of Docker or Docker Desktop and run outside of the docker from the windows command line.
 Make sure that the command line or PowerShell that is used for running OF is not inside the docker or docker desktop.
 
-This Observation Framework release has been tested on Ubuntu 18.04 LTS and Windows 10.
+⚠️ This Observation Framework release has been tested on Ubuntu 18.04 LTS and Windows 10. However, as per the Test Runner, it is highly recommended to use Linux for production purposes.
 
 ### Updating System Environment for Windows 
 There are a number of points in these instructions that will direct you to add the necessary path(s) to Windows System Variables under the PATH entry. You will need to add the Path(s) to the folder(s) that will contain the WAVE Test Suite files you will create, Python, Docker Desktop, ZBar and any others as noted in these instructions. This is so the system knows where to find them. There may be additional Paths necessary. When a command returns an error such as “file not found” check to see if the Path is in the Environment System Variables under “PATH”. If not, add the missing Path. 
