@@ -180,7 +180,7 @@ e.g:
 ```shell
 python observation_framework.py --input D:\device-observation-framework-main\recording_file_name.mp4
 ```
-IMPORTANT: Make sure Makes sure that the WindowsPowerShell is used for the above commands on windows.
+IMPORTANT: Make sure that the WindowsPowerShell is used for the above commands on windows.
 You **MUST** add the .mp4 extension to the file name.
 
 
