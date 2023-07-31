@@ -166,15 +166,16 @@ class SequentialTrackPlayback:
         """
         results = []
 
-        frame_rate = mezzanine_qr_codes[-1].frame_rate
-        self.parameters_dict["first_frame_num"] = self._get_first_frame_num(frame_rate)
-        self.parameters_dict["last_frame_num"] = self._get_last_frame_num(frame_rate)
-        self.parameters_dict[
-            "expected_track_duration"
-        ] = self._get_expected_track_duration()
-        self.parameters_dict[
-            "gap_from_and_to_frames"
-        ] = self._get_gap_from_and_to_frames(frame_rate)
+        if mezzanine_qr_codes:
+            frame_rate = mezzanine_qr_codes[-1].frame_rate
+            self.parameters_dict["first_frame_num"] = self._get_first_frame_num(frame_rate)
+            self.parameters_dict["last_frame_num"] = self._get_last_frame_num(frame_rate)
+            self.parameters_dict[
+                "expected_track_duration"
+            ] = self._get_expected_track_duration()
+            self.parameters_dict[
+                "gap_from_and_to_frames"
+            ] = self._get_gap_from_and_to_frames(frame_rate)
 
         for observation in self.observations:
             # create instance of the relevant observation class
