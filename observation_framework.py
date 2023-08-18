@@ -490,6 +490,10 @@ def main() -> None:
 
     input_video_files = []
     input_video_path = Path(args.input).resolve()
+
+    if not os.path.isabs(input_video_path):
+        input_video_path = os.path.abspath(input_video_path)
+
     if input_video_path.is_dir():
         input_files = os.listdir(input_video_path)
         for input_file in input_files:
