@@ -253,8 +253,9 @@ class SampleMatchesCurrentTime(Observation):
             current_status = test_status_qr_codes[i]
             if i + 1 < len(test_status_qr_codes):
                 if (
-                    current_status.status == "playing"
-                    and current_status.last_action == "play"
+                    current_status.status == "playing" and
+                    (current_status.last_action == "play" or
+                    current_status.last_action == "representation_change")
                 ):
                     if "render_threshold" in parameters_dict:
                         # skip the ct=0.0 check for low_latency_initialization test
