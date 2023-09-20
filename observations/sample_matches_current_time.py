@@ -249,6 +249,7 @@ class SampleMatchesCurrentTime(Observation):
 
         time_differences = []
 
+        first_current_time = None
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             if i + 1 < len(test_status_qr_codes):
@@ -257,11 +258,12 @@ class SampleMatchesCurrentTime(Observation):
                     (current_status.last_action == "play" or
                     current_status.last_action == "representation_change")
                 ):
-                    if "render_threshold" in parameters_dict:
-                        # skip the ct=0.0 check for low_latency_initialization test
-                        # 1st frame wont be rendered until chunk is appended
-                        if current_status.current_time == 0.0:
-                            continue
+                    if not first_current_time:
+                        first_current_time = current_status.current_time
+                    # skip checkes for starting ct report
+                    if current_status.current_time == first_current_time:
+                        continue
+
                     first_possible, last_possible = self._get_target_camera_frame_num(
                         current_status.camera_frame_num,
                         test_status_qr_codes[i + 1].delay,

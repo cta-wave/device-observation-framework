@@ -75,28 +75,6 @@ class DurationMatchesCMAFTrack(Observation):
         missing_frames = expected_last_frame_num - last_qr_code.frame_number
         return missing_frames
 
-    @staticmethod
-    def get_frame_change_after_play(
-        mezzanine_qr_codes: List[MezzanineDecodedQr],
-        test_status_qr_codes: List[TestStatusDecodedQr],
-        camera_frame_duration_ms: dict,
-    ) -> int:
-        """get fisrt play qr code index"""
-        first_play_qr_index = 0
-        event_found, play_ct = Observation._find_event(
-            "play", test_status_qr_codes, camera_frame_duration_ms
-        )
-
-        if event_found:
-            for i, mezzanine_qr_code in enumerate(mezzanine_qr_codes):
-                frame_ct = (
-                    mezzanine_qr_code.first_camera_frame_num * camera_frame_duration_ms
-                )
-                if frame_ct >= play_ct:
-                    first_play_qr_index = i
-                    break
-        return first_play_qr_index
-
     def _get_waiting_duration(self, test_status_qr_codes, camera_frame_duration_ms):
         """
         calculate waiting duration based on the test runner status qr code
@@ -140,7 +118,6 @@ class DurationMatchesCMAFTrack(Observation):
         waiting_durations,
         camera_frame_duration_ms,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
-        test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         adjust_starting_missing_frames,
         adjust_ending_missing_frames,
@@ -151,19 +128,15 @@ class DurationMatchesCMAFTrack(Observation):
         duration_tolerance = parameters_dict["duration_tolerance"]
         duration_frame_tolerance = parameters_dict["duration_frame_tolerance"]
 
-        first_play_qr_index = self.get_frame_change_after_play(
-            mezzanine_qr_codes, test_status_qr_codes, camera_frame_duration_ms
-        )
+        first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
         last_frame_duration = 1000 / mezzanine_qr_codes[-1].frame_rate
 
         if adjust_starting_missing_frames:
             starting_missing_frame = self._get_starting_missing_frame(
                 parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
             )
-            first_frame_duration = 1000 / mezzanine_qr_codes[0].frame_rate
-            start_frames_to_take_out = starting_missing_frame + first_play_qr_index
             # adjust expected track duration based on the missing frames
-            expected_track_duration -= start_frames_to_take_out * first_frame_duration
+            expected_track_duration -= starting_missing_frame * first_frame_duration
 
         if adjust_ending_missing_frames:
             ending_missing_frame = self._get_ending_missing_frame(
@@ -173,12 +146,12 @@ class DurationMatchesCMAFTrack(Observation):
             expected_track_duration -= ending_missing_frame * last_frame_duration
 
         if adjust_starting_missing_frames:
-            # playback duration get measured from the frame change after play()
+            # playback duration get measured from the 2nd detected frame
             # till the last detected frame
             playback_duration = (
                 mezzanine_qr_codes[-1].first_camera_frame_num
-                - mezzanine_qr_codes[first_play_qr_index].first_camera_frame_num
-            ) * camera_frame_duration_ms + last_frame_duration
+                - mezzanine_qr_codes[1].first_camera_frame_num
+            ) * camera_frame_duration_ms + first_frame_duration + last_frame_duration
         else:
             playback_duration = (
                 mezzanine_qr_codes[-1].first_camera_frame_num
@@ -262,7 +235,6 @@ class DurationMatchesCMAFTrack(Observation):
         if adjust_starting_missing_frames:
             self.result["message"] += (
                 f" Starting missing frame number is {starting_missing_frame}."
-                f" Starting frames to take out is {start_frames_to_take_out}."
             )
         if adjust_ending_missing_frames:
             self.result[
@@ -332,7 +304,6 @@ class DurationMatchesCMAFTrack(Observation):
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes[: change_starting_index_list[1] - 1],
-                test_status_qr_codes,
                 parameters_dict,
                 adjust_starting_missing_frames,
                 adjust_ending_missing_frames,
@@ -346,7 +317,6 @@ class DurationMatchesCMAFTrack(Observation):
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes[change_starting_index_list[1] :],
-                test_status_qr_codes,
                 parameters_dict,
                 adjust_starting_missing_frames,
                 adjust_ending_missing_frames,
@@ -360,7 +330,6 @@ class DurationMatchesCMAFTrack(Observation):
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes,
-                test_status_qr_codes,
                 parameters_dict,
                 adjust_starting_missing_frames,
                 adjust_ending_missing_frames,

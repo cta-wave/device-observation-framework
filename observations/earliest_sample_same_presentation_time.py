@@ -78,12 +78,18 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
             f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
         )
 
+        first_current_time = None
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             if (
                 current_status.status == "playing"
                 and current_status.last_action == "play"
             ):
+                if not first_current_time:
+                    first_current_time = current_status.current_time
+                # skip checkes for starting ct report
+                if current_status.current_time == first_current_time:
+                    continue
 
                 if i + 1 < len(test_status_qr_codes):
                     first_possible, last_possible = self._get_target_camera_frame_num(
@@ -113,6 +119,9 @@ class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
 
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"
+            self.result["message"] += (
+                f" currentTime={current_status.current_time} time_diff={round(time_diff, 4)}."
+            )
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
         return self.result
