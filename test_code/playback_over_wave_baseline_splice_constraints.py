@@ -28,6 +28,9 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 import math
 from fractions import Fraction
+from typing import Tuple
+
+from audio_file_reader import read_audio_mezzanine
 
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
@@ -56,32 +59,113 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             "playout",
             "duration_tolerance",
             "duration_frame_tolerance",
+            "audio_sample_length",
+            "audio_tolerance",
+            "audio_sample_tolerance",
         ]
-        self.content_parameters = ["fragment_duration_multi_mpd"]
 
     def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """
         last_playout = self.parameters_dict["playout"][-1]
-        fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
-            (last_playout[0], last_playout[1])
-        ]
-        last_track_duration = fragment_duration * last_playout[2]
-        half_duration_frame = (1000 / frame_rate) / 2
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["video_fragment_duration_multi_mpd"]
+        )
+
+        last_track_duration = 0
+        for i in range(last_playout[2]):
+            key = (last_playout[0], last_playout[1], i + 1)
+            last_track_duration += fragment_duration_multi_mpd[key]
+
+        half_frame_duration = (1000 / frame_rate) / 2
         last_frame_num = math.floor(
-            (last_track_duration + half_duration_frame) / 1000 * frame_rate
+            (last_track_duration + half_frame_duration) / 1000 * frame_rate
         )
         return last_frame_num
 
-    def _get_expected_track_duration(self) -> float:
-        """return expected CMAF duration
+    def _save_expected_video_track_duration(self) -> None:
+        """save expected video CMAF duration
         for splicing test this is sum of all fragment duration from the playout
         """
         cmaf_track_duration = 0
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["video_fragment_duration_multi_mpd"]
+        )
         for playout in self.parameters_dict["playout"]:
-            fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
-                (playout[0], playout[1])
-            ]
-            cmaf_track_duration += fragment_duration
-        return cmaf_track_duration
+            video_fragment_duration = (
+                fragment_duration_multi_mpd[tuple(playout)]
+            )
+            cmaf_track_duration += video_fragment_duration
+        self.parameters_dict["expected_video_track_duration"] = cmaf_track_duration
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save the expected audio cmaf duration"""
+        cmaf_track_duration = 0
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["audio_fragment_duration_multi_mpd"]
+        )
+        for playout in self.parameters_dict["playout"]:
+            audio_fragment_duration = (
+                fragment_duration_multi_mpd[tuple(playout)]
+            )
+            cmaf_track_duration += audio_fragment_duration
+        self.parameters_dict["expected_audio_track_duration"] = cmaf_track_duration
+
+    def _get_audio_segment_data(
+        self, audio_content_ids: list
+    ) -> Tuple[float, list, list]:
+        """
+        get expected audio mezzanine data for splicing test
+            start_media_time: start time of expected audio
+            expected_audio_segment_data: list of expected audio data
+            unexpected_audio_segment_data: unexpected audio data
+        """
+        sample_rate = self.parameters_dict["sample_rate"]
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["audio_fragment_duration_multi_mpd"]
+        )
+        playouts = self.parameters_dict["playout"]
+        audio_segment_data_list = []
+        audio_mezzanine_data = []
+
+        # loop through content ids getting audio mezzanine
+        for i in range(len(audio_content_ids)):
+            audio_mezzanine_data.append(read_audio_mezzanine(
+                self.global_configurations, audio_content_ids[i]
+            ))
+
+        # loop through playout fragments getting audio segment data
+        pre_audio_mezzanine_id = playouts[0][0] - 1
+        audio_segment_data = []
+        for playout in playouts:
+            fragment_id = playout[2]
+            frag_start = 0
+            for i in range(fragment_id - 1):
+                key = (playout[0], playout[1], i + 1)
+                frag_start += fragment_duration_multi_mpd[key]
+
+            frag_end = 0
+            for i in range(fragment_id):
+                key = (playout[0], playout[1], i + 1)
+                frag_end += fragment_duration_multi_mpd[key]
+
+            start = math.floor(frag_start * sample_rate)
+            end = math.floor(frag_end * sample_rate) - 1
+
+            audio_mezzanine_id = playout[0] - 1
+            if audio_mezzanine_id != pre_audio_mezzanine_id:
+                audio_segment_data_list.append(audio_segment_data)
+                audio_segment_data = []
+            audio_segment_data.extend(audio_mezzanine_data[audio_mezzanine_id][start:end])
+            pre_audio_mezzanine_id = audio_mezzanine_id
+        audio_segment_data_list.append(audio_segment_data)
+
+        return 0.0, audio_segment_data_list, []
+
+    def _save_last_audio_media_time(self) -> None:
+        """return last audio sample time in sample position"""
+        self.parameters_dict["last_audio_media_time"] = (
+            self.parameters_dict["expected_audio_track_duration"]
+            - self.parameters_dict["audio_sample_length"]
+        )

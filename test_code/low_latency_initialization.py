@@ -43,7 +43,6 @@ class LowLatencyInitialization(MseAppendWindow):
             "duration_frame_tolerance",
             "render_threshold",
         ]
-        self.content_parameters = ["cmaf_track_duration"]
 
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""

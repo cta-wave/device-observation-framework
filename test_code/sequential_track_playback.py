@@ -27,14 +27,18 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import importlib
 import logging
 import math
-from typing import List
 from fractions import Fraction
+from typing import List, Tuple
 
+from audio_file_reader import read_audio_mezzanine
 from configuration_parser import ConfigurationParser
+from dpctf_audio_decoder import decode_audio_segments
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
+from output_file_handler import audio_data_to_csv
+from exceptions import AudioAlignError
 
-from .test import TestType
+from .test import TestContentType, TestType
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +55,8 @@ class SequentialTrackPlayback:
 
     test_type: TestType
     """test type SEQUENTIAL|SWITCHING|SPLICING"""
+    test_content_type: TestContentType
+    """test type SINGLE|COMBINED"""
     global_configurations: GlobalConfigurations
     """OF gloabal configuration"""
     observations: list
@@ -59,8 +65,12 @@ class SequentialTrackPlayback:
     """parameter list required to be read"""
     content_parameters: list
     """content related parameter list required to be read"""
+    content_type: str
+    """test content type is determined by the linked content"""
     parameters_dict: dict
     """Built dictionary of all the test_config_parameters required by this test"""
+    concat_list: list
+    """List of file names that will be concatinated"""
 
     def __init__(
         self,
@@ -81,9 +91,12 @@ class SequentialTrackPlayback:
             camera_frame_duration_ms: Duration of a single camera frame in msecs.
         """
         self._set_test_type()
-        self._init_observations()
+        self._set_test_content_type()
+        self._set_content_type(configuration_parser)
         self._init_parameters()
         self._load_parameters_dict(configuration_parser, test_path, test_code)
+        self._load_contents_parameters(configuration_parser, test_path)
+        self._init_observations()
 
         self.global_configurations = global_configurations
         self.parameters_dict["camera_frame_rate"] = camera_frame_rate
@@ -93,14 +106,33 @@ class SequentialTrackPlayback:
         """set test type SEQUENTIAL|SWITCHING|SPLICING"""
         self.test_type = TestType.SEQUENTIAL
 
+    def _set_test_content_type(self) -> None:
+        """set test type SINGLE|COMBINED"""
+        self.test_content_type = TestContentType.SINGLE
+
+    def _set_content_type(
+        self, configuration_parser: ConfigurationParser
+    ) -> None:
+        """either video or audio test is determined by the linked content"""
+        self.content_type = (
+            configuration_parser.get_test_content_type(self.test_content_type)
+        )
+
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
-        self.observations = [
-            ("every_sample_rendered", "EverySampleRendered"),
-            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("start_up_delay", "StartUpDelay"),
-            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
-        ]
+        if "video" in self.content_type:
+            self.observations = [
+                ("every_sample_rendered", "EverySampleRendered"),
+                ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+                ("start_up_delay", "StartUpDelay"),
+                ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+            ]
+        else:
+            self.observations = [
+                ("audio_every_sample_rendered", "AudioEverySampleRendered"),
+                ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+                ("audio_start_up_delay", "AudioStartUpDelay"),
+            ]
 
     def _init_parameters(self) -> None:
         """initialise the test_config_parameters required for the test"""
@@ -110,24 +142,62 @@ class SequentialTrackPlayback:
             "frame_tolerance",
             "duration_tolerance",
             "duration_frame_tolerance",
+            "audio_sample_length",
+            "audio_tolerance",
+            "audio_sample_tolerance",
         ]
-        self.content_parameters = ["cmaf_track_duration"]
 
     def _load_parameters_dict(
-        self, configuration_parser: ConfigurationParser, test_path: str, test_code: str
+        self,
+        configuration_parser: ConfigurationParser,
+        test_path: str,
+        test_code: str,
     ) -> None:
         """load test_config_parameters dictionary from configuration
         get configuration from shared configuration file
         then add the content configuration from tests.json file
         """
+        # Parse shared configurations
         self.parameters_dict = configuration_parser.parse_test_config_json(
             self.parameters, test_path, test_code
         )
+
+    def _load_contents_parameters(
+        self, configuration_parser: ConfigurationParser, test_path: str
+    ) -> None:
+        """loads content parameters from parsing content configutation file"""
+        # set defined content_duration
         self.parameters_dict.update(
-            configuration_parser.parse_tests_json_content_config(
-                self.content_parameters, test_path, "video"
+            configuration_parser.get_content_duration(
+                test_path, self._get_content_type()
             )
         )
+
+        # set defined fragment durations
+        self.parameters_dict.update(
+            configuration_parser.get_fragment_durations(
+                test_path, self._get_content_type(), self.test_type
+            )
+        )
+
+        # set defined source for audio tests
+        self.parameters_dict.update(
+            configuration_parser.get_source(test_path, self._get_content_type())
+        )
+
+        # getting audio sample rate
+        self.parameters_dict.update(
+            configuration_parser.get_sample_rate(self._get_content_type())
+        )
+
+    def _get_content_type(self) -> str:
+        """
+        return content tyep of the test
+            video: only video content is provided
+            videoaudio: both video and audio content is provided
+            audio: only audio content is provided
+        """
+        return self.content_type
 
     def _get_first_frame_num(self, _frame_rate: Fraction) -> int:
         """return first frame number"""
@@ -135,29 +205,115 @@ class SequentialTrackPlayback:
 
     def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number"""
-        half_duration_frame = (1000 / frame_rate) / 2
+        half_frame_duration = (1000 / frame_rate) / 2
         return math.floor(
-            (self.parameters_dict["cmaf_track_duration"] + half_duration_frame)
+            (self.parameters_dict["video_content_duration"] + half_frame_duration)
             / 1000 * frame_rate
         )
 
     def _get_gap_from_and_to_frames(self, _frame_rate: Fraction):
         """return gap from and to frames"""
+        # no gap in playback is expected for this test
         return []
 
-    def _get_expected_track_duration(self) -> float:
-        """return expected track duration"""
-        return self.parameters_dict["cmaf_track_duration"]
+    def _save_expected_video_track_duration(self) -> None:
+        """save expected video track duration"""
+        self.parameters_dict[
+            "expected_video_track_duration"
+        ] = self.parameters_dict["video_content_duration"]
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save expected audio track duration"""
+        self.parameters_dict[
+            "expected_audio_track_duration"
+        ] = self.parameters_dict["audio_content_duration"]
+
+    def _save_audio_data(self, _unused, _unused2, _unused3) -> None:
+        """Does nothing in sequential. Override methods exist in random access
+        to time and to fragment"""
+        del _unused, _unused2, _unused3
+
+    def _get_audio_segment_data(
+        self, audio_content_ids: list
+    ) -> Tuple[float, list, list]:
+        """
+        get expected audio mezzanine data for the test
+            start_media_time: start time of expected audio
+            expected_audio_segment_data: list of expected audio data
+            unexpected_audio_segment_data: unexpected audio data
+        """
+        expected_audio_segment_data = read_audio_mezzanine(
+            self.global_configurations, audio_content_ids[0]
+        )
+        return (
+            0.0, [expected_audio_segment_data], []
+        )
+
+    def _save_first_audio_media_time(self) -> None:
+        """return first audio sample time in sample position"""
+        self.parameters_dict["first_audio_media_time"] = 0.0
+
+    def _save_last_audio_media_time(self) -> None:
+        """return last audio sample time in sample position"""
+        self.parameters_dict["last_audio_media_time"] = (
+            self.parameters_dict["audio_content_duration"]
+            - self.parameters_dict["audio_sample_length"]
+        )
+
+    def _get_audio_segments(
+        self,
+        audio_content_ids: list,
+        audio_subject_data: list,
+        observation_data_export_file: str
+    ) -> tuple:
+        """Calculate the offset timings for an each audio segment"""
+        if not audio_subject_data:
+            raise AudioAlignError(f"The recorded audio data is empty.")
+
+        sample_rate = self.parameters_dict["sample_rate"]
+        audio_sample_length = self.parameters_dict["audio_sample_length"]
+        self.parameters_dict["observation_period"] = sample_rate * audio_sample_length
+
+        (
+            start_media_time,
+            expected_audio_segment_data_list,
+            unexpected_audio_segment_data,
+        ) = self._get_audio_segment_data(audio_content_ids)
+
+        offset, audio_segments = decode_audio_segments(
+            start_media_time,
+            expected_audio_segment_data_list,
+            audio_subject_data,
+            sample_rate,
+            audio_sample_length,
+            self.global_configurations,
+            observation_data_export_file
+        )
+
+        self.parameters_dict["offset"] = offset
+        self._save_first_audio_media_time()
+        self._save_last_audio_media_time()
+        self._save_audio_data(
+            audio_subject_data,
+            expected_audio_segment_data_list[0],
+            unexpected_audio_segment_data,
+        )
+
+        return audio_segments
 
     def make_observations(
         self,
+        test_start_time: int,
+        audio_subject_data: list,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
-        time_diff_file: str,
+        observation_data_export_file: str,
     ) -> List[dict]:
         """Make observations for the Test 8.2
 
         Args:
+            test_start_time: test start time in msec (1st detected pre-test qr code time in recording).
+            audio_subject_data: recorded audio data.
             mezzanine_qr_codes: Sorted list of detected mezzanine QR codes.
             test_status_qr_codes: Sorted list of detected Test Runner status QR codes.
 
@@ -165,17 +321,41 @@ class SequentialTrackPlayback:
             List of pass/fail results.
         """
         results = []
+        audio_segments = []
+        self.concat_list = []
+        if "video" in self.content_type:
+            self._save_expected_video_track_duration()
+            if mezzanine_qr_codes:
+                frame_rate = mezzanine_qr_codes[-1].frame_rate
+                self.parameters_dict["first_frame_num"] = self._get_first_frame_num(
+                    frame_rate
+                )
+                self.parameters_dict["last_frame_num"] = self._get_last_frame_num(
+                    frame_rate
+                )
+                self.parameters_dict[
+                    "gap_from_and_to_frames"
+                ] = self._get_gap_from_and_to_frames(frame_rate)
 
-        if mezzanine_qr_codes:
-            frame_rate = mezzanine_qr_codes[-1].frame_rate
-            self.parameters_dict["first_frame_num"] = self._get_first_frame_num(frame_rate)
-            self.parameters_dict["last_frame_num"] = self._get_last_frame_num(frame_rate)
-            self.parameters_dict[
-                "expected_track_duration"
-            ] = self._get_expected_track_duration()
-            self.parameters_dict[
-                "gap_from_and_to_frames"
-            ] = self._get_gap_from_and_to_frames(frame_rate)
+        if "audio" in self.content_type:
+            self._save_expected_audio_track_duration()
+            self.parameters_dict["test_start_time"] = test_start_time
+
+            try:
+                audio_segments = self._get_audio_segments(
+                    self.parameters_dict["audio_content_ids"], audio_subject_data,
+                    observation_data_export_file
+                )
+            except AudioAlignError as e:
+                logger.error(f"Unable to get audio segments: {e}")
+
+            # Exporting time diff data to a CSV file
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                if observation_data_export_file and audio_segments:
+                    audio_data_to_csv(
+                        observation_data_export_file + "_audio_segment_data.csv",
+                        audio_segments,
+                    )
 
         for observation in self.observations:
             # create instance of the relevant observation class
@@ -184,13 +364,17 @@ class SequentialTrackPlayback:
                 observation[1],
             )(self.global_configurations)
 
-            result = observation_class.make_observation(
+            result, updated_audio_segments = observation_class.make_observation(
                 self.test_type,
                 mezzanine_qr_codes,
+                audio_segments,
                 test_status_qr_codes,
                 self.parameters_dict,
-                time_diff_file,
+                observation_data_export_file,
             )
+            # update audio segment to remove out of order segments
+            if updated_audio_segments:
+                audio_segments = updated_audio_segments
             results.append(result)
 
         return results

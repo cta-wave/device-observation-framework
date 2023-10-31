@@ -57,6 +57,9 @@ After installation of zbar, add the PATH to the system environment variables. Se
 ```
 brew install zbar
 brew install netcat
+brew install ffmpeg
+brew install portaudio
+pip install pyaudio
 ```
 
 **For Unix** exact installations may vary for different Unix variants, see http://zbar.sourceforge.net/.
@@ -65,11 +68,13 @@ brew install netcat
 ```
 sudo apt-get install libzbar0
 sudo apt-get install netcat
+sudo apt-get install ffmpeg
+sudo apt-get install python3-pyaudio
 ```
 
 ### Obtain the Observation Framework
 
-Clone this GitHub (i.e. https://github.com/cta-wave/device-observation-framework ) to the same machine/VM as the Test Runner installation.
+Clone this GitHub (i.e. https://github.com/cta-wave/device-observation-framework) to the same machine/VM as the Test Runner installation.
 OR 
 Download the Zip file https://github.com/cta-wave/device-observation-framework/archive/refs/heads/main.zip and extract to your target folder.
 Both can also be found by clicking on the Code tab at the top of the Device Observation Framework landing page. 
@@ -97,6 +102,29 @@ install_win.bat
 Note: Makes sure that the WindowsPowerShell is used for the above commands.
 The device-observation-framework folder may also be named device-observation-framework-main
 
+### Downloading Audio Mezzanine content 
+
+It is important to download the correct Audio Mezzanine content. 
+
+The device observation framework requires the Audio Mezzanine files to compare with the recorded audio. The Audio Mezzanine content is not part of the repository and must be downloaded prior to running any audio observations.
+
+The script always downloads the latest release of the Audio Mezzanine; if the user wants to download a previous release then mezzanine_database.json can be modified manually to point to the required location.
+
+**To download the latest mezzanine content**
+
+Navigate to the audio_mezzanine folder and run:
+```shell
+sudo ./import_audio_mezzanine.sh
+```
+The shell script creates a local copy of mezzanine_database.json. This json file contains the location of the mezzanine content that is then downloaded using download_mezzanine.py.
+
+**To download a previous mezzanine release**
+
+Edit mezzanine_database.json to point to the desired mezzanine location. The python script can then be run directly to download the content:
+```shell
+python3 download_mezzanine.py
+```
+
 ### Observation Framework Configuration
 
 The "config.ini" file defines internal configurations for the Observation Framework.
@@ -105,6 +133,13 @@ The configuration can be adjusted based on different set up and requirements, e.
 ## Obtain recording files
 
 The Observation Framework operates on camera recordings of the device's screen whilst running tests under the Test Runner. These test materials contain QR codes which must be accurately captured for the Observation Framework to interpret.
+
+---
+
+**NOTE**
+Audio observations are not in scope for the initial release, but section 9 tests are already generated with correct audio contents. It is recommended to user NOT to capture audio by either turn off the audio recording on the camera or mute the device before recording a test. Observation results will show "NOT_RUN" in this case. However, when a correct audio is being recorded jointly with video, Observation Framework processes audio observations and the observation results will show either "PASS" or "FAIL".
+
+---
 
 ### Camera requirements
 For the Phase 1 Observation Framework a variety of cameras should be suitable. (**NOTE:** this will **not** be the case for Phase 2 which will likely require very specific camera model(s)... TBD.)
@@ -128,7 +163,7 @@ For the camera/device set up:
 * The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
 * Depending on the device and software being used to run the tests, some device/software specific configuration may be required. For e.g. by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into e.g. a "full screen" mode. If any part of a QR code is obscured, then the Observation Framework cannot operate.
 
-Once the camera/device are set up, **DO NOT** change or alter settings during the recording. If changes are necessary, then a new recording shall be taken. 
+Once the camera/device are set up, **DO NOT** change or alter settings during the recording. If changes are necessary, then a new recording shall be taken.
 
 Note: Minimizing time between the start of recording and when the pre-test QR code shows up 
 helps Device Observation Framework to process faster and give test results quicker.
@@ -157,7 +192,7 @@ At camera frame N there were X consecutive camera frames where no mezzanine qr c
 ```
 * Check the observation result. If there are a lot of missing frames reported, we recommend user to look at the recording manually to observe whether the reported missing frames are actually missing from the recording. This can be done by jumping to any of the previous frames, which are close to the target frame, then go frame by frame. If the reported missing frame is present in the recording, the set up can be improved slightly to get a better recording.
 
-Above steps can be repeated if necessary, in order to find the best set up for the selected device and the camera. For small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lens, such as a micro lens which can capture small details, might required for testing on smaller screen devices. 
+Above steps can be repeated if necessary, in order to find the best set up for the selected device and the camera. For small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lens, such as a micro lens which can capture small details, might required for testing on smaller screen devices.
 
 ## Using the Device Observation Framework
 Once the device and camera setup is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at minimum of 119 fps). Record the Test Runner session from beginning to end and then stop the camera recording.
@@ -296,7 +331,7 @@ For example:
 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
-# Release Notes for Release V1.1.0
+# Release Notes for Release v2.0.0
 
 ## Implemented:
 * Installation and usage instructions (in this README).
@@ -332,5 +367,26 @@ Add the new test name, python module, and class name to the *"of_testname_map.js
   * 9.4 splicing-of-wave-program-with-baseline-constraints.html
   * 9.6 long-duration-playback.html
 
-## Not yet implemented:
-* Audio observations - audio has been added to the required tests and you will hear white noise (pseudo noise) without any obvious gaps throughout the playback of these tests. Audio observations will be available in a future release.
+* White noise based audio tests implemented for:
+  * 8.2 sequential-track-playback.html
+  * 8.3 random-access-to-fragment.html
+  * 8.4 random-access-to-time.html
+  * 8.6 regular-playback-of-chunked-content.html
+  * 8.7 regular-playback-of-chunked-content-non-aligned-append.html
+  * 8.8 playback-over-wave-baseline-splice-constraints.html
+  * 8.9 out-of-order-loading.html
+  * 8.10 overlapping-fragments.html
+  * 8.12 playback-of-encrypted-content.html
+  * 8.13 restricted-splicing-of-encrypted-content-https.html
+  * 8.14 sequential-playback-of-encrypted-and-non-encrypted-baseline-content-https.html
+  * 9.2 regular-playback-of-a-cmaf-presentation.html
+  * 9.3 random-access-of-a-wave-presentation.html
+  * 9.4 splicing-of-wave-program-with-baseline-constraints.html
+  * 9.6 long-duration-playback.html
+
+---
+
+**NOTE**
+No audio swiching for tests 8.8, 8.9, 8.13, 8.14 and 9.4
+
+---

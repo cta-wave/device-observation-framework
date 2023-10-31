@@ -46,4 +46,3 @@ class BufferUnderrunAndRecovery(MseAppendWindow):
             "duration_tolerance",
             "duration_frame_tolerance",
         ]
-        self.content_parameters = ["cmaf_track_duration"]

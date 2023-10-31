@@ -27,6 +27,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 
 from .sequential_track_playback import SequentialTrackPlayback
+from .test import TestContentType
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,72 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
         """initialise the observations required for the test"""
         self.observations = [
             (
-                "every_sample_rendered_in_cmaf_presentation",
-                "EverySampleRenderedInCMAFPresentation",
+                "every_sample_rendered",
+                "EverySampleRendered"
             ),
-            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            (
+                "audio_every_sample_rendered",
+                "AudioEverySampleRendered"
+            ),
+            (
+                "start_up_delay",
+                "StartUpDelay"
+            ),
+            (
+                "audio_start_up_delay",
+                "AudioStartUpDelay"
+            ),
+            (
+                "duration_matches_cmaf_track",
+                "DurationMatchesCMAFTrack"
+            ),
+            (
+                "audio_duration_matches_cmaf_track",
+                "AudioDurationMatchesCMAFTrack"
+            ),
+            (
+                "sample_matches_current_time",
+                "SampleMatchesCurrentTime"
+            ),
             (
                 "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime",
+                "EarliestSampleSamePresentationTime"
+            ),
+            (
+                "audio_video_synchronization",
+                "AudioVideoSynchronization"
             ),
         ]
+
+    def _init_parameters(self) -> None:
+        """initialise the test_config_parameters required for the test"""
+        self.parameters = [
+            "ts_max",
+            "tolerance",
+            "frame_tolerance",
+            "duration_tolerance",
+            "duration_frame_tolerance",
+            "audio_sample_length",
+            "audio_tolerance",
+            "audio_sample_tolerance",
+            "av_sync_tolerance"
+        ]
+
+    def _set_test_content_type(self) -> None:
+        """set test type SINGLE|COMBINED"""
+        self.test_content_type = TestContentType.COMBINED
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save expected audio track duration"""
+        # audio should match video
+        self.parameters_dict["expected_audio_track_duration"] = (
+            self.parameters_dict["video_content_duration"]
+        )
+
+    def _save_last_audio_media_time(self) -> None:
+        """return last audio sample time in sample position"""
+        # audio should match video
+        self.parameters_dict["last_audio_media_time"] = (
+            self.parameters_dict["video_content_duration"]
+            - self.parameters_dict["audio_sample_length"]
+        )

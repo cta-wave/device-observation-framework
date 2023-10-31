@@ -52,25 +52,37 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
             "second_playout",
             "second_playout_switching_time",
         ]
-        self.content_parameters = ["fragment_duration_multi_mpd"]
+
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        self.observations = [
+            ("every_sample_rendered", "EverySampleRendered"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("start_up_delay", "StartUpDelay"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+        ]
 
     def _get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """
         last_playout = self.parameters_dict["second_playout"][-1]
-        fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
-            (last_playout[0], last_playout[1])
-        ]
-        last_track_duration = fragment_duration * last_playout[2]
-        half_duration_frame = (1000 / frame_rate) / 2
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["video_fragment_duration_multi_mpd"]
+        )
+        last_track_duration = 0
+        for i in range(last_playout[2]):
+            key = (last_playout[0], last_playout[1], i + 1)
+            last_track_duration += fragment_duration_multi_mpd[key]
+
+        half_frame_duration = (1000 / frame_rate) / 2
         last_frame_num = math.floor(
-            (last_track_duration + half_duration_frame) / 1000 * frame_rate
+            (last_track_duration + half_frame_duration) / 1000 * frame_rate
         )
         return last_frame_num
 
-    def _get_expected_track_duration(self) -> float:
-        """return expected CMAF duration
+    def _save_expected_video_track_duration(self) -> None:
+        """save expected video CMAF duration
         first representation duration is second_playout_switching_time
         second representation duration is sum of all fragment duration from the second_playout
         """
@@ -79,11 +91,21 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
             self.parameters_dict["second_playout_switching_time"] * 1000
         )
         second_duration = 0.0
+        fragment_duration_multi_mpd = (
+            self.parameters_dict["video_fragment_duration_multi_mpd"]
+        )
         for second_playout in self.parameters_dict["second_playout"]:
-            fragment_duration = self.parameters_dict["fragment_duration_multi_mpd"][
-                (second_playout[0], second_playout[1])
-            ]
+            fragment_duration = (
+                fragment_duration_multi_mpd[tuple(second_playout)]
+            )
             second_duration += fragment_duration
         cmaf_track_durations.append(second_duration)
 
-        return cmaf_track_durations
+        self.parameters_dict[
+            "expected_video_track_duration"
+        ] = cmaf_track_durations
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save expected audio cmaf duration"""
+        # this test currently out of scope for audio
+        raise Exception("Not in scope.")

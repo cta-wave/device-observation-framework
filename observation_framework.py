@@ -27,6 +27,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import argparse
 import errno
 import logging
+import math
 import os
 import shutil
 import sys
@@ -35,6 +36,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import cv2
+
 from dpctf_qr_decoder import (DPCTFQrDecoder, MezzanineDecodedQr,
                               PreTestDecodedQr, TestStatusDecodedQr)
 from exceptions import ConfigError, ObsFrameTerminate
@@ -43,8 +45,8 @@ from log_handler import LogManager
 from observation_framework_processor import ObservationFrameworkProcessor
 from qr_recognition.qr_recognition import FrameAnalysis
 
-MAJOR = 1
-MINOR = 1
+MAJOR = 2
+MINOR = 0
 PATCH = 0
 BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
@@ -73,6 +75,16 @@ def rename_input_file(
                 input_video_path.parent, new_file_name + file_extension
             )
             os.rename(input_video_path_str, new_file_path)
+
+            # rename generated audio file as well
+            audio_file_extension = ".wav"
+            input_audio_path_str = file_name + audio_file_extension
+            if os.path.exists(input_audio_path_str):
+                new_audio_file_name = file_name + "_dpctf_" + session_token
+                new_audio_file_path = os.path.join(
+                    input_video_path.parent, new_audio_file_name + audio_file_extension
+                )
+                os.rename(input_audio_path_str, new_audio_file_path)
             logger.info(f"Recorded file renamed to '{new_file_path}'.")
 
 
@@ -84,6 +96,7 @@ def iter_to_get_qr_area(
     end_iter_frame_num: int,
     do_adaptive_threshold_scan: bool,
     global_configurations: GlobalConfigurations,
+    starting_point_s: int,
 ) -> Tuple:
     """Iterate video frame by frame and detect mezzanine QR codes area.
 
@@ -104,14 +117,16 @@ def iter_to_get_qr_area(
     first_pre_test_found = False
     first_pre_test_qr_time = 0
     qr_code_areas = [[], []]
-    capture_frame_num = 0
     corrupted_frame_num = 0
+    vidcap.set(cv2.CAP_PROP_POS_MSEC, starting_point_s*1000)
     len_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    starting_frame = math.floor(starting_point_s * camera_frame_rate)
+    capture_frame_num = starting_frame
 
     while (len_frames + corrupted_frame_num) > capture_frame_num:
         got_frame, image = vidcap.read()
         if not got_frame:
-            if "corrupted" in global_configurations.get_ignore():
+            if "video" in global_configurations.get_ignore_corrupted():
                 # work around for gopro
                 corrupted_frame_num += 1
                 capture_frame_num += 1
@@ -123,7 +138,9 @@ def iter_to_get_qr_area(
         if capture_frame_num % 10 == 0:
             print(f"Checking frame {capture_frame_num}...")
 
-        analysis = FrameAnalysis(capture_frame_num, DPCTFQrDecoder())
+        analysis = FrameAnalysis(
+            capture_frame_num, DPCTFQrDecoder(), max_qr_code_num_in_frame=3
+        )
 
         rough_qr_code_areas = [[], []]
         # left half for mezzanine
@@ -135,7 +152,11 @@ def iter_to_get_qr_area(
         detected_qr_codes = analysis.all_codes()
 
         for detected_code in detected_qr_codes:
-            if isinstance(detected_code, PreTestDecodedQr) and not first_pre_test_found:
+            if (
+                isinstance(detected_code, PreTestDecodedQr)
+                and not first_pre_test_found
+                and starting_frame==0
+            ):
                 first_pre_test_qr_time = capture_frame_num / camera_frame_rate * 1000
                 first_pre_test_found = True
                 logger.debug(
@@ -218,6 +239,7 @@ def iter_to_get_qr_area(
 
     # if not full area found set to unknown
     logger.debug(f"End of recording is reached.")
+
     if not mezzanine_found:
         qr_code_areas[0] = []
         logger.debug(f"Mezzanine QR code areas not detected successfully.")
@@ -241,12 +263,18 @@ def get_qr_code_area(
     Returns:
         first_pre_test_qr_time: first pre test qr code detection time in ms
         qr_code_areas: qr_code_areas to crop when detecting qr code
+        pre_test_qr_code_area: qr_code_area to crop for pre test qr code
     """
     logger.info(f"Search '{input_video_path_str}' to get QR code location...")
 
     qr_code_areas = [[], []]
     first_pre_test_qr_time = 0
+
+    # default sart seach from 0s and finised at configuration from config.ini
+    starting_point_s = 0
     search_qr_area_to = global_configurations.get_search_qr_area_to()
+    # read user input range parameter
+    qr_search_range = global_configurations.get_qr_search_range()
 
     input_video_path = Path(input_video_path_str).resolve()
     if not input_video_path.is_file():
@@ -256,6 +284,15 @@ def get_qr_code_area(
     fps: float = vidcap.get(cv2.CAP_PROP_FPS)
     width: int = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height: int = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))/fps
+
+    # if user input range parameter defined then update defaults
+    if qr_search_range:
+        starting_point_s = qr_search_range[1]
+        qr_code_search_duration = qr_search_range[2]
+        if starting_point_s > duration:
+            raise ValueError("Starting point larger than recording duration.")
+        search_qr_area_to = starting_point_s + qr_code_search_duration
 
     if fps < 1 or width <= 0 or height <= 0:
         vidcap.release()
@@ -273,6 +310,7 @@ def get_qr_code_area(
                 int(fps * search_qr_area_to),
                 do_adaptive_threshold_scan,
                 global_configurations,
+                starting_point_s,
             )
         finally:
             vidcap.release()
@@ -315,7 +353,11 @@ def get_qr_code_area(
                     f"right half of image for test status QR code."
                 )
 
-    return first_pre_test_qr_time, qr_code_areas
+    pre_test_qr_code_area = [
+    	int(width / 4), 0, int((width / 4) * 3), height
+    ]
+
+    return first_pre_test_qr_time, qr_code_areas, pre_test_qr_code_area
 
 
 def run(
@@ -328,7 +370,13 @@ def run(
     and reads the recorded video file
     """
     observation_framework = None
+
+    file_index = 0
+    qr_search_range = global_configurations.get_qr_search_range()
+    if qr_search_range:
+        file_index  = qr_search_range[0]
     starting_camera_frame_number = 0
+
     logger.info(f"Device Observation Framework (V{VERSION}) analysis started!")
     if (global_configurations.get_system_mode()) == "debug":
         logger.info(
@@ -339,15 +387,27 @@ def run(
     if do_adaptive_threshold_scan:
         logger.info(f"Intensive QR code scanning with additional adaptiveThreshold.")
 
-    first_pre_test_qr_time, qr_code_areas = get_qr_code_area(
-        input_video_files[0], global_configurations, do_adaptive_threshold_scan
+    (
+        first_pre_test_qr_time,
+        qr_code_areas,
+        pre_test_qr_code_area,
+    ) = get_qr_code_area(
+        input_video_files[file_index], global_configurations, do_adaptive_threshold_scan
     )
     logger.info(
         f"QR code area for full scan is set to {qr_code_areas[0]} for mezzanine QR code, "
         f"and {qr_code_areas[1]} for test status QR code."
     )
 
-    for input_video_path_str in input_video_files:
+    # add pre-test qr code area
+    # this removes the first and last vertical quarter of image
+    if global_configurations.get_enable_cropped_scan_for_pre_test_qr():
+        qr_code_areas.append(pre_test_qr_code_area)
+        logger.info(
+            f"Additional QR code scan with roughly cropped area {qr_code_areas[2]} for pre-test QR code is enabled."
+        )
+    for i in range (0, len(input_video_files)):
+        input_video_path_str = input_video_files[i]
         logger.info(f"Analysing '{input_video_path_str}'...")
 
         input_video_path = Path(input_video_path_str).resolve()
@@ -355,12 +415,13 @@ def run(
             raise Exception(f"Recorded file '{input_video_path}' not found")
 
         vidcap = cv2.VideoCapture(input_video_path_str)
-        if input_video_files.index(input_video_path_str) == 0:
-            vidcap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
-
         fps: float = vidcap.get(cv2.CAP_PROP_FPS)
         width: int = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height: int = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        if input_video_files.index(input_video_path_str) == 0:
+            vidcap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
+            starting_camera_frame_number = int(first_pre_test_qr_time/1000 * fps)
 
         if fps < 1 or width <= 0 or height <= 0:
             vidcap.release()
@@ -373,6 +434,8 @@ def run(
                 observation_framework = ObservationFrameworkProcessor(
                     log_manager, global_configurations, fps, do_adaptive_threshold_scan
                 )
+
+            observation_framework.extract_and_read_audio_data(input_video_path_str, i)
 
             last_camera_frame_number = observation_framework.iter_qr_codes_in_video(
                 vidcap, starting_camera_frame_number, qr_code_areas
@@ -466,20 +529,22 @@ def main() -> None:
         default="",
         choices=["", "debug"],
     )
+    parser.add_argument("--ignore_corrupted", help="Specific condition to ignore.", default="")
     parser.add_argument(
-        "--ignore",
-        help="Specific condition to ignore.",
-        default=""
+        "--range",
+        help="Search QR codes to crop the QR code area for better detection. QR codes area detection includes mezzanine QR codes and Test Status QR code.",
+        default="",
+        metavar="id(file_index):start(s):duration(s)",
     )
     args = parser.parse_args()
-
     do_adaptive_threshold_scan = False
     if args.scan == "intensive":
         do_adaptive_threshold_scan = True
 
     global_configurations = GlobalConfigurations()
-    global_configurations.set_ignore(args.ignore)
+    global_configurations.set_ignore_corrupted(args.ignore_corrupted)
     global_configurations.set_system_mode(args.mode)
+    global_configurations.set_qr_search_range(args.range)
     log_file_path = global_configurations.get_log_file_path()
 
     log_file = log_file_path + "/events.log"
@@ -497,6 +562,9 @@ def main() -> None:
     if input_video_path.is_dir():
         input_files = os.listdir(input_video_path)
         for input_file in input_files:
+            # skip audio files
+            if ".wav" in input_file:
+                continue
             full_path = os.path.join(input_video_path, input_file)
             if Path(full_path).resolve().is_file():
                 input_video_files.append(full_path)
@@ -521,22 +589,19 @@ def main() -> None:
         )
     except ObsFrameTerminate as e:
         logger.exception(
-            f"Serious error is detected, when analysing {input_video_files}! "
-            f"{e}"
-            f"system is terminating.",
+            f"Serious error is detected! {e} system is terminating!",
             exc_info=False,
         )
         clear_up(global_configurations)
         sys.exit(1)
     except ConfigError as e:
         logger.exception(
-            f"Serious error is detected, when analysing {input_video_files}!" f"{e}",
+            f"Serious error is detected! {e}",
             exc_info=False,
         )
     except Exception as e:
         logger.exception(
-            f"Serious error is detected, when analysing {input_video_files}! "
-            f"{e}: {traceback.format_exc()}"
+            f"Serious error is detected! {e}: {traceback.format_exc()}"
         )
 
     logger.info(

@@ -25,103 +25,100 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from typing import Dict, List
+import sys
+from typing import Dict, List, Tuple
 
+from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-
-from .sample_matches_current_time import SampleMatchesCurrentTime
+from .observation import Observation
 
 logger = logging.getLogger(__name__)
 
 
-class EarliestSampleSamePresentationTime(SampleMatchesCurrentTime):
+class EarliestSampleSamePresentationTime(Observation):
     """EarliestSampleSamePresentationTime class
-    N.B. Video only for phase one
-    The presentation starts with the earliest video sample and
-    the audio sample that corresponds to the same
-    presentation time.
+    The WAVE presentation starts with the earliest video and audio sample that
+    corresponds to the same presentation time as the earliest video sample.
     """
 
     def __init__(self, _):
         super().__init__(
-            None,
-            "[OF] Video only: The presentation starts with the earliest video sample "
-            "and the audio sample that corresponds to the same presentation time.",
+            "[OF] The WAVE presentation starts with the earliest video and audio sample that"
+             " corresponds to the same presentation time as the earliest video sample."
         )
 
     def make_observation(
         self,
-        _unused,
+        _test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
+        audio_segments: List[AudioSegment],
         test_status_qr_codes: List[TestStatusDecodedQr],
-        parameters_dict: dict,
-        _unused2,
-    ) -> Dict[str, str]:
+        _parameters_dict: dict,
+        _observation_data_export_file,
+    ) -> Tuple[Dict[str, str], list]:
         """Observation is derived from SampleMatchesCurrentTime and uses the same observations logic
         But it checks for the 1st event only.
         """
         logger.info(f"Making observation {self.result['name']}...")
 
-        if not mezzanine_qr_codes:
-            self.result["status"] = "FAIL"
-            self.result["message"] = "No QR mezzanine code detected."
+        if len(mezzanine_qr_codes) < 2:
+            self.result["status"] = "NOT_RUN"
+            self.result[
+                "message"
+            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result
+            return self.result, []
 
-        camera_frame_rate = parameters_dict["camera_frame_rate"]
-        camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-        allowed_tolerance = parameters_dict["tolerance"]
-        ct_frame_tolerance = parameters_dict["frame_tolerance"]
-        self.result[
-            "message"
-        ] += (
-            f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
-        )
-
-        first_current_time = None
+        # Compare video presentation time with HTML reported presentation time
+        starting_ct = None
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             if (
-                current_status.status == "playing"
-                and current_status.last_action == "play"
+                current_status.status == "playing" and
+                (current_status.last_action == "play" or
+                current_status.last_action == "representation_change")
             ):
-                if not first_current_time:
-                    first_current_time = current_status.current_time
-                # skip checkes for starting ct report
-                if current_status.current_time == first_current_time:
-                    continue
-
-                if i + 1 < len(test_status_qr_codes):
-                    first_possible, last_possible = self._get_target_camera_frame_num(
-                        current_status.camera_frame_num,
-                        test_status_qr_codes[i + 1].delay,
-                        camera_frame_duration_ms,
-                        camera_frame_rate,
-                        mezzanine_qr_codes,
-                        ct_frame_tolerance,
-                    )
-                    diff_found, time_diff = self._find_diff_within_tolerance(
-                        mezzanine_qr_codes,
-                        current_status,
-                        first_possible,
-                        last_possible,
-                        allowed_tolerance,
-                        ct_frame_tolerance,
-                    )
-                    if not diff_found:
-                        self.result["status"] = "FAIL"
-                        self.result["message"] += (
-                            " Time difference between first Test Runner reported media currentTime and actual media "
-                            "time exceeded tolerance for following event:"
-                            f" currentTime={current_status.current_time} time_diff={round(time_diff, 4)}."
-                        )
+                starting_ct = current_status.current_time * 1000
                 break
 
-        if self.result["status"] != "FAIL":
-            self.result["status"] = "PASS"
+        if starting_ct == None:
+            self.result["status"] = "NOT_RUN"
+            self.result[
+                "message"
+            ] = f"HTML starting presentation time is not found."
+            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            return self.result, []
+
+        video_result = False
+        video_frame_duration = round(1000 / mezzanine_qr_codes[0].frame_rate)
+        earliest_video_media_time = mezzanine_qr_codes[0].media_time - video_frame_duration
+        if earliest_video_media_time == starting_ct:
+            video_result = True
+        else:
+            self.result["status"] = "FAIL"
+            video_result = False
+        self.result["message"] += (
+            f"Earliest video sample presentation time is {earliest_video_media_time} ms,"
+            f" expected starting presentation time is {starting_ct} ms."
+        )
+
+        if video_result:
+            # check audio when pass the video check
+            if not audio_segments:
+                self.result["status"] = "NOT_RUN"
+                self.result["message"] += " No audio segment is detected."
+                logger.info(f"[{self.result['status']}] {self.result['message']}")
+                return self.result, []
+
+            earliest_audio_media_time = audio_segments[0].media_time
+
+            if earliest_video_media_time == earliest_audio_media_time:
+                self.result["status"] = "PASS"
+            else:
+                self.result["status"] = "FAIL"
             self.result["message"] += (
-                f" currentTime={current_status.current_time} time_diff={round(time_diff, 4)}."
+                f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
             )
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result
+        return self.result, []

@@ -52,3 +52,11 @@ class ConfigError(ObsFrameError):
     """Specific exception to indicate config errors"""
 
     pass
+
+
+class AudioAlignError(ObsFrameError):
+    """Specific exceptions thrown by Observation Framework.
+    Recorded audio is not aligned with PN file.
+    """
+
+    pass

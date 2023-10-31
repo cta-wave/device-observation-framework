@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=import-error
-"""Observation start_up_delay
+"""Observation audio_start_up_delay
 
-Make observation of start_up_delay
+Make observation of audio_start_up_delay
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -28,36 +28,34 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 from typing import Dict, List, Tuple
 
-from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-from test_code.test import TestType
+from dpctf_audio_decoder import AudioSegment
+from dpctf_qr_decoder import TestStatusDecodedQr
+
 from .observation import Observation
 
 logger = logging.getLogger(__name__)
 
 
-class StartUpDelay(Observation):
+class AudioStartUpDelay(Observation):
     """StartUpDelay class
     The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax..
     """
 
     def __init__(self, _):
         super().__init__(
-            "[OF] Video start-up delay: The start-up delay should be sufficiently low."
+            "[OF] Audio start-up-delay: The start-up delay shall be sufficiently low."
         )
 
     def make_observation(
         self,
-        test_type,
-        mezzanine_qr_codes: List[MezzanineDecodedQr],
-        _audio_segments,
+        _test_type,
+        _mezzanine_qr_codes,
+        audio_segments: List[AudioSegment],
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         _observation_data_export_file,
     ) -> Tuple[Dict[str, str], list]:
-        """Implements the logic:
-        start_up_delay = (QRa.first_camera_frame_num * camera_frame_duration_ms)
-            - ((play_event.camera_frame_num * camera_frame_duration_ms) - d)
-        start_up_delay < TSMax
+        """make observation
 
         Args:
             test_type: defined in test.py
@@ -69,71 +67,36 @@ class StartUpDelay(Observation):
         Returns:
             Result status and message.
         """
-        if test_type == TestType.TRUNCATED:
-            self.result["name"] = self.result["name"].replace(
-                "The start-up delay", "The start-up delay for second presentation"
-            )
         logger.info(f"Making observation {self.result['name']}...")
 
-        if len(mezzanine_qr_codes) < 2:
+        if not audio_segments:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = "No audio segment is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
-        max_permitted_startup_delay_ms = parameters_dict["ts_max"]
-        camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
-
-        if test_type == TestType.TRUNCATED:
-            # check presentation changes twice
-            content_starting_index_list = Observation.get_content_change_position(
-                mezzanine_qr_codes
-            )
-            if len(content_starting_index_list) != 2:
-                self.result["message"] += (
-                    f"Truncated test should change presentatation once. "
-                    f"Actual presentatation change is {len(content_starting_index_list)}. "
-                )
-                return False
-
-            # only check the 2nd presentation start up delay
-            mezzanine_qr_codes = mezzanine_qr_codes[content_starting_index_list[1] :]
-            event = "representation_change"
-        else:
-            event = "play"
-
+        # Get time when test staus = play
         event_found, event_ct = Observation._find_event(
-            event, test_status_qr_codes, camera_frame_duration_ms
+            "play", test_status_qr_codes, parameters_dict["camera_frame_duration_ms"]
         )
-
-        frame_change_found = False
-        for mezzanine_qr_code in mezzanine_qr_codes:
-            frame_ct = (
-                mezzanine_qr_code.first_camera_frame_num * camera_frame_duration_ms
-            )
-            if frame_ct > event_ct:
-                frame_change_found = True
-                break
+        # get relative event current time to test start time
+        event_ct -= parameters_dict["test_start_time"]
+        max_permitted_startup_delay = parameters_dict["ts_max"]
 
         if not event_found:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
-                f"A test status QR code with first '{event}' last_action "
+                "A test status QR code with first 'play' last_action "
                 "followed by a further test status QR code was not found."
             )
-        elif not frame_change_found:
-            self.result["status"] = "NOT_RUN"
-            self.result["message"] = f"No frame change detected after '{event}'."
         else:
-            start_up_delay = frame_ct - event_ct
+            start_up_delay = audio_segments[0].audio_segment_timing - event_ct
             self.result["message"] = (
-                f"Maximum permitted startup delay is {max_permitted_startup_delay_ms}ms."
+                f"Maximum permitted startup delay is {max_permitted_startup_delay}ms."
                 f"The presentation start up delay is {round(start_up_delay, 4)}ms"
             )
 
-            if start_up_delay < max_permitted_startup_delay_ms:
+            if start_up_delay < max_permitted_startup_delay:
                 self.result["status"] = "PASS"
             else:
                 self.result["status"] = "FAIL"

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream
+"""DPCTF device observation test code
+random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream
 
 test random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream
 
@@ -58,7 +59,6 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
             "duration_tolerance",
             "duration_frame_tolerance",
         ]
-        self.content_parameters = ["cmaf_track_duration"]
 
     def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:
         """return gap from and to frames"""
@@ -70,12 +70,19 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
         )
         return [random_access_from_frame, random_access_to_frame]
 
-    def _get_expected_track_duration(self) -> float:
-        """return expected cmaf track duration"""
-        cmaf_track_duration_ms = self.parameters_dict["cmaf_track_duration"]
+    def _save_expected_video_track_duration(self) -> None:
+        """save expected video cmaf track duration"""
+        video_cmaf_track_duration_ms = self.parameters_dict["video_content_duration"]
         random_access_from_ms = self.parameters_dict["random_access_from"] * 1000
         random_access_to_ms = self.parameters_dict["random_access_to"] * 1000
-        expected_track_duration = random_access_from_ms + (
-            cmaf_track_duration_ms - random_access_to_ms
+        expected_video_track_duration = random_access_from_ms + (
+            video_cmaf_track_duration_ms - random_access_to_ms
         )
-        return expected_track_duration
+        self.parameters_dict[
+            "expected_video_track_duration"
+        ] = expected_video_track_duration
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save expected audio cmaf track duration"""
+        # Audio observation not in scope
+        raise Exception("Not in scope.")
