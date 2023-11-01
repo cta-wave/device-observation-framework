@@ -34,10 +34,18 @@ class TestType(Enum):
     WAITINGINPLAYBACK: playback test which contents waiting time in playback but no gaps in frames.
         The original content may then be returned to (such as an advert insertion test).
     """
-
     SEQUENTIAL = 1
     SWITCHING = 2
     SPLICING = 3
     GAPSINPLAYBACK = 4
     WAITINGINPLAYBACK = 5
     TRUNCATED = 6
+
+
+class TestContentType(Enum):
+    """TestContentType Enum
+    SINGLE: test with video or audio only
+    COMBINED: test with combined video and audio
+    """
+    SINGLE = 1
+    COMBINED = 2

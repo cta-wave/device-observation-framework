@@ -39,9 +39,35 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
         """initialise the observations required for the test"""
         self.observations = [
             (
-                "every_sample_rendered_in_cmaf_presentation",
-                "EverySampleRenderedInCMAFPresentation",
+                "every_sample_rendered",
+                "EverySampleRendered",
             ),
-            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+            (
+                "audio_every_sample_rendered",
+                "AudioEverySampleRendered",
+            ),
+            (
+                "start_up_delay",
+                "StartUpDelay"
+            ),
+            (
+                "audio_start_up_delay",
+                "AudioStartUpDelay"
+            ),
+            (
+                "duration_matches_cmaf_track",
+                "DurationMatchesCMAFTrack"
+            ),
+            (
+                "audio_duration_matches_cmaf_track",
+                "AudioDurationMatchesCMAFTrack"
+            ),
+            (
+                "sample_matches_current_time",
+                "SampleMatchesCurrentTime"
+            ),
+            (
+                "audio_video_synchronization",
+                "AudioVideoSynchronization",
+            ),
         ]

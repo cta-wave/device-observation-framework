@@ -52,5 +52,38 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
             "playout",
             "duration_tolerance",
             "duration_frame_tolerance",
+            #"video_shifts_tolerance",
+            "audio_sample_length",
+            "audio_tolerance",
+            "audio_sample_tolerance",
         ]
-        self.content_parameters = ["cmaf_track_duration", "fragment_duration_list"]
+        if "audio" in self.content_type:
+            # maybe skip the playout for audio
+            # audio switching set test is not in scope
+            self.parameters = [
+                "ts_max",
+                "tolerance",
+                "frame_tolerance",
+                "duration_tolerance",
+                "duration_frame_tolerance",
+                "audio_sample_length",
+                "audio_tolerance",
+                "audio_sample_tolerance",
+            ]
+
+    def _init_observations(self) -> None:
+        """initialise the observations required for the test"""
+        if "video" in self.content_type:
+            self.observations = [
+                ("every_sample_rendered", "EverySampleRendered"),
+                ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+                ("start_up_delay", "StartUpDelay"),
+                ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+                #("no_visible_video_shifts", "NoVisibleVideoShifts"),
+            ]
+        if "audio" in self.content_type:
+            self.observations = [
+                ("audio_every_sample_rendered", "AudioEverySampleRendered"),
+                ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+                ("audio_start_up_delay", "AudioStartUpDelay"),
+            ]

@@ -39,19 +39,35 @@ logger = logging.getLogger(__name__)
 OpenCvImageHint = Any
 """Type hint for an OpenCV image"""
 
-MAX_QR_CODE_NUM_IN_FRAME = 3
-"""Maximum number of QR code can be detected in a frame"""
-
 
 def decode_qrs_in_image(
-    image: OpenCvImageHint, decoder: QrDecoder, camera_frame_num: int
+    image: OpenCvImageHint,
+    decoder: QrDecoder,
+    camera_frame_num: int,
+    qr_code_area: list,
+    cropped: bool,
 ) -> List[DecodedQr]:
     """Given an image, do a basic QR code recognition pass using pyzbar."""
     results = []
-
     for qr in decode(image, symbols=[ZBarSymbol.QRCODE]):
         data = qr.data.decode("ISO-8859-1")
-        code = decoder.translate_qr(data, qr.rect, camera_frame_num)
+        # if the qr code has been cropped we convert the x and y location values
+        # to relative position for full screen
+        if cropped:
+            location = [
+                # pixel from the left of screen (horizontal)
+                qr.rect.left + qr_code_area[0],
+                # pixel from the top of screen (vertical)
+                qr.rect.top + qr_code_area[1],
+                # width of qr code
+                qr.rect.width,
+                # height of qr code
+                qr.rect.height,
+            ]
+            code = decoder.translate_qr(data, location, camera_frame_num)
+        else:
+            location = [qr.rect.left, qr.rect.top, qr.rect.width, qr.rect.height]
+            code = decoder.translate_qr(data, location, camera_frame_num)
         if code is not None:
             results.append(code)
     return results
@@ -68,11 +84,16 @@ class FrameAnalysis:
     """Frame number - 0 for first captured frame, goes up by 1 each frame."""
     decoder: QrDecoder
     """decoder - suitable decoder will be selected when creating FrameAnalysis."""
+    max_qr_code_num_in_frame: int
+    """Maximum number of QR code can be detected in a frame"""
 
-    def __init__(self, capture_frame_num: int, decoder: QrDecoder):
+    def __init__(
+        self, capture_frame_num: int, decoder: QrDecoder, max_qr_code_num_in_frame: int
+    ):
         self.capture_frame_num = capture_frame_num
         self.decoder = decoder
         self.qr_codes = []
+        self.max_qr_code_num_in_frame = max_qr_code_num_in_frame
 
     def add_code(self, code: DecodedQr) -> None:
         """Add a QR code to the list."""
@@ -87,14 +108,18 @@ class FrameAnalysis:
 
     def all_code_found(self) -> bool:
         """Check all QR codes are found."""
-        if len(self.qr_codes) < MAX_QR_CODE_NUM_IN_FRAME:
+        if len(self.qr_codes) < self.max_qr_code_num_in_frame:
             return False
         else:
             return True
 
-    def _scan_image(self, image: OpenCvImageHint) -> None:
+    def _scan_image(
+        self, image: OpenCvImageHint, qr_code_area: list = None, cropped: bool = False
+    ) -> None:
         """Do a basic initial scan for QR codes in the image."""
-        for code in decode_qrs_in_image(image, self.decoder, self.capture_frame_num):
+        for code in decode_qrs_in_image(
+            image, self.decoder, self.capture_frame_num, qr_code_area, cropped
+        ):
             self.add_code(code)
 
     def scan_cropped_image(self, image: OpenCvImageHint, qr_code_area: list):
@@ -102,7 +127,8 @@ class FrameAnalysis:
         crop = image[
             qr_code_area[1] : qr_code_area[3], qr_code_area[0] : qr_code_area[2]
         ]
-        self._scan_image(crop)
+
+        self._scan_image(crop, qr_code_area, cropped=True)
 
     def full_scan(
         self,
@@ -113,7 +139,7 @@ class FrameAnalysis:
         """Do a full scan of the specified webcam capture video frame."""
         image = cv2.cvtColor(webcam_image, cv2.COLOR_BGR2GRAY)
         np.bitwise_not(image, out=image)
-        self._scan_image(image)
+        self._scan_image(image, qr_code_areas)
 
         if not self.all_code_found():
             if qr_code_areas:

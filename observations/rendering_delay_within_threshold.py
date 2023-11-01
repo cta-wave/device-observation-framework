@@ -43,8 +43,8 @@ class RenderingDelayWithinThreshold(Observation):
 
     def __init__(self, _):
         super().__init__(
-            "[OF] Measure the time between the successful appending of the first CMAF fragment "
-            "and the first media sample is visible or audible. "
+            "[OF] Measure the time between the successful appending of the first CMAF chunk that exceeded "
+            "min_buffer_duration and the first media sample being visible or audible. "
             "This value shall be compared against render_threshold."
         )
 
@@ -81,12 +81,13 @@ class RenderingDelayWithinThreshold(Observation):
 
     def make_observation(
         self,
-        _unused,
+        _test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
+        _audio_segments,
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
-        _unused2,
-    ) -> Dict[str, str]:
+        _observation_data_export_file,
+    ) -> Tuple[Dict[str, str], list]:
         """Implements the logic:
         render_delay = (QRa.first_camera_frame_num * camera_frame_duration_ms)
             - ((event.camera_frame_num * camera_frame_duration_ms) - d)
@@ -104,12 +105,12 @@ class RenderingDelayWithinThreshold(Observation):
         """
         logger.info(f"Making observation {self.result['name']}...")
         if len(mezzanine_qr_codes) < 2:
-            self.result["status"] = "FAIL"
+            self.result["status"] = "NOT_RUN"
             self.result[
                 "message"
             ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result
+            return self.result, []
 
         render_threshold = parameters_dict["render_threshold"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
@@ -122,23 +123,23 @@ class RenderingDelayWithinThreshold(Observation):
             mezzanine_qr_codes[0].first_camera_frame_num * camera_frame_duration_ms
         )
         if not event_found:
-            self.result["status"] = "FAIL"
+            self.result["status"] = "NOT_RUN"
             self.result[
                 "message"
             ] = f"'{FIRST_FRAME_APPLIED_EVNT}' event was not found."
         else:
             render_delay = first_mezzanine_frame_time - event_ct
             self.result["message"] = (
-                f"Maximum permitted rendering delay is {render_threshold}ms."
+                f"Maximum permitted rendering delay is render_threshold={render_threshold}ms."
                 f"The presentation rendering delay is {round(render_delay, 4)}ms"
             )
             if render_delay < render_threshold:
                 self.result["status"] = "PASS"
             elif render_delay < 0:
-                self.resuly["status"] = "FAIL"
+                self.result["status"] = "FAIL"
                 self.result["message"] = f"{render_delay} is negative"
             else:
                 self.result["status"] = "FAIL"
 
         logger.debug(f"[{self.result['status']}] {self.result['message']}")
-        return self.result
+        return self.result, []

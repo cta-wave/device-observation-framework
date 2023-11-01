@@ -26,6 +26,8 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 from typing import Dict, List, Tuple
 
+from configuration_parser import PlayoutParser
+from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
 
@@ -50,6 +52,8 @@ class Observation:
     If the number of missing frames on an individual test is greater than this
     post error messege and terminate the session.
     """
+    global_configurations: GlobalConfigurations
+    """global configuration object to get some OF configuration from"""
 
     def __init__(self, name: str, global_configurations: GlobalConfigurations = None):
         self.result = {
@@ -57,6 +61,7 @@ class Observation:
             "message": "",
             "name": name,
         }
+        self.global_configurations = global_configurations
 
         if global_configurations is None:
             self.tolerances = {}
@@ -140,3 +145,21 @@ class Observation:
                 change_starting_index_list.append(i)
                 current_content_id = mezzanine_qr_codes[i].content_id
         return change_starting_index_list
+
+    @staticmethod
+    def get_audio_periods(
+        playout, audio_segments, audio_fragment_duration_multi_mpd
+    ) -> List[list]:
+        """loops through audio segments and splits them into periods"""
+        period_durations = PlayoutParser.get_splicing_period_list(
+            playout, audio_fragment_duration_multi_mpd
+        )
+        periods = []
+        for audio_segment in audio_segments:
+            period = []
+            for duration in period_durations:
+                if audio_segment.media_time > duration:
+                    break
+                period.append(audio_segment)
+            periods.append(period)
+        return periods

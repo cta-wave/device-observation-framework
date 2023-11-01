@@ -26,25 +26,37 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
-import csv
 import importlib
 import json
 import logging
+import math
 import os
+import cv2
 from typing import List
 
-import cv2
+from audio_file_reader import extract_audio_to_wav_file, read_audio_recording
 from configuration_parser import ConfigurationParser
-from dpctf_qr_decoder import (DPCTFQrDecoder, MezzanineDecodedQr,
-                              PreTestDecodedQr, TestStatusDecodedQr)
+from dpctf_qr_decoder import (
+    DPCTFQrDecoder,
+    MezzanineDecodedQr,
+    PreTestDecodedQr,
+    TestStatusDecodedQr,
+)
 from exceptions import ConfigError, ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 from log_handler import LogManager
 from observation_result_handler import ObservationResultHandler
 from qr_recognition.qr_decoder import DecodedQr
 from qr_recognition.qr_recognition import FrameAnalysis
+from output_file_handler import (
+    write_header_to_csv_file,
+    extract_qr_data_to_csv,
+)
 
 logger = logging.getLogger(__name__)
+
+# test finish delay in ms after 1st status "finished" status
+TEST_FINISH_DELAY = 5000
 
 
 class ObservationFrameworkProcessor:
@@ -52,6 +64,9 @@ class ObservationFrameworkProcessor:
 
     do_adaptive_threshold_scan: bool
     """additional adaptiveThreshold in qr code scan"""
+
+    max_qr_code_num_in_frame: int
+    """maxinum possible qr code in a frame"""
 
     log_manager: LogManager
     """log manager"""
@@ -110,7 +125,7 @@ class ObservationFrameworkProcessor:
     """session log folder path"""
     qr_list_file: str
     """decodec qr code csv file path"""
-    time_diff_file: str
+    observation_data_export_file: str
     """time difference csv file path"""
 
     consecutive_no_qr_threshold: int
@@ -125,6 +140,15 @@ class ObservationFrameworkProcessor:
     """True when pre_test QR code is detected and False when status is finished"""
     results: list
     """ Holds the results of the observations """
+
+    audio_file_data: list
+    """current audio file data"""
+    audio_recording_sample_rate: int
+    """audio recording sample rate"""
+    valid_audio_start_index: int
+    """audio sample is normally taken from 0
+    however on some recording devices there are 
+    some invalid samples inserted at the begining"""
 
     def __init__(
         self,
@@ -155,11 +179,14 @@ class ObservationFrameworkProcessor:
         )
 
         self.do_adaptive_threshold_scan = do_adaptive_threshold_scan
-        self.duplicated_qr_check_count = global_configurations.get_duplicated_qr_check_count()
+        self.max_qr_code_num_in_frame = 3
+        self.duplicated_qr_check_count = (
+            global_configurations.get_duplicated_qr_check_count()
+        )
 
         self.mezzanine_qr_codes = []
         self.test_status_qr_codes = []
-        self.pre_test_qr_code = PreTestDecodedQr("", [], "", "")
+        self.pre_test_qr_code = PreTestDecodedQr("", [], "", "", 0)
 
         self.test_path = ""
         self.test_class = None
@@ -169,7 +196,7 @@ class ObservationFrameworkProcessor:
 
         self.session_log_path = ""
         self.qr_list_file = ""
-        self.time_diff_file = ""
+        self.observation_data_export_file = ""
 
         self.consecutive_no_qr_threshold = 0
         self.consecutive_no_qr_count = 0
@@ -177,11 +204,70 @@ class ObservationFrameworkProcessor:
         self.test_started = False
         self.results = []
 
+        self.audio_file_data = []
+        self.audio_recording_sample_rate = 48
+        self.valid_audio_start_index = 0
+
+    def extract_and_read_audio_data(self, input_video_path_str: str, file_index: int):
+        """Extract audio to a wav file and read data"""
+        input_audio_path_str = extract_audio_to_wav_file(input_video_path_str)
+        # append new data to privous data for multiple files
+        if input_audio_path_str:
+            audio_data = read_audio_recording(input_audio_path_str)
+        else:
+            audio_data = []
+
+        ignore_corrupted = self.global_configurations.get_ignore_corrupted()
+        if "audio" in ignore_corrupted and file_index == 0:
+        	# update the valid index of audio in recording
+            for i in range(0, len(audio_data)):
+                if audio_data[i] != 0:
+                    self.valid_audio_start_index = i
+                    break
+        self.audio_file_data.extend(audio_data)
+
+    def sort_new_mezzanine(
+            self, new_mezzanine_qr_codes: List[DecodedQr]
+        ) -> List[DecodedQr]:
+        """
+        sort newly detected mazzanine QR codes on same image
+        to avoid false out of order detection.
+        sort by frame number if content not changed, 
+        else same content appeneded first.
+        """
+        if self.mezzanine_qr_codes:
+            last_qr_code_id = self.mezzanine_qr_codes[-1].content_id
+        else:
+            last_qr_code_id = ""
+
+        # mezzanine_1 group of codes has same id as previous content
+        # mezzanine_2 group of codes has different id
+        mezzanine_1 = []
+        mezzanine_2 = []
+        for code in new_mezzanine_qr_codes:
+            if not last_qr_code_id:
+                mezzanine_1.append(code)
+            else:
+                if last_qr_code_id == code.content_id:
+                    mezzanine_1.append(code)
+                else:
+                    mezzanine_2.append(code)
+
+        mezzanine_1 = sorted(
+            mezzanine_1,
+            key=lambda mezzanine_decoded_qr: mezzanine_decoded_qr.frame_number,
+        )
+        mezzanine_2 = sorted(
+            mezzanine_2,
+            key=lambda mezzanine_decoded_qr: mezzanine_decoded_qr.frame_number,
+        )
+        sorted_new_mezzanine = mezzanine_1 + mezzanine_2
+
+        return sorted_new_mezzanine
+
     def _discard_duplicated_qr_code(self, detected_codes: List[DecodedQr]):
         """discard duplicated qr code by its frame number
         QR codes that are detected on same frame
-        sort newly detected mazzanine QR codes on same image
-        to avoid false out of order detection
         this function returns QR codes for different type individually
         """
         new_mezzanine_qr_codes = []
@@ -206,9 +292,23 @@ class ObservationFrameworkProcessor:
                         self.mezzanine_qr_codes[
                             index
                         ].last_camera_frame_num = detected_code.first_camera_frame_num
+
+                        # adds up location values
+                        self.mezzanine_qr_codes[
+                            index
+                        ].location = [
+                            self.mezzanine_qr_codes[index].location[x] + detected_code.location[x]
+                            for x in range (len (detected_code.location))
+                        ]
+
+                        # increament detection count
+                        self.mezzanine_qr_codes[index].detection_count += 1
+
                         logger.debug(
                             f"Frame Number={self.mezzanine_qr_codes[index].frame_number} "
                             f"updating Last appear Frame={self.mezzanine_qr_codes[index].last_camera_frame_num}"
+                            f" and location sum={self.mezzanine_qr_codes[index].location},"
+                            f" detection count={self.mezzanine_qr_codes[index].detection_count}."
                         )
                         break
                 if not duplicated:
@@ -227,11 +327,9 @@ class ObservationFrameworkProcessor:
             else:
                 continue
 
-        new_mezzanine_qr_codes = sorted(
-            new_mezzanine_qr_codes,
-            key=lambda mezzanine_decoded_qr: mezzanine_decoded_qr.frame_number,
-        )
-        return new_mezzanine_qr_codes, new_test_status_qr_code, new_pre_test_qr_code
+        sorted_new_mezzanine = self.sort_new_mezzanine(new_mezzanine_qr_codes)
+
+        return sorted_new_mezzanine, new_test_status_qr_code, new_pre_test_qr_code
 
     def _load_new_test(self) -> None:
         """When a new test is detected load a new test
@@ -248,15 +346,11 @@ class ObservationFrameworkProcessor:
         logger.info(f"Start a New test: {self.test_path}")
 
         if self.session_log_path:
-            self.time_diff_file = (
+            self.observation_data_export_file = (
                 self.session_log_path
                 + "/"
                 + self.test_path.replace("/", "-").replace(".html", "")
-                + "_time_diff.csv"
             )
-            # remove existing csv file, only keep the last result
-            if os.path.exists(self.time_diff_file):
-                os.remove(self.time_diff_file)
 
         try:
             module_name = self.tests[test_code][0]
@@ -273,33 +367,71 @@ class ObservationFrameworkProcessor:
         except KeyError:
             raise Exception(f"Test '{test_code}' not supported!")
 
-    def _make_observations(self):
+        if self.test_class:
+            content_type = self.test_class._get_content_type()
+            if content_type == "audio":
+                self.max_qr_code_num_in_frame = 1
+            else:
+                self.max_qr_code_num_in_frame = 3
+
+    def _make_observations(self, test_start_time: int, test_finish_time: int):
         """make observations when move to next test
         or at the end of the recording
         the observation result is to be posted after
         observations being made
         """
+        audio_subject_data = []
+        audio_test_start_time = 0.0
+
         if self.test_class:
+            content_type = self.test_class._get_content_type()
+
+            if "audio" in content_type:
+                audio_test_start_sample = math.ceil(
+                    test_start_time * self.audio_recording_sample_rate
+                )
+                test_finish_time += TEST_FINISH_DELAY
+                audio_test_end_sample = math.ceil(
+                    test_finish_time * self.audio_recording_sample_rate
+                )
+                if audio_test_end_sample > len(self.audio_file_data):
+                    audio_test_end_sample = len(self.audio_file_data)
+                audio_subject_data = self.audio_file_data[
+                    audio_test_start_sample:audio_test_end_sample
+                ]
+                # audio recording time is relative time to audio_test_start_time
+                # and also adjust audio and video sync on camera
+                audio_test_start_time = (
+                    test_start_time -
+                    self.valid_audio_start_index  / self.audio_recording_sample_rate
+                )
+
             try:
                 results = self.test_class.make_observations(
+                    audio_test_start_time,
+                    audio_subject_data,
                     self.mezzanine_qr_codes,
                     self.test_status_qr_codes,
-                    self.time_diff_file,
+                    self.observation_data_export_file,
                 )
                 self._save_results(results)
 
             except ObsFrameTerminate as e:
                 results = []
                 result = {
-                    "status": "ERROR",
+                    "status": "NOT_RUN",
                     "message": f"{e}",
-                    "name": "[OF] Too many missing frames are found.",
+                    "name": "[OF] Observations are not run.",
                 }
                 results.append(result)
                 self.observation_result_handler.post_result(
                     self.pre_test_qr_code.session_token, self.test_path, results
                 )
                 raise ObsFrameTerminate(result["message"])
+        else:
+            raise Exception(
+                "Unable to identify the test. Observation will not be made."
+            )
 
     def _save_results(self, results: list) -> None:
         """
@@ -361,8 +493,15 @@ class ObservationFrameworkProcessor:
             self.last_end_of_test_camera_frame_num = (
                 new_test_status_qr_code.camera_frame_num
             )
-            self._make_observations()
+            test_start_time = (
+                self.pre_test_qr_code.camera_frame_num * self.camera_frame_duration_ms
+            )
+            test_finish_time = (
+                self.last_end_of_test_camera_frame_num * self.camera_frame_duration_ms
+            )
+            self._make_observations(test_start_time, test_finish_time)
             self._post_observation_result()
+            self.test_class = None
 
     def _process_pre_test_qr_code(self, new_pre_test_qr_code: PreTestDecodedQr) -> None:
         """Process newly detected pre-test QR code"""
@@ -396,28 +535,23 @@ class ObservationFrameworkProcessor:
 
             if logger.getEffectiveLevel() == logging.DEBUG:
                 self.qr_list_file = self.session_log_path + "/qr_code_list.csv"
-                # remove exsisting csv file, only keep the last result
-                if os.path.exists(self.qr_list_file):
-                    os.remove(self.qr_list_file)
-
-                with open(self.qr_list_file, "a") as file:
-                    file_writer = csv.writer(file)
-                    file_writer.writerow(
-                        [
-                            "Camera Frame",
-                            "Content ID",
-                            "Media Time",
-                            "Frame Number",
-                            "Frame Rate",
-                            "Test Status",
-                            "Last Action",
-                            "Current Time",
-                            "Delay",
-                            "Session ID",
-                            "Test ID",
-                        ]
-                    )
-                    file.close()
+                write_header_to_csv_file(
+                    self.qr_list_file,
+                    [
+                        "Camera Frame",
+                        "Content ID",
+                        "Media Time",
+                        "Frame Number",
+                        "Frame Rate",
+                        "Location",
+                        "Test Status",
+                        "Last Action",
+                        "Current Time",
+                        "Delay",
+                        "Session ID",
+                        "Test ID",
+                    ]
+                )
 
         # When a new pre test QR code is detected then load next test
         if self.pre_test_qr_code.test_id != new_pre_test_qr_code.test_id:
@@ -456,70 +590,6 @@ class ObservationFrameworkProcessor:
                 )
         return result
 
-    def extract_qr_data_to_csv(
-        self, camera_frame_number: int, detected_qr_codes: List[DecodedQr]
-    ) -> None:
-        """Extract camera frame number and detected qr code data to a csv file"""
-        if not self.qr_list_file:
-            return
-
-        with open(self.qr_list_file, "a") as file:
-            file_writer = csv.writer(file)
-
-            for detected_code in detected_qr_codes:
-                if isinstance(detected_code, MezzanineDecodedQr):
-                    file_writer.writerow(
-                        [
-                            camera_frame_number,
-                            detected_code.content_id,
-                            detected_code.media_time,
-                            detected_code.frame_number,
-                            detected_code.frame_rate,
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                        ]
-                    )
-                elif isinstance(detected_code, TestStatusDecodedQr):
-                    file_writer.writerow(
-                        [
-                            camera_frame_number,
-                            "",
-                            "",
-                            "",
-                            "",
-                            detected_code.status,
-                            detected_code.last_action,
-                            detected_code.current_time,
-                            detected_code.delay,
-                            "",
-                            "",
-                        ]
-                    )
-                elif isinstance(detected_code, PreTestDecodedQr):
-                    file_writer.writerow(
-                        [
-                            camera_frame_number,
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            detected_code.session_token,
-                            detected_code.test_id,
-                        ]
-                    )
-                else:
-                    continue
-
-            file.close()
-
     def check_consecutive_no_qr_code(
         self, camera_frame_number: int, detected_qr_codes: List[DecodedQr]
     ) -> None:
@@ -542,7 +612,7 @@ class ObservationFrameworkProcessor:
                 if self.test_started:
                     self.first_qr_is_detected = True
             if isinstance(detected_code, TestStatusDecodedQr):
-                if detected_code.status == "finished":  # changed from ended
+                if detected_code.status == "finished":
                     self.test_started = False
                     self.first_qr_is_detected = False
             if isinstance(detected_code, PreTestDecodedQr):
@@ -563,7 +633,7 @@ class ObservationFrameworkProcessor:
             )
 
     def iter_qr_codes_in_video(
-        self, vidcap, starting_camera_frame_number: int, qr_code_area: list
+        self, vidcap, starting_camera_frame_number: int, qr_code_areas: list
     ) -> int:
         """Iterate video frame by frame and detect QR codes.
 
@@ -582,7 +652,7 @@ class ObservationFrameworkProcessor:
         while (len_frames + corrupted_frame_num) > capture_frame_num:
             got_frame, image = vidcap.read()
             if not got_frame:
-                if "corrupted" in self.global_configurations.get_ignore():
+                if "video" in self.global_configurations.get_ignore_corrupted():
                     # work around for gopro
                     corrupted_frame_num += 1
                     capture_frame_num += 1
@@ -606,8 +676,10 @@ class ObservationFrameworkProcessor:
             ):
                 break
 
-            analysis = FrameAnalysis(camera_frame_number, self.decoder)
-            analysis.full_scan(image, qr_code_area, self.do_adaptive_threshold_scan)
+            analysis = FrameAnalysis(
+                camera_frame_number, self.decoder, self.max_qr_code_num_in_frame
+            )
+            analysis.full_scan(image, qr_code_areas, self.do_adaptive_threshold_scan)
             detected_qr_codes = analysis.all_codes()
             if detected_qr_codes:
                 self.no_qr_code_frame_num = 0
@@ -619,7 +691,7 @@ class ObservationFrameworkProcessor:
                 print(f"Processed to frame {camera_frame_number}...")
 
             # extract qr code data to a csv file
-            self.extract_qr_data_to_csv(camera_frame_number, detected_qr_codes)
+            extract_qr_data_to_csv(self.qr_list_file, camera_frame_number, detected_qr_codes)
             # check consecutive no qr code detection and
             # terminates the system when exceed the threshold
             self.check_consecutive_no_qr_code(camera_frame_number, detected_qr_codes)
@@ -630,12 +702,24 @@ class ObservationFrameworkProcessor:
                 new_pre_test_qr_code,
             ) = self._discard_duplicated_qr_code(detected_qr_codes)
 
-            if new_mezzanine_qr_codes:
-                self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
-            if new_test_status_qr_code:
-                self._process_test_status_qr_code(new_test_status_qr_code)
             if new_pre_test_qr_code:
                 self._process_pre_test_qr_code(new_pre_test_qr_code)
+
+            if new_mezzanine_qr_codes:
+                if not self.test_class:
+                    logger.warning(
+                        f"Mezzanine QR code is detected before identifying the test. "
+                        f"observations won't be made, stop process if you want."
+                    )
+                self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
+
+            if new_test_status_qr_code:
+                if not self.test_class:
+                    logger.warning(
+                        f"Test status QR code is detected before identifying the test. "
+                        f"observations won't be made, stop process if you want."
+                    )
+                self._process_test_status_qr_code(new_test_status_qr_code)
 
             capture_frame_num += 1
 

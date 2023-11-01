@@ -45,6 +45,8 @@ class MezzanineDecodedQr(DecodedQr):
     """qr code string"""
     location: list
     """qr code location"""
+    detection_count: int
+    """qr code detection count"""
 
     """A decoded QR code from Mezzanine content
     ID;HH:MM:SS.MMM;<frame #>;<frame-rate>
@@ -67,6 +69,7 @@ class MezzanineDecodedQr(DecodedQr):
         self,
         data: str,
         location: list,
+        detection_count: int,
         content_id: str,
         media_time: float,
         frame_number: int,
@@ -76,6 +79,7 @@ class MezzanineDecodedQr(DecodedQr):
         super().__init__(data, location)
         self.data = data
         self.location = location
+        self.detection_count = detection_count
         self.content_id = content_id
         self.media_time = media_time
         self.frame_number = frame_number
@@ -137,12 +141,23 @@ class PreTestDecodedQr(DecodedQr):
     """test id encoded in the test runner QR code.
     """
 
-    def __init__(self, data: str, location: list, session_token: str, test_id: str):
+    camera_frame_num: int
+    """recorded camera frame number that the QR code is detected on"""
+
+    def __init__(
+        self,
+        data: str,
+        location: list,
+        session_token: str,
+        test_id: str,
+        camera_frame_num: int,
+    ):
         super().__init__(data, location)
         self.data = data
         self.location = location
         self.session_token = session_token
         self.test_id = test_id
+        self.camera_frame_num = camera_frame_num
 
 
 class DPCTFQrDecoder(QrDecoder):
@@ -192,6 +207,7 @@ class DPCTFQrDecoder(QrDecoder):
                             location,
                             json_data["session_token"],
                             json_data["test_id"],
+                            camera_frame_num,
                         )
                     except Exception:
                         logger.error(f"Unrecognised QR code detected: {data}")
@@ -221,7 +237,7 @@ class DPCTFQrDecoder(QrDecoder):
         with open("frame_rate_map.json") as f:
             frame_rate_map = json.load(f)
         try:
-            res = frame_rate_map[frame_rate_str].split('/')
+            res = frame_rate_map[frame_rate_str].split("/")
             frame_rate = Fraction(int(res[0]), int(res[1]))
         except Exception:
             frame_rate = Fraction(float(frame_rate_str))
@@ -247,6 +263,7 @@ class DPCTFQrDecoder(QrDecoder):
             code = MezzanineDecodedQr(
                 data,
                 location,
+                1,
                 match.group(1),
                 media_time,
                 int(match.group(3)),

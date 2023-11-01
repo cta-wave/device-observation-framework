@@ -25,7 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Eurofins Digital Product Testing UK Limited
 """
 import logging
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
@@ -44,8 +44,7 @@ class DurationMatchesCMAFTrack(Observation):
 
     def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
-            "[OF] The playback duration of the playback matches the duration of the CMAF Track, "
-            "i.e. TR [k, S] = TR [k, 1] + td[k].",
+            "[OF] Video: The playback duration shall match the duration of the CMAF Track",
             global_configurations,
         )
 
@@ -172,7 +171,7 @@ class DurationMatchesCMAFTrack(Observation):
         # duration check for truncated test presentation one
         # where adjust_starting_missing_frames=True and adjust_ending_missing_frames=Flase
         if adjust_starting_missing_frames and not adjust_ending_missing_frames:
-            duration_diff =  playback_duration - expected_track_duration
+            duration_diff = playback_duration - expected_track_duration
             if duration_diff >= 0:
                 result = True
                 self.result["message"] += (
@@ -263,10 +262,11 @@ class DurationMatchesCMAFTrack(Observation):
         self,
         test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
+        _audio_segments,
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
-        _unused2,
-    ) -> Dict[str, str]:
+        _observation_data_export_file,
+    ) -> Tuple[Dict[str, str], list]:
         """Implements the logic:
         (QRn.last_camera_frame_num - QRa.first_camera_frame_num) * camera_frame_duration_ms
         == expected_track_duration +/- tolerance
@@ -274,12 +274,12 @@ class DurationMatchesCMAFTrack(Observation):
         logger.info(f"Making observation {self.result['name']}...")
 
         if len(mezzanine_qr_codes) < 2:
-            self.result["status"] = "FAIL"
+            self.result["status"] = "NOT_RUN"
             self.result[
                 "message"
             ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result
+            return self.result, []
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
 
@@ -298,9 +298,9 @@ class DurationMatchesCMAFTrack(Observation):
             # only concider start missing frames
             adjust_starting_missing_frames = True
             adjust_ending_missing_frames = False
-            self.result["message"] += ("First presentation: ")
+            self.result["message"] += "First presentation: "
             first_result = self.check_duration_match(
-                parameters_dict["expected_track_duration"][0],
+                parameters_dict["expected_video_track_duration"][0],
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes[: change_starting_index_list[1] - 1],
@@ -311,9 +311,9 @@ class DurationMatchesCMAFTrack(Observation):
             # only concider ending missing frames
             adjust_starting_missing_frames = False
             adjust_ending_missing_frames = True
-            self.result["message"] += (" Second presentation: ")
+            self.result["message"] += " Second presentation: "
             second_result = self.check_duration_match(
-                parameters_dict["expected_track_duration"][1],
+                parameters_dict["expected_video_track_duration"][1],
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes[change_starting_index_list[1] :],
@@ -326,7 +326,7 @@ class DurationMatchesCMAFTrack(Observation):
             adjust_starting_missing_frames = True
             adjust_ending_missing_frames = True
             result = self.check_duration_match(
-                parameters_dict["expected_track_duration"],
+                parameters_dict["expected_video_track_duration"],
                 waiting_durations,
                 camera_frame_duration_ms,
                 mezzanine_qr_codes,
@@ -340,5 +340,5 @@ class DurationMatchesCMAFTrack(Observation):
         else:
             self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}] {self.result['message']}")
-        return self.result
+        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        return self.result, []

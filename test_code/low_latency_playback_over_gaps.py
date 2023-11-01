@@ -26,8 +26,9 @@ import logging
 import math
 from fractions import Fraction
 
-from .random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream import \
-    RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream
+from .random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream import (
+    RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class LowLatencyPlaybackOverGaps(
     """
 
     def _init_parameters(self) -> None:
+        """initialise the observations required for the test"""
         self.parameters = [
             "tolerance",
             "frame_tolerance",
@@ -50,7 +52,6 @@ class LowLatencyPlaybackOverGaps(
             "playback_mode",
             "stall_tolerance_margin",
         ]
-        self.content_parameters = ["cmaf_track_duration", "fragment_duration"]
 
     def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:
         """return gap from and to frames"""
@@ -58,22 +59,34 @@ class LowLatencyPlaybackOverGaps(
         if "gap_duration" in self.parameters_dict:
             gap_to = gap_from + self.parameters_dict["gap_duration"] / 1000
         else:
-            gap_to = gap_from + self.parameters_dict["fragment_duration"] / 1000
+            # if "gap_duration" not defined the gap will be same as a video_fragment_duration
+            # taking video_fragment_duration from the 1st video fragment
+            gap_to = gap_from + self.parameters_dict["video_fragment_durations"][0] / 1000
         gap_from_frame = math.floor(gap_from * frame_rate)
         gap_to_frame = math.floor(gap_to * frame_rate) + 1
         return [gap_from_frame, gap_to_frame]
 
-    def _get_expected_track_duration(self) -> float:
-        """return expected cmaf track duration"""
-        cmaf_track_duration_ms = self.parameters_dict["cmaf_track_duration"]
-        expected_track_duration = cmaf_track_duration_ms
+    def _save_expected_video_track_duration(self) -> None:
+        """save expected video cmaf track duration"""
+        video_cmaf_track_duration_ms = self.parameters_dict["video_content_duration"]
+        expected_video_track_duration = video_cmaf_track_duration_ms
         if self.parameters_dict["playback_mode"] == "vod":
             if "gap_duration" in self.parameters_dict:
-                expected_track_duration = (
-                    cmaf_track_duration_ms - self.parameters_dict["gap_duration"]
+                expected_video_track_duration = (
+                    video_cmaf_track_duration_ms - self.parameters_dict["gap_duration"]
                 )
             else:
-                expected_track_duration = (
-                    cmaf_track_duration_ms - self.parameters_dict["fragment_duration"]
+                # if "gap_duration" not defined the gap will be same as a video_fragment_duration
+                # taking video_fragment_duration from the 1st video fragment
+                expected_video_track_duration = (
+                    video_cmaf_track_duration_ms
+                    - self.parameters_dict["video_fragment_durations"][0]
                 )
-        return expected_track_duration
+        self.parameters_dict[
+            "expected_video_track_duration"
+        ] = expected_video_track_duration
+
+    def _save_expected_audio_track_duration(self) -> None:
+        """save expected audio cmaf track duration"""
+        # Audio observation not in scope
+        raise Exception("Not in scope.")
