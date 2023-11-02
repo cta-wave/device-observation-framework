@@ -51,7 +51,9 @@ with 'sudo' privilege, and on Windows with Administrator privilege.
 ```
 https://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download
 ```
-After installation of zbar, add the PATH to the system environment variables. See above "Updating System Environment for Windows".
+After installation of zbar, add the PATH to the system environment variables.
+Also install ffmpeg and add the PATH to the system environment variables.
+For adding PATH to the system environment variables see above "Updating System Environment for Windows".
 
 **For Mac OS X**:
 ```
@@ -59,7 +61,6 @@ brew install zbar
 brew install netcat
 brew install ffmpeg
 brew install portaudio
-pip install pyaudio
 ```
 
 **For Unix** exact installations may vary for different Unix variants, see http://zbar.sourceforge.net/.
@@ -69,7 +70,7 @@ pip install pyaudio
 sudo apt-get install libzbar0
 sudo apt-get install netcat
 sudo apt-get install ffmpeg
-sudo apt-get install python3-pyaudio
+sudo apt-get install portaudio19-dev python3-pyaudio
 ```
 
 ### Obtain the Observation Framework

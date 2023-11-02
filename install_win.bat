@@ -48,6 +48,10 @@ if errorlevel 1 goto installFail
 if errorlevel 1 goto installFail
 %PYEXE% -m pip install --no-cache-dir requests
 if errorlevel 1 goto installFail
+%PYEXE% -m pip install --no-cache-dir pyaudio
+if errorlevel 1 goto pyaudio
+%PYEXE% -m pip install --no-cache-dir matplotlib
+if errorlevel 1 goto matplotlib
 
 :: Check something (anything) is listening on the Test Runner port.
 FOR /F "delims=" %%i IN ('netstat -an ^| findstr "8000"  ^| findstr "LISTEN"') DO (set cmdout=%%i)

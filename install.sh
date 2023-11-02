@@ -47,6 +47,8 @@ install_package pyzbar==0.1.8
 install_package isodate
 install_package configparser
 install_package requests
+install_package pyaudio
+install_package matplotlib
 
 # scan for something listening on the expected Test Runner port
 if ! nc -z localhost 8000; then
