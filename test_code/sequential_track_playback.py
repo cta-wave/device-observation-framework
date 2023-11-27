@@ -355,6 +355,7 @@ class SequentialTrackPlayback:
                     audio_data_to_csv(
                         observation_data_export_file + "_audio_segment_data.csv",
                         audio_segments,
+                        self.parameters_dict,
                     )
 
         for observation in self.observations:

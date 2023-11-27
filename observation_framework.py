@@ -571,7 +571,7 @@ def main() -> None:
             else:
                 logger.warning(f"{full_path} is not a file, skipped!")
     else:
-        input_video_files.append(args.input)
+        input_video_files.append(str(input_video_path))
 
     # sort input files based on the configuration
     sort_input_files_by = global_configurations.get_sort_input_files_by()

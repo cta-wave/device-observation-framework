@@ -41,6 +41,8 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 class AudioSegment:
     audio_content_id: str
     """The content id from audio mezzanine"""
+    duration: float
+    """The duration of audio segment"""
     media_time: float
     """The media time of audio segment"""
     audio_segment_timing: float
@@ -49,17 +51,19 @@ class AudioSegment:
     def __init__(
         self,
         audio_content_id: str,
+        duration: float,
         media_time: float,
         audio_segment_timing: float,
     ):
         self.audio_content_id = audio_content_id
+        self.duration = duration
         self.media_time = media_time
         self.audio_segment_timing = audio_segment_timing
 
 
 def get_trim_from(
         subject_data: list, segment_data: list, observation_period: int,
-        global_configurations: GlobalConfigurations
+        global_configurations: GlobalConfigurations, exact: bool = False
     ) -> int:
     """
     Accepts
@@ -88,7 +92,10 @@ def get_trim_from(
             offset2 = get_time_from_segment(subject_data, segment_data_2)
 
             if i == count:
-                offset = offset1 + observation_period * count
+                if exact:
+                    offset = offset1
+                else:
+                    offset = offset1 - observation_period * count
             diff = offset2 - offset1
             if diff < 0 or diff > observation_period * 2:
                 break
@@ -257,17 +264,28 @@ def decode_audio_segments(
                     neighbor_end = trimed_data_len
 
                 subjectdata = trimed_data[neighbor_start:neighbor_end]
-                thissegment = audio_segment_data[
-                    (i * observation_period) : ((i + 1) * observation_period)
-                ]
+                if i == max_segments - 1:
+                    # if the last segment
+                    thissegment = audio_segment_data[
+                        (i * observation_period) : 
+                    ]
+                    segment_duration = len(thissegment) / sample_rate
+                    media_time = start_media_time + i * audio_sample_length
+                    start_media_time += segment_duration - audio_sample_length
+                else:
+                    thissegment = audio_segment_data[
+                        (i * observation_period) : ((i + 1) * observation_period)
+                    ]
+                    segment_duration = len(thissegment) / sample_rate
+                    media_time = start_media_time + i * audio_sample_length
                 segment_time = get_time_from_segment(subjectdata, thissegment) + neighbor_start
                 segment_time_in_ms = (segment_time + offset) / sample_rate
-            media_time = start_media_time + i * audio_sample_length
 
-            # content ID for now is not used
-            audio_content_id = ""
+            # content ID is index of splicing points starts from 0
+            audio_content_id = str(index)
             audio_segment = AudioSegment(
                 audio_content_id,
+                segment_duration,
                 media_time,
                 segment_time_in_ms,
             )

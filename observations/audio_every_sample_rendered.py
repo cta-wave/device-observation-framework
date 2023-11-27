@@ -28,6 +28,7 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 from typing import Dict, List, Tuple
 
+from test_code.test import TestType
 from dpctf_audio_decoder import AudioSegment
 from global_configurations import GlobalConfigurations
 
@@ -43,6 +44,9 @@ class AudioEverySampleRendered(Observation):
     Every audio sample shall be rendered and the samples shall be rendered
     in increasing presentation time order.
     """
+
+    total_error_count = 0
+    """total error segments count"""
 
     def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
         if name is None:
@@ -178,11 +182,18 @@ class AudioEverySampleRendered(Observation):
         returns error count and
         a list of updated audio segement which only contains correct segements"""
         updated_audio_segments = []
+        starting_error_count = None
+        ending_error_count = 0
+        mid_error_count = 0
         error_count = 0
+        failing_message = ""
 
         for i in range(0, len(audio_segments)):
             result = self._check_segment(audio_segments, i, parameters_dict)
             if result:
+                if starting_error_count == None:
+                    starting_error_count = error_count
+                ending_error_count = 0
                 updated_audio_segments.append(audio_segments[i])
             else:
                 if error_count < REPORT_NUM_OF_FAILURE:
@@ -190,17 +201,28 @@ class AudioEverySampleRendered(Observation):
                     detected_time = (
                         self._get_detected_time(audio_segments[i], parameters_dict)
                     )
-                    self.result["message"] += (
-                        f"Segment({round(expected_time, 2)}ms) is not detected on expected time, "
-                        f"sample is found at {round(detected_time, 2)}ms. "
+                    failing_message += (
+                        f"Segment({round(expected_time, 2)}ms) "
+                        f"is found at {round(detected_time, 2)}ms. "
                     )
+                ending_error_count += 1
                 error_count += 1
 
-        return error_count, updated_audio_segments
+        self.total_error_count += error_count
+        mid_error_count = error_count - starting_error_count - ending_error_count
+        if error_count > 0:
+            self.result["message"] += "Failed segmets are: "
+            self.result["message"] += failing_message
+
+        if error_count >= REPORT_NUM_OF_FAILURE:
+            self.result["message"] += "...too many failures, reporting truncated. "
+
+        return (starting_error_count, ending_error_count, mid_error_count,
+                updated_audio_segments)
 
     def make_observation(
         self,
-        _test_type,
+        test_type,
         _mezzanine_qr_codes,
         audio_segments: List[AudioSegment],
         _test_status_qr_codes,
@@ -225,20 +247,75 @@ class AudioEverySampleRendered(Observation):
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
-        error_count, updated_audio_segments = (
-            self._check_every_sample_rendered(audio_segments, parameters_dict)
-        )
+        start_segment_num_tolerance = self.tolerances["start_segment_num_tolerance"]
+        end_segment_num_tolerance = self.tolerances["end_segment_num_tolerance"]
+        mid_segment_num_tolerance = self.tolerances["mid_segment_num_tolerance"]
+        splice_start_segment_num_tolerance = self.tolerances["splice_start_segment_num_tolerance"]
+        splice_end_segment_num_tolerance = self.tolerances["splice_end_segment_num_tolerance"]
 
-        if error_count == 0:
-            self.result["message"] += "All segments are rendered and are in order."
-            self.result["status"] = "PASS"
-        else:
-            if error_count >= REPORT_NUM_OF_FAILURE:
-                self.result["message"] += "...too many failures, reporting truncated. "
-            self.result["message"] += (
-                "Found " + str(error_count) + " segments out of order"
+        starting_error_count = 0
+        ending_error_count = 0
+        mid_error_count = 0
+        max_splice_starting_error_count = 0
+        max_splice_ending_error_count = 0
+        updated_audio_segments = []
+
+        if test_type == TestType.SPLICING:
+            chunk_list = (
+                Observation.get_audio_segments_chunk(audio_segments)
             )
+            mid_error_count = 0
+            for i in range(0, len(chunk_list)):
+                (
+                    splice_starting_error_count,
+                    splice_ending_error_count,
+                    splice_mid_error_count,
+                    updated_audio_chunk
+                ) = self._check_every_sample_rendered(chunk_list[i], parameters_dict)
+                mid_error_count += splice_mid_error_count
+                if i == 0:
+                    starting_error_count = splice_starting_error_count
+                else:
+                    if splice_starting_error_count > max_splice_starting_error_count:
+                        max_splice_starting_error_count = splice_starting_error_count
+                if i == len(chunk_list) - 1:
+                    ending_error_count = splice_ending_error_count
+                else:
+                    if splice_ending_error_count > max_splice_ending_error_count:
+                        max_splice_ending_error_count = splice_ending_error_count
+                updated_audio_segments.extend(updated_audio_chunk)
+        else:
+            (
+                starting_error_count,
+                ending_error_count,
+                mid_error_count,
+                updated_audio_segments
+            ) = self._check_every_sample_rendered(audio_segments, parameters_dict)
+
+        self.result["message"] += (
+            f"Found {self.total_error_count} segments out of order. "
+        )
+        if (
+            mid_error_count > mid_segment_num_tolerance or
+            starting_error_count > start_segment_num_tolerance or
+            ending_error_count > end_segment_num_tolerance or
+            max_splice_starting_error_count > splice_start_segment_num_tolerance or
+            max_splice_ending_error_count > splice_end_segment_num_tolerance
+        ):
+            if starting_error_count > 0:
+                self.result["message"] += f"Start segment number tolerance is {start_segment_num_tolerance}. "
+            if ending_error_count > 0:
+                self.result["message"] += f"End segment number tolerance is {end_segment_num_tolerance}. "
+            if mid_error_count > 0:
+                self.result["message"] += f"Mid segment number tolerance is {mid_segment_num_tolerance}. "
+            if max_splice_starting_error_count > 0:
+                self.result["message"] += f"Splice start segment number tolerance is {splice_start_segment_num_tolerance}. "
+            if max_splice_ending_error_count > 0:
+                self.result["message"] += f"Splice end segment number tolerance is {splice_end_segment_num_tolerance}. "
             self.result["status"] = "FAIL"
+        else:
+            self.result["message"] += "Segments are rendered in order within the tolerance."
+            self.result["status"] = "PASS"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
 

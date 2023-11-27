@@ -247,7 +247,11 @@ class GlobalConfigurations:
             "mid_frame_num_tolerance": 0,
             "splice_start_frame_num_tolerance": 0,
             "splice_end_frame_num_tolerance": 0,
-            "video_shifts_no_qr": 0,
+            "start_segment_num_tolerance": 0,
+            "end_segment_num_tolerance": 0,
+            "mid_segment_num_tolerance": 10,
+            "splice_start_segment_num_tolerance": 0,
+            "splice_end_segment_num_tolerance": 0,
         }
         try:
             tolerances["start_frame_num_tolerance"] = int(
@@ -264,6 +268,21 @@ class GlobalConfigurations:
             )
             tolerances["splice_end_frame_num_tolerance"] = int(
                 self.config["TOLERANCES"]["splice_end_frame_num_tolerance"]
+            )
+            tolerances["start_segment_num_tolerance"] = int(
+                self.config["TOLERANCES"]["start_segment_num_tolerance"]
+            )
+            tolerances["end_segment_num_tolerance"] = int(
+                self.config["TOLERANCES"]["end_segment_num_tolerance"]
+            )
+            tolerances["mid_segment_num_tolerance"] = int(
+                self.config["TOLERANCES"]["mid_segment_num_tolerance"]
+            )
+            tolerances["splice_start_segment_num_tolerance"] = int(
+                self.config["TOLERANCES"]["splice_start_segment_num_tolerance"]
+            )
+            tolerances["splice_end_segment_num_tolerance"] = int(
+                self.config["TOLERANCES"]["splice_end_segment_num_tolerance"]
             )
         except KeyError:
             pass

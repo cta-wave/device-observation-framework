@@ -67,6 +67,10 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
                 "SampleMatchesCurrentTime"
             ),
             (
+                "earliest_sample_same_presentation_time",
+                "EarliestSampleSamePresentationTime"
+            ),
+            (
                 "audio_video_synchronization",
                 "AudioVideoSynchronization",
             ),

@@ -26,7 +26,6 @@ Contributor: Eurofins Digital Product Testing UK Limited
 import logging
 from typing import Dict, List, Tuple
 
-from configuration_parser import PlayoutParser
 from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
@@ -147,19 +146,22 @@ class Observation:
         return change_starting_index_list
 
     @staticmethod
-    def get_audio_periods(
-        playout, audio_segments, audio_fragment_duration_multi_mpd
-    ) -> List[list]:
-        """loops through audio segments and splits them into periods"""
-        period_durations = PlayoutParser.get_splicing_period_list(
-            playout, audio_fragment_duration_multi_mpd
-        )
-        periods = []
-        for audio_segment in audio_segments:
-            period = []
-            for duration in period_durations:
-                if audio_segment.media_time > duration:
-                    break
-                period.append(audio_segment)
-            periods.append(period)
-        return periods
+    def get_audio_segments_chunk(
+        audio_segments: List[AudioSegment],
+    ) -> List[List[AudioSegment]]:
+        """
+        loop through the audio segment to split
+        audio segment into chunks with same audio content ID
+        """
+        current_content_id = audio_segments[0].audio_content_id
+        audio_segments_chunk_list = []
+        start = 0
+        for i in range(1, len(audio_segments)):
+            if audio_segments[i].audio_content_id != current_content_id:
+                # the content did change save the chunk
+                end = i
+                audio_segments_chunk_list.append(audio_segments[start:end])
+                current_content_id = audio_segments[i].audio_content_id
+                start = i + 1
+        audio_segments_chunk_list.append(audio_segments[start:])
+        return audio_segments_chunk_list

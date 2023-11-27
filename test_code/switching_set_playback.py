@@ -52,7 +52,6 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
             "playout",
             "duration_tolerance",
             "duration_frame_tolerance",
-            #"video_shifts_tolerance",
             "audio_sample_length",
             "audio_tolerance",
             "audio_sample_tolerance",
@@ -79,7 +78,6 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
                 ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
                 ("start_up_delay", "StartUpDelay"),
                 ("sample_matches_current_time", "SampleMatchesCurrentTime"),
-                #("no_visible_video_shifts", "NoVisibleVideoShifts"),
             ]
         if "audio" in self.content_type:
             self.observations = [

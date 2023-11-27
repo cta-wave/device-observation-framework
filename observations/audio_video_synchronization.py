@@ -139,15 +139,20 @@ class AudioVideoSynchronization(Observation):
         test_start_time = parameters_dict["test_start_time"]
 
         for i in range(0, len(audio_segments)):
-            # audio media time set to half position of each sample
-            audio_media_time = audio_segments[i].media_time + audio_sample_length / 2
+            # audio mean time set to half position of each sample
+            mean_time = audio_segments[i].media_time + audio_sample_length / 2
             # calculate offset of half position of each audio sample
             audio_offset = (
                 test_start_time
                 + audio_segments[i].audio_segment_timing
                 - audio_segments[i].media_time
             )
-            audio_offsets.append((audio_media_time, audio_offset))
+            audio_offsets.append((
+                audio_segments[i].audio_content_id,
+                audio_segments[i].media_time,
+                mean_time,
+                audio_offset
+            ))
 
         if (
             logger.getEffectiveLevel() == logging.DEBUG
@@ -155,7 +160,7 @@ class AudioVideoSynchronization(Observation):
         ):
             write_data_to_csv_file(
                 observation_data_export_file + "_audio_data.csv",
-                ["audio media time", "offsets"],
+                ["content id", "media time", "mean_time", "offsets"],
                 audio_offsets,
             )
         return audio_offsets
@@ -198,7 +203,8 @@ class AudioVideoSynchronization(Observation):
         audio_offsets = []
         video_offsets = []
         time_differences = []
-        failure_report_count = 0
+        pass_count = 0
+        failure_count = 0
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         audio_sample_length = parameters_dict["audio_sample_length"]
@@ -222,33 +228,48 @@ class AudioVideoSynchronization(Observation):
                 # if longer the matches not found
                 # ignore the audio samples which failed to find matching audio
                 # where the sync is not measurable
-                if abs(audio_offsets[i][0] - video_offsets[j][0]) < audio_sample_length:
-                    time_diff = audio_offsets[i][1] - video_offsets[j][1]
+                if abs(audio_offsets[i][2] - video_offsets[j][0]) < audio_sample_length:
+                    time_diff = audio_offsets[i][3] - video_offsets[j][1]
                     break
 
             # ignore those failing audio and video matches
             if time_diff == sys.float_info.max:
                 continue
 
-            time_differences.append((audio_offsets[i][0], round(time_diff, 4)))
+            time_differences.append((audio_offsets[i][2], round(time_diff, 4)))
 
             if time_diff > av_sync_tolerance[0] or time_diff < av_sync_tolerance[1]:
                 self.result["status"] = "FAIL"
-                if failure_report_count == 0:
+                if failure_count == 0:
                     self.result["message"] += (
                         " The Audio-Video Synchronization failed at following events:"
                     )
-                if failure_report_count < REPORT_NUM_OF_FAILURE:
+                if failure_count < REPORT_NUM_OF_FAILURE:
                     self.result[
                         "message"
-                    ] += f" audio media time={audio_offsets[i][0]}ms AV Sync time diff={round(time_diff, 4)}ms; "
+                    ] += (
+                        f" audio media time={audio_offsets[i][0]}:{audio_offsets[i][1]}ms"
+                        f" AV Sync time diff={round(time_diff, 4)}ms; "
+                    )
 
-                failure_report_count += 1
+                failure_count += 1
+            else:
+                pass_count += 1
 
-        if failure_report_count >= REPORT_NUM_OF_FAILURE:
+        if failure_count >= REPORT_NUM_OF_FAILURE:
             self.result[
                 "message"
-            ] += f"...too many failures, reporting truncated. Total failure count is {failure_report_count}. "
+            ] += f"...too many failures, reporting truncated. "
+
+        percent = (
+            failure_count / (pass_count + failure_count)
+        ) * 100
+        self.result[
+            "message"
+        ] += (
+            f"Total failure count is {failure_count}, "
+            f"{round(percent, 2)}% faild. "
+        )
 
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"

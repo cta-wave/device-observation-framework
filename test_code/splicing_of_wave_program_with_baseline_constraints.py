@@ -108,29 +108,22 @@ class SplicingOfWaveProgramWithBaselineConstraints(
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio track duration"""
         # audio should match video
-        cmaf_track_duration = 0
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
+        self.parameters_dict["expected_audio_track_duration"] = (
+            self.parameters_dict["expected_video_track_duration"]
         )
-        for playout in self.parameters_dict["playout"]:
-            audio_fragment_duration = (
-                fragment_duration_multi_mpd[tuple(playout)]
-            )
-            cmaf_track_duration += audio_fragment_duration
-        self.parameters_dict["expected_audio_track_duration"] = cmaf_track_duration
 
     def _get_audio_segment_data(
         self, audio_content_ids: list
     ) -> Tuple[float, list, list]:
         """
         get expected audio mezzanine data for splicing test
-            start_media_time: start time of expected audio
-            expected_audio_segment_data: list of expected audio data
-            unexpected_audio_segment_data: unexpected audio data
+        start_media_time: start time of expected audio
+        expected_audio_segment_data: list of expected audio data
+        unexpected_audio_segment_data: unexpected audio data
         """
         sample_rate = self.parameters_dict["sample_rate"]
         fragment_duration_multi_mpd = (
-            self.parameters_dict["audio_fragment_duration_multi_mpd"]
+            self.parameters_dict["video_fragment_duration_multi_mpd"]
         )
         playouts = self.parameters_dict["playout"]
         audio_segment_data_list = []

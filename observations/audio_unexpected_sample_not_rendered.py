@@ -53,20 +53,6 @@ class AudioUnexpectedSampleNotRendered(Observation):
             )
         super().__init__(name, global_configurations)
 
-    def _get_data_prior_to_segment_data(
-        self, subject_data: list, segment_data: list, observation_period: int
-    ) -> list:
-        """Accepts
-        1) subjectdata: a first audio file that was presumably recorded with some dead time before the audio of interest,
-        2) segmentdata:  a segment of PN audio that should mark the end of the audio of interest,
-        Returns: a shorter copy of subjectdata with tailing audio trimmed prior to beginning of segmentdata.
-        """
-        trim_to = get_trim_from(
-            subject_data, segment_data, observation_period, self.global_configurations
-        )
-        trimmed_data = subject_data[0 : trim_to].copy()
-        return trimmed_data
-
     def _get_audio_segment_diffs(self, parameters: Dict) -> list:
         """
         Compare each segment of unexpected audio with recorded audio data
@@ -74,16 +60,19 @@ class AudioUnexpectedSampleNotRendered(Observation):
         and calculate offsets for an each unexpected audio segment.
         returns lists of differences with previous segment.
         """
-        audio_subject_data = parameters["audio_subject_data"]
+        subject_data = parameters["audio_subject_data"]
         audio_segment_timings = []
         unexpected_segment = parameters["unexpected_audio_segment_data"]
         expected_segment = parameters["expected_audio_segment_data"]
         sample_rate = parameters["sample_rate"]
         observation_period = sample_rate * parameters["audio_sample_length"]
         # get sub-data in recording prior to beginning of segment data
-        pre_segment_data = self._get_data_prior_to_segment_data(
-            audio_subject_data, expected_segment, observation_period
+        trim_to = get_trim_from(
+            subject_data, expected_segment,
+            observation_period, self.global_configurations,
+            True
         )
+        pre_segment_data = subject_data[0 : trim_to].copy()
         duration = math.floor((len(unexpected_segment)) / sample_rate)
         max_segments = math.floor(duration * sample_rate / observation_period)
         audio_segment_timings = np.zeros((max_segments), dtype=np.uint)

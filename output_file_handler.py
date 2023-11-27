@@ -141,23 +141,31 @@ def extract_qr_data_to_csv(
 
 
 def audio_data_to_csv(
-    file_name: str, data: List[AudioSegment]
+    file_name: str, data: List[AudioSegment], parameters_dict: dict
 ):
     """export audio segment data to csv file"""
     # remove existing csv file, only keep the last result
     if os.path.exists(file_name):
         os.remove(file_name)
 
-    header = ["Media Time", "Detected Time"]
+    header = ["Content ID", "Duration", "Media Time", "Time in Recording", "Detected Time"]
     with open(file_name, "a") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(header)
 
         for row_data in data:
+            detected_time = (
+                row_data.audio_segment_timing
+                + parameters_dict["first_audio_media_time"]
+                - parameters_dict["offset"] / parameters_dict["sample_rate"]
+            )
             writer.writerow(
                 [
+                    row_data.audio_content_id,
+                    row_data.duration,
                     row_data.media_time,
                     row_data.audio_segment_timing,
+                    detected_time,
                 ]
             )
 

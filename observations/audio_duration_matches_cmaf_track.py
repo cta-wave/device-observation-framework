@@ -113,14 +113,16 @@ class AudioDurationMatchesCMAFTrack(Observation):
             self.result["status"] = "FAIL"
             self.result["message"] += (
                 f"Playback duration is {round(detected_audio_duration, 2)}ms does not match "
-                f"expected track duration is {round(expected_duration, 2)} "
+                f"expected track duration is {round(expected_duration, 2)}. "
+                f"Detected duration is different by {round(time_difference, 2)}ms. "
                 f"Allowed tolerance is {tolerance}ms."
             )
         else:
             self.result["status"] = "PASS"
             self.result["message"] += (
                 f"Playback duration is {round(detected_audio_duration, 2)}ms, "
-                f"expected track duration is {round(expected_duration, 2)} "
+                f"expected track duration is {round(expected_duration, 2)}. "
+                f"Detected duration is different by {round(time_difference, 2)}ms. "
                 f"Allowed tolerance is {tolerance}ms."
             )
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")

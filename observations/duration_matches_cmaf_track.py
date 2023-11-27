@@ -201,6 +201,7 @@ class DurationMatchesCMAFTrack(Observation):
                 self.result["message"] += (
                     f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
                     f"{round(expected_track_duration, 2)}ms. "
+                    f"Detected duration is different by {round(duration_diff, 2)}ms. "
                     f"Minimum waiting durationn is {round(waiting_durations[0], 2)}ms, "
                     f"and Maximun waiting duration is {round(waiting_durations[1], 2)}ms."
                 )
@@ -209,6 +210,7 @@ class DurationMatchesCMAFTrack(Observation):
                 self.result["message"] += (
                     f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
                     f"{round(expected_track_duration, 2)}ms. "
+                    f"Detected duration is different by {round(duration_diff, 2)}ms. "
                     f"Minimum waiting durationn is {round(waiting_durations[0], 2)}ms, "
                     f"and Maximun waiting duration is {round(waiting_durations[1], 2)}ms."
                 )
@@ -219,13 +221,15 @@ class DurationMatchesCMAFTrack(Observation):
                 result = False
                 self.result["message"] += (
                     f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
-                    f"{round(expected_track_duration, 2)}ms +/- tolerance of {duration_tolerance}ms."
+                    f"{round(expected_track_duration, 2)}ms +/- tolerance of {duration_tolerance}ms. "
+                    f"Detected duration is different by {round(duration_diff, 2)}ms."
                 )
             else:
                 result = True
                 self.result["message"] += (
                     f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
-                    f"{round(expected_track_duration, 2)}ms."
+                    f"{round(expected_track_duration, 2)}ms. "
+                    f"Detected duration is different by {round(duration_diff, 2)}ms."
                 )
 
         self.result[
