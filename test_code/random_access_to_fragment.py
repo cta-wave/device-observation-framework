@@ -114,12 +114,12 @@ class RandomAccessToFragment(SequentialTrackPlayback):
             - random_access_to_time_ms
         )
 
-    def _save_first_audio_media_time(self) -> None:
-        """save first audio media time"""
+    def _save_audio_starting_time(self) -> None:
+        """save audio starting time"""
         random_access_to_time_ms = (
             self._convert_random_access_fragment_to_time("audio")
         )
-        self.parameters_dict["first_audio_media_time"] = math.floor(
+        self.parameters_dict["audio_starting_time"] = math.floor(
             random_access_to_time_ms
         )
 

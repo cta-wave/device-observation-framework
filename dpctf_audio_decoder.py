@@ -171,7 +171,7 @@ def get_trim_to(
             f"with the PN data in the recorded audio (subjectdata)"
         )
 
-    # no margin added to trim_to as last segement is corrected detected
+    # no margin added to trim_to as last segement is correctly detected
     trim_to = offset
     if trim_to > len(subject_data):
         trim_to = len(subject_data)

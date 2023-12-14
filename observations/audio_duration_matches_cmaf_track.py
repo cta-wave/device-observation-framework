@@ -48,17 +48,19 @@ class AudioDurationMatchesCMAFTrack(Observation):
         )
 
     def _get_starting_missing_time(
-        self, expected_start_time, first_segment: AudioSegment
+        self, expected_start_time: float, first_segment: AudioSegment
     ) -> float:
         """returns the difference between expected and actual start times"""
         missing_time = first_segment.media_time - expected_start_time
         return missing_time
 
     def _get_ending_missing_time(
-        self, expected_end_time, last_segment: AudioSegment
+        self, expected_end_time: float, last_segment: AudioSegment
     ) -> float:
         """returns the difference between expected and actual end times"""
-        missing_time = expected_end_time - last_segment.media_time
+        missing_time = expected_end_time - round(
+            last_segment.media_time + last_segment.duration
+        )
         return missing_time
 
     def make_observation(
@@ -81,15 +83,15 @@ class AudioDurationMatchesCMAFTrack(Observation):
 
         detected_audio_duration = (
             audio_segments[-1].audio_segment_timing
-            + parameters_dict["audio_sample_length"]
+            + audio_segments[-1].duration
             - audio_segments[0].audio_segment_timing
         )
 
         start_missing_time = self._get_starting_missing_time(
-            parameters_dict["first_audio_media_time"], audio_segments[0]
+            parameters_dict["audio_starting_time"], audio_segments[0]
         )
         end_missing_time = self._get_ending_missing_time(
-            parameters_dict["last_audio_media_time"], audio_segments[-1]
+            parameters_dict["audio_ending_time"], audio_segments[-1]
         )
         expected_duration = (
             parameters_dict["expected_audio_track_duration"]

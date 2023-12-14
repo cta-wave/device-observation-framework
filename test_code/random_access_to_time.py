@@ -98,9 +98,9 @@ class RandomAccessToTime(SequentialTrackPlayback):
             audio_cmaf_track_duration_ms - random_access_time_ms
         )
 
-    def _save_first_audio_media_time(self) -> None:
-        """saves the first audio media time to parameters dict"""
-        self.parameters_dict["first_audio_media_time"] = math.floor(
+    def _save_audio_starting_time(self) -> None:
+        """save audio starting time"""
+        self.parameters_dict["audio_starting_time"] = math.floor(
             self.parameters_dict["random_access_time"] * 1000
         )
 

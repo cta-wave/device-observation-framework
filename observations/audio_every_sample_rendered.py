@@ -63,7 +63,7 @@ class AudioEverySampleRendered(Observation):
         """return detected time from given segement"""
         detected_time = (
             audio_segment.audio_segment_timing
-            + parameters_dict["first_audio_media_time"]
+            + parameters_dict["audio_starting_time"]
             - parameters_dict["offset"] / parameters_dict["sample_rate"]
         )
         return detected_time

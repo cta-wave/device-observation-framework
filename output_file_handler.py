@@ -156,7 +156,7 @@ def audio_data_to_csv(
         for row_data in data:
             detected_time = (
                 row_data.audio_segment_timing
-                + parameters_dict["first_audio_media_time"]
+                + parameters_dict["audio_starting_time"]
                 - parameters_dict["offset"] / parameters_dict["sample_rate"]
             )
             writer.writerow(

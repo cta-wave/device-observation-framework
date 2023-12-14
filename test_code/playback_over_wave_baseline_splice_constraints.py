@@ -163,9 +163,8 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
 
         return 0.0, audio_segment_data_list, []
 
-    def _save_last_audio_media_time(self) -> None:
-        """return last audio sample time in sample position"""
-        self.parameters_dict["last_audio_media_time"] = (
+    def _save_audio_ending_time(self) -> None:
+        """save audio ending time"""
+        self.parameters_dict["audio_ending_time"] = (
             self.parameters_dict["expected_audio_track_duration"]
-            - self.parameters_dict["audio_sample_length"]
         )

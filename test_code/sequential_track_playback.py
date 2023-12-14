@@ -249,15 +249,14 @@ class SequentialTrackPlayback:
             0.0, [expected_audio_segment_data], []
         )
 
-    def _save_first_audio_media_time(self) -> None:
-        """return first audio sample time in sample position"""
-        self.parameters_dict["first_audio_media_time"] = 0.0
+    def _save_audio_starting_time(self) -> None:
+        """save audio starting time"""
+        self.parameters_dict["audio_starting_time"] = 0.0
 
-    def _save_last_audio_media_time(self) -> None:
-        """return last audio sample time in sample position"""
-        self.parameters_dict["last_audio_media_time"] = (
+    def _save_audio_ending_time(self) -> None:
+        """save audio ending time"""
+        self.parameters_dict["audio_ending_time"] = (
             self.parameters_dict["audio_content_duration"]
-            - self.parameters_dict["audio_sample_length"]
         )
 
     def _get_audio_segments(
@@ -291,8 +290,8 @@ class SequentialTrackPlayback:
         )
 
         self.parameters_dict["offset"] = offset
-        self._save_first_audio_media_time()
-        self._save_last_audio_media_time()
+        self._save_audio_starting_time()
+        self._save_audio_ending_time()
         self._save_audio_data(
             audio_subject_data,
             expected_audio_segment_data_list[0],

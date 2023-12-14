@@ -118,24 +118,20 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
             - random_access_to_time_ms
         )
 
-    def _save_last_audio_media_time(self) -> None:
-        """return last audio sample time in sample position"""
+    def _save_audio_ending_time(self) -> None:
+        """save audio ending time"""
         # audio should match video
-        self.parameters_dict["last_audio_media_time"] = (
+        self.parameters_dict["audio_ending_time"] = (
             self.parameters_dict["video_content_duration"]
-            - self.parameters_dict["audio_sample_length"]
         )
 
-    def _save_first_audio_media_time(self) -> None:
-        """
-        save first audio media time
-        The audio presentation starts with the sample that corresponds to 
-        the same presentation time as the earliest video sample.
-        """
+    def _save_audio_starting_time(self) -> None:
+        """save audio starting time"""
+        # audio should match video
         random_access_to_time_ms = (
             self._convert_random_access_fragment_to_time("video")
         )
-        self.parameters_dict["first_audio_media_time"] = math.floor(
+        self.parameters_dict["audio_starting_time"] = math.floor(
             random_access_to_time_ms
         )
 

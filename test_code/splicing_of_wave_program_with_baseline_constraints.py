@@ -163,10 +163,9 @@ class SplicingOfWaveProgramWithBaselineConstraints(
 
         return 0.0, audio_segment_data_list, []
 
-    def _save_last_audio_media_time(self) -> None:
-        """return last audio sample time in sample position"""
+    def _save_audio_ending_time(self) -> None:
+        """save audio ending time"""
         # audio should match video
-        self.parameters_dict["last_audio_media_time"] = (
+        self.parameters_dict["audio_ending_time"] = (
             self.parameters_dict["expected_video_track_duration"]
-            - self.parameters_dict["audio_sample_length"]
         )

@@ -103,10 +103,9 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
             self.parameters_dict["video_content_duration"]
         )
 
-    def _save_last_audio_media_time(self) -> None:
-        """return last audio sample time in sample position"""
+    def _save_audio_ending_time(self) -> None:
+        """save audio ending time"""
         # audio should match video
-        self.parameters_dict["last_audio_media_time"] = (
+        self.parameters_dict["audio_ending_time"] = (
             self.parameters_dict["video_content_duration"]
-            - self.parameters_dict["audio_sample_length"]
         )
