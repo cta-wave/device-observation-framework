@@ -323,6 +323,14 @@ class ObservationFrameworkProcessor:
             elif isinstance(detected_code, PreTestDecodedQr):
                 if self.pre_test_qr_code != detected_code:
                     new_pre_test_qr_code = detected_code
+                # discard all QR codes that are detected at the same time with PreTestDecodedQr
+                for log_code in detected_codes:
+                    if not isinstance(log_code, PreTestDecodedQr):
+                        logger.debug(
+                            f"Discard QR code {log_code.data}, it is detected "
+                            f" at the same time with Pre Test QR code."
+                        )
+                return [], None, new_pre_test_qr_code
 
             else:
                 continue
