@@ -599,10 +599,14 @@ def main() -> None:
             f"Serious error is detected! {e}",
             exc_info=False,
         )
+        clear_up(global_configurations)
+        sys.exit(1)
     except Exception as e:
         logger.exception(
             f"Serious error is detected! {e}: {traceback.format_exc()}"
         )
+        clear_up(global_configurations)
+        sys.exit(1)
 
     logger.info(
         f"Device Observation Framework has finished analysing all selected recordings, "
