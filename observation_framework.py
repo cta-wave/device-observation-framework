@@ -39,7 +39,7 @@ import cv2
 
 from dpctf_qr_decoder import (DPCTFQrDecoder, MezzanineDecodedQr,
                               PreTestDecodedQr, TestStatusDecodedQr)
-from exceptions import ConfigError, ObsFrameTerminate
+from exceptions import ConfigError, ObsFrameTerminate, ObsFrameError
 from global_configurations import GlobalConfigurations
 from log_handler import LogManager
 from observation_framework_processor import ObservationFrameworkProcessor
@@ -598,6 +598,13 @@ def main() -> None:
         clear_up(global_configurations)
         sys.exit(1)
     except ConfigError as e:
+        logger.exception(
+            f"Serious error is detected! {e}",
+            exc_info=False,
+        )
+        clear_up(global_configurations)
+        sys.exit(1)
+    except ObsFrameError as e:
         logger.exception(
             f"Serious error is detected! {e}",
             exc_info=False,
