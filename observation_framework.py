@@ -132,6 +132,9 @@ def iter_to_get_qr_area(
                 capture_frame_num += 1
                 continue
             else:
+                logger.warning(
+                    f"Recording frame {capture_frame_num} is corrupted."
+                )
                 break
 
         # print out where the processing is currently

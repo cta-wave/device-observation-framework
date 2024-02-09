@@ -666,6 +666,11 @@ class ObservationFrameworkProcessor:
                     capture_frame_num += 1
                     continue
                 else:
+                    logger.warning(
+                        f"Recording frame {capture_frame_num} is corrupted. "
+                        f"Total recording frame number is {len_frames}. "
+                        f"If this is not close to the end of recording, observation process will be terminating early."
+                    )
                     break
 
             camera_frame_number = starting_camera_frame_number + capture_frame_num

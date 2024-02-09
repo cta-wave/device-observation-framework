@@ -34,7 +34,7 @@ import isodate
 import requests
 import math
 
-from exceptions import ConfigError
+from exceptions import ObsFrameTerminate, ConfigError
 from global_configurations import GlobalConfigurations
 from test_code.test import TestContentType, TestType
 
@@ -496,11 +496,13 @@ class ConfigurationParser:
                 config_data = r.json()
                 return config_data
             else:
-                raise ConfigError(
-                    f"Error: Failed to get configuration file from test runner {r.status_code}"
+                raise ObsFrameTerminate(
+                    f"Failed to get configuration file from test runner {r.status_code}"
                 )
         except requests.exceptions.RequestException as e:
-            raise ConfigError(e)
+            raise ObsFrameTerminate(
+                f"Failed to get configuration file from test runner. {e}"
+            )
 
     def _get_json_from_local(
         self, json_name: str
@@ -513,8 +515,10 @@ class ConfigurationParser:
             with open(filename) as json_file:
                 config_data = json.load(json_file)
                 return config_data
-        except requests.exceptions.RequestException as e:
-            raise ConfigError(e)
+        except FileNotFoundError as e:
+            raise ObsFrameTerminate(
+                f"Failed to get configuration file from local directory. {e}"
+            )
 
 
 class PlayoutParser:
