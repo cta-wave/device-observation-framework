@@ -245,7 +245,7 @@ At the end of the process the Observation Framework will rename the file recordi
 ```<file_name>_dpctf_<session-id>.<extension>```
 
 
-**Additional Options:**
+### Additional Options
 
 Observation framework can be run with specific mode enabled by passing some optional arguments.
 
