@@ -138,7 +138,7 @@ The Observation Framework operates on camera recordings of the device's screen w
 ---
 
 **NOTE**
-Audio observations are not in scope for the initial release, but section 9 tests are already generated with correct audio contents. It is recommended to user NOT to capture audio by either turn off the audio recording on the camera or mute the device before recording a test. Observation results will show "NOT_RUN" in this case. However, when a correct audio is being recorded jointly with video, Observation Framework processes audio observations and the observation results will show either "PASS" or "FAIL".
+Audio observations are not in scope for the initial release, but section 9 tests are already generated with correct audio contents. It is recommended that user DO NOT capture audio by either turning off the audio recording on the camera or muting the device before recording a test. Observation results will show "NOT_RUN" in this case. However, when a correct audio is being recorded jointly with video, the Observation Framework processes audio observations and the observation results will show either "PASS" or "FAIL".
 
 ---
 
@@ -156,17 +156,17 @@ The set up needs to be in a light-controlled environment and the camera configur
 **More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
 
 For the camera/device set up:
-* The device needs to be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
-* The device needs to be mounted on a stable stand/support. The camera needs mounting on a stable tripod with lens pointing directly at the device screen at a 90 degree angle.
-* The camera should be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers. For longer screens try only including just the the red edge markers but not the device. It is important to make is playback area as big as possible to capture clear QR code. For smaller and longer devices it is recommended to zoom in as closely as possible and exclude part of the device edge to make the QR code bigger.
-* The camera should be manually focused on the device screen to produce a sharp image.
+* The device must be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
+* The device must be mounted on a stable stand/support. The camera must be mounted on a stable tripod with lens pointing directly at the device screen at a 90 degree angle.
+* The camera must be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers. For longer screens try only including just the the red edge markers but not the device. It is important to make the playback area as big as possible to capture clear QR codes. For smaller and longer devices it is recommended to zoom in as closely as possible and exclude part of the device edge to make the QR code bigger.
+* The camera must be manually focused on the device screen to produce a sharp image.
 * The camera must be set to record at a minimum of 119 frames per second in full HD.
 * The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
-* Depending on the device and software being used to run the tests, some device/software specific configuration may be required. For e.g. by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into e.g. a "full screen" mode. If any part of a QR code is obscured, then the Observation Framework cannot operate.
+* Depending on the device and software being used to run the tests, some device/software specific configuration may be required. For example, by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into a "full screen" mode. If any part of a QR code is obscured, then the Observation Framework cannot operate.
 
-Once the camera/device are set up, **DO NOT** change or alter settings during the recording. If changes are necessary, then a new recording shall be taken.
+Once the camera/device are set up, *DO NOT* change or alter settings during the recording. If changes are necessary, then a new recording shall be taken.
 
-Note: Minimizing time between the start of recording and when the pre-test QR code shows up 
+Note: Minimizing time between the start of recording and when the pre-test QR code shows up
 helps Device Observation Framework to process faster and give test results quicker.
 
 ### **Clear capture example:**
@@ -207,11 +207,11 @@ To run Device Observation Framework enter:
 ```shell
 cd device-observation-framework
 
-python observation_framework.py --input <file> --log <info|debug> --scan <general|intensive>
+python observation_framework.py --input <file>
 
 OR
 
-python3 observation_framework.py --input <file> --log <info|debug> --scan <general|intensive>
+python3 observation_framework.py --input <file>
 
 (n.b. Python version must be 3.6 or greater)
 ```
@@ -222,11 +222,6 @@ python observation_framework.py --input D:\device-observation-framework-main\rec
 ```
 IMPORTANT: Make sure that the WindowsPowerShell is used for the above commands on windows.
 You **MUST** add the .mp4 extension to the file name.
-
-
-where **log** (optional) specifies log level. Default value is "info" when not specified. See "Additional Options" section below for more details.
-
-where **scan** (optional) specifies scan method to be used. Default value is "general" when not specified. See "Additional Options" section below for more details.
 
 where **file** specifies the path to the recording to be analysed:
 
@@ -249,13 +244,40 @@ When a selected test includes an observation *"The presented sample matches the 
 At the end of the process the Observation Framework will rename the file recording to:
 ```<file_name>_dpctf_<session-id>.<extension>```
 
+
 **Additional Options:**
-* When ```--log debug``` is selected, full QR code detection will be extracted to a CSV file at ```logs/<session-id>/qr_code_list.csv```, and the system displays more information to the terminal as well as to a log file ```logs/<session-id>/session.log```.
+
+Observation framework can be run with specific mode enabled by passing some optional arguments.
+
+optional arguments:
+```
+  --range {id(file_index):start(s):duration(s)}
+                        Search QR codes to crop the QR code area for better detection.
+                        QR codes area detection includes mezzanine QR codes and Test Status QR code.
+  --log debug           Logging level to write to log file.
+  --scan intensive      Scan depth for QR code detection.
+  --mode debug          System mode is for development purposes only.
+  --ignore_corrupted video
+                        Specific condition to ignore. To support recording devices that has corrupted video or audio.
+```
+
+* Where **range** this is optional argument for video only tests. However, when the 1st test is audio only test it is important to set scan range so that the process can find mezzanine QR code area correctly for mixed video and audio tests. Setting the range is also useful to speed up the processing time when observing audio only tests. The range argument requires three digit variables separated by ":", {id(file_index):start(s):duration(s)}.
+e.g: "--range 0:20:2" states for scan QR code area in 1st recording file starts from 20 seconds and ends the scan at 22 seconds when QR code area not detected.
+** id: file_index normally 0 if one recording file is selected to be observed
+** start: start of the scan in seconds from beginning of the recording file
+** duration: scan duration in seconds
+
+* Where **log** specifies log level. Default value is "info" when not specified. When ```--log debug``` is selected, full QR code detection will be extracted to a CSV file at ```logs/<session-id>/qr_code_list.csv```, and the system displays more information to the terminal as well as to a log file ```logs/<session-id>/session.log```.
 This includes information such as decoding of QR codes:
     * Content ID, Media Time, Frame Number, Frame Rate
     * Status, Action, Current Time, Delay
 
-* ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adaptive threshold scan, however this will increase processing time. This option is to be used where it is difficult to take clear recordings, such as testing on a small screen devices like mobile phones.
+* Where **scan** specifies scan method to be used. Default value is "general" when not specified. ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adaptive threshold scan, however this will increase processing time. This option is to be used where it is difficult to take clear recordings, such as testing on a small screen devices like mobile phones.
+
+* Where **mode** specifies the Observation Framework processing mode, which can be set to debug. In debug system mode the observation process reads the configuration files from configuration folder and save observation results locally instead of import back to the test runner. Running in debug system mode is useful when debugging recording taken by someone else and without test runner, or debugging previous recording where the test id is no longer valid for the current test runner set up.
+
+* Where is it not recommended, **ignore_corrupted** specifies the special condition to be ignored by observation framework. We have added this feature to work around some cameras produce corrupted capture. When "--ignore_corrupted video" is set, the Observation Framework will ignore the corrupted recording frame and carry on reading the next frames in the recording instead of ending the process early. Impact of using this option for audio testing is to be confirmed, it might cause the audio tests and A/V sync test to fail.
+
 
 ## Troubleshooting
 
