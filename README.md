@@ -153,7 +153,7 @@ The camera's requirements are:
 ### Recording environment set up
 The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
 
-**More detailed guidance, and example videos are contained in "how_to_take_clear_recordings.pptx", available to download from https://dash-large-files.akamaized.net/WAVE/assets/YanJiang-how_to_take_clear_recordings.pptx.zip .**
+**More detailed guidance, and example videos are available from the document [how_to_take_clear_recordings.pptx](https://dash-large-files.akamaized.net/WAVE/assets/How-to-take-clear-recordings-v3.pptx) .**
 
 For the camera/device set up:
 * The device must be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
