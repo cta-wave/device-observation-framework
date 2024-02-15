@@ -274,7 +274,7 @@ This includes information such as decoding of QR codes:
 
 * Where **scan** specifies scan method to be used. Default value is "general" when not specified. ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adaptive threshold scan, however this will increase processing time. This option is to be used where it is difficult to take clear recordings, such as testing on a small screen devices like mobile phones.
 
-* Where **mode** specifies the Observation Framework processing mode, which can be set to debug. In debug system mode the observation process reads the configuration files from configuration folder and save observation results locally instead of import back to the test runner. Running in debug system mode is useful when debugging recording taken by someone else and without test runner, or debugging previous recording where the test id is no longer valid for the current test runner set up.
+* Where **mode** specifies the Observation Framework processing mode, which can be set to debug. In debug system mode the observation process reads the configuration files from configuration folder and save observation results locally instead of import back to the test runner. Running in debug system mode is useful when debugging recording taken by someone else and without test runner, or debugging previous recording where the test id is no longer valid for the current test runner set up. More detailed instrauction can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debug-Observation-Framework).
 
 * Where is it not recommended, **ignore_corrupted** specifies the special condition to be ignored by observation framework. We have added this feature to work around some cameras produce corrupted capture. When "--ignore_corrupted video" is set, the Observation Framework will ignore the corrupted recording frame and carry on reading the next frames in the recording instead of ending the process early. Impact of using this option for audio testing is to be confirmed, it might cause the audio tests and A/V sync test to fail.
 
@@ -288,6 +288,8 @@ Check that Test Runner is installed and running without problems and that it is 
 If a large number of expected frames containing QR codes are missing then this indicates something is seriously wrong. The Observation Framework will terminate the session analysis with an error result. (the threshold for this can be set in the *"config.ini"* file with the *'missing_frame_threshold'* parameter).
 
 If this occurs, check the quality of the recorded video. Ensure that the camera/device set up instructions described earlier have been followed.
+
+More inforamtion about Debugging Observation Failures can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debugging-Observation-Failures).
 
 # Adding Support for New Tests to the Observation Framework
 When new tests are added to the **dcptf-tests** repository, support for these will also need adding to the Observation Framework.
