@@ -13,18 +13,24 @@ https://shop.cta.tech/collections/standards/products/web-application-video-ecosy
 
 The Device Observation Framework **must** work together with the Test Runner.
 The Test Runner should be set up prior to the Device Observation Framework.
-Please follow the instructions at https://github.com/cta-wave/dpctf-deploy.
+Please follow the instructions at [QUICK START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md).
 
 <span style="color:red">**Check that the Test Runner is functioning correctly and able to run tests prior to installing the Observation Framework.**</span>
 
-## Setting up the Device Observation Framework
+## Setting up the Device Observation Framework (**inside Docker container**)
+
+The [dpctf-deploy](https://github.com/cta-wave/dpctf-deploy) contains scripts to set up Device Observation Framework **inside a Docker container**. It also contains a script to run Device Observation Framework analysis. Instructions can be found here [QUICK_START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md) file.
+
+## Setting up the Device Observation Framework (**without Docker**)
+
+The Device Observation Framework can also be installed **without Docker** as follows.
 
 ### Installation
 The Observation Framework **must** be installed on same machine as the Test Runner is deployed.
 
 Test Runner is deployed as a service running inside a Docker container.
-The Observation Framework **must** be installed outside of Docker or Docker Desktop and run outside of the docker from the windows command line.
-Make sure that the command line or PowerShell that is used for running OF is not inside the docker or docker desktop.
+The Observation Framework **must** be installed outside of Docker or Docker Desktop and run outside of the Docker from the windows command line.
+Make sure that the command line or PowerShell that is used for running OF is not inside the Docker or Docker Desktop.
 
 ⚠️ This Observation Framework release has been tested on Ubuntu 18.04 LTS and Windows 10. However, as per the Test Runner, it is highly recommended to use Linux for production purposes.
 
@@ -109,7 +115,7 @@ It is important to download the correct Audio Mezzanine content.
 
 The device observation framework requires the Audio Mezzanine files to compare with the recorded audio. The Audio Mezzanine content is not part of the repository and must be downloaded prior to running any audio observations.
 
-The script always downloads the latest release of the Audio Mezzanine; if the user wants to download a previous release then mezzanine_database.json can be modified manually to point to the required location.
+The script always downloads the latest release of the Audio Mezzanine; if the user wants to download a previous release, then mezzanine_database.json can be modified manually to point to the required location.
 
 **To download the latest mezzanine content**
 
@@ -131,72 +137,8 @@ python3 download_mezzanine.py
 The "config.ini" file defines internal configurations for the Observation Framework.
 The configuration can be adjusted based on different set up and requirements, e.g. user configurable timeouts and thresholds.
 
-## Obtain recording files
-
-The Observation Framework operates on camera recordings of the device's screen whilst running tests under the Test Runner. These test materials contain QR codes which must be accurately captured for the Observation Framework to interpret.
-
----
-
-**NOTE**
-Audio observations are not in scope for the initial release, but section 9 tests are already generated with correct audio contents. It is recommended that user DO NOT capture audio by either turning off the audio recording on the camera or muting the device before recording a test. Observation results will show "NOT_RUN" in this case. However, when a correct audio is being recorded jointly with video, the Observation Framework processes audio observations and the observation results will show either "PASS" or "FAIL".
-
----
-
-### Camera requirements
-For the Phase 1 Observation Framework a variety of cameras should be suitable. (**NOTE:** this will **not** be the case for Phase 2 which will likely require very specific camera model(s)... TBD.)
-
-The camera's requirements are:
-* produces an output recording file in a format compatible with the OpenCV library (typically a .mp4 or .mov format). Domestic cameras from Sony, Canon, GoPro have been tried and all produced OpenCV compatible output.
-* support recordings at a minimum of 119 frames per second at full HD.
-* sufficient quality lens/sensor to allow sharp QR code capture at low resolutions on the smallest screen device to be tested. Note that small screen devices such as mobile phones will be more demanding than a e.g. a large screen TV device.
-
-### Recording environment set up
-The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
-
-**More detailed guidance, and example videos are available from the document [how_to_take_clear_recordings.pptx](https://dash-large-files.akamaized.net/WAVE/assets/How-to-take-clear-recordings-v3.pptx) .**
-
-For the camera/device set up:
-* The device must be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
-* The device must be mounted on a stable stand/support. The camera must be mounted on a stable tripod with lens pointing directly at the device screen at a 90 degree angle.
-* The camera must be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers. For longer screens try only including just the the red edge markers but not the device. It is important to make the playback area as big as possible to capture clear QR codes. For smaller and longer devices it is recommended to zoom in as closely as possible and exclude part of the device edge to make the QR code bigger.
-* The camera must be manually focused on the device screen to produce a sharp image.
-* The camera must be set to record at a minimum of 119 frames per second in full HD.
-* The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
-* Depending on the device and software being used to run the tests, some device/software specific configuration may be required. For example, by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into a "full screen" mode. If any part of a QR code is obscured, then the Observation Framework cannot operate.
-
-Once the camera/device are set up, *DO NOT* change or alter settings during the recording. If changes are necessary, then a new recording shall be taken.
-
-Note: Minimizing time between the start of recording and when the pre-test QR code shows up
-helps Device Observation Framework to process faster and give test results quicker.
-
-### **Clear capture example:**
-
-![image](images/good_capture_example.png)
-
-### **Examples of good and bad captures**
-The QR codes outlined in GREEN were successfully decoded. Those outlined in RED failed to be decoded:
-
-![image](images/good_and_bad_capture_example.png)
-
-### How to verify the camera setup
-For the initial set up, we recommend a user try to run a sequential track playback test.
-
-From Test Runner select and run the "*/<selected_tests_group>/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ). 
-
-Once the recording is taken, the following steps should be followed to verify the camera setup and the recording:
-* Try playing back the recording to check that the full duration of the test session is recorded. 
-* The recording captured full clear QR codes. Nothing obscured the screen, there is no blur in the QR codes, and they are not too dim or too bright. The focus is stable for the whole duration of the recording.
-* Try to run the OF with the recording, and there shall be no exceptions or error raised by OF. When the camera/device set up does not meet the requirement, which makes it unable to capture clear QR codes, the following exceptions will be raised by OF. 
-
-```shell
-At camera frame N there were X consecutive camera frames where no mezzanine qr codes were detected. Device Observation Framework is exiting, and the remaining tests are not observed.
-```
-* Check the observation result. If there are a lot of missing frames reported, we recommend user to look at the recording manually to observe whether the reported missing frames are actually missing from the recording. This can be done by jumping to any of the previous frames, which are close to the target frame, then go frame by frame. If the reported missing frame is present in the recording, the set up can be improved slightly to get a better recording.
-
-Above steps can be repeated if necessary, in order to find the best set up for the selected device and the camera. For small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lens, such as a micro lens which can capture small details, might required for testing on smaller screen devices.
-
-## Using the Device Observation Framework
-Once the device and camera setup is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at minimum of 119 fps). Record the Test Runner session from beginning to end and then stop the camera recording.
+### Running the Device Observation Framework
+Ahead of running Device Observation Framework the user **MUST** set up the camera and device under test (DUT) carefully to record the tests; instructions can be found in the following section. Once the camera and DUT set-up is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at minimum of 119 fps). Record the Test Runner session from beginning to end and then stop the camera recording.
 
 Only one session may be contained in a single recording. A single session may contain multiple tests.
 
@@ -234,7 +176,7 @@ then specify the path to the folder containing the recorded files. Note that:
 * typically a camera will name the files with some form of ascending number. By default the Observation Framework will 
 alphabetically sort the filenames and use this as the recording order. If for a particular camera this is unsuitable
   then in the **config.ini** file, the parameter '*sort_input_files_by*' can be set to *"timestamp"* to instead try sorting by file timestamp. 
-  If both these approaches fail then the user will need to rename the files such that when alphabetically
+  If both these approaches fail, then the user will need to rename the files such that when alphabetically
   sorted they are in the correct order.
 
 The Observation Framework will analyse the recording and post the results to the Test Runner for viewing on Test Runner's results pages. Note that the observation processing may take considerable time, depending on the duration of the session recording.
@@ -243,7 +185,6 @@ When a selected test includes an observation *"The presented sample matches the 
 
 At the end of the process the Observation Framework will rename the file recording to:
 ```<file_name>_dpctf_<session-id>.<extension>```
-
 
 ### Additional Options
 
@@ -274,10 +215,73 @@ This includes information such as decoding of QR codes:
 
 * Where **scan** specifies scan method to be used. Default value is "general" when not specified. ```--scan intensive``` makes the QR code recognition more robust by allowing an additional adaptive threshold scan, however this will increase processing time. This option is to be used where it is difficult to take clear recordings, such as testing on a small screen devices like mobile phones.
 
-* Where **mode** specifies the Observation Framework processing mode, which can be set to debug. In debug system mode the observation process reads the configuration files from configuration folder and save observation results locally instead of import back to the test runner. Running in debug system mode is useful when debugging recording taken by someone else and without test runner, or debugging previous recording where the test id is no longer valid for the current test runner set up. More detailed instrauction can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debug-Observation-Framework).
+* Where **mode** specifies the Observation Framework processing mode, which can be set to debug. In debug system mode the observation process reads the configuration files from configuration folder and save observation results locally instead of import back to the test runner. Running in debug system mode is useful when debugging recording taken by someone else and without test runner, or debugging previous recording where the test id is no longer valid for the current test runner set up. More detailed instructions can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debug-Observation-Framework).
 
 * Where is it not recommended, **ignore_corrupted** specifies the special condition to be ignored by observation framework. We have added this feature to work around some cameras produce corrupted capture. When "--ignore_corrupted video" is set, the Observation Framework will ignore the corrupted recording frame and carry on reading the next frames in the recording instead of ending the process early. Impact of using this option for audio testing is to be confirmed, it might cause the audio tests and A/V sync test to fail.
 
+## Obtain recording files
+
+The Observation Framework operates on camera recordings of the device's screen whilst running tests under the Test Runner. These test materials contain QR codes which must be accurately captured for the Observation Framework to interpret.
+
+---
+
+**NOTE**
+Audio observations are not in scope for the initial release, however Section 9 tests have been already generated with the correct audio content. It is recommended that users DO NOT capture audio, by either turning off the audio recording on the camera or muting the device before recording a test. Observation results will show "NOT_RUN" in this case. However, when the correct audio is being recorded jointly with video, the Observation Framework processes audio observations, and the observation results will show either "PASS" or "FAIL".
+
+---
+
+### Camera requirements
+For the Phase 1 Observation Framework a variety of cameras should be suitable. (**NOTE:** this will **not** be the case for Phase 2 which will likely require very specific camera model(s)... TBD.)
+
+The camera's requirements are:
+* produces an output recording file in a format compatible with the OpenCV library (typically a .mp4 or .mov format). Domestic cameras from Sony, Canon, GoPro have been tried and all produced OpenCV compatible output.
+* support recordings at a minimum of 119 frames per second at full HD.
+* sufficient quality lens/sensor to allow sharp QR code capture at low resolutions on the smallest screen device to be tested. Note that small screen devices such as mobile phones will be more demanding than a e.g. a large screen TV device.
+
+### Recording environment set up
+The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
+
+**More detailed guidance, and example videos are available from the document [how_to_take_clear_recordings.pptx](https://dash-large-files.akamaized.net/WAVE/assets/How-to-take-clear-recordings-v3.pptx) .**
+
+For the camera/device set up:
+* The device must be in a light-controlled environment with no bright surrounding lights, and no glare or reflections on the device screen.
+* The device must be mounted on a stable stand/support. The camera must be mounted on a stable tripod with lens pointing directly at the device screen at a 90 degree angle.
+* The camera must be zoomed in to capture the display as large as possible whilst still containing all the screen image including the red edge markers. For longer screens try only including just the red edge markers but not the device. It is important to make the playback area as big as possible to capture clear QR codes. For smaller and longer devices it is recommended to zoom in as closely as possible and exclude part of the device edge to make the QR code bigger.
+* The camera must be manually focused on the device screen to produce a sharp image.
+* The camera must be set to record at a minimum of 119 frames per second in full HD.
+* The device's screen brightness needs to be adjusted to be neither too bright nor too dim. Too dim and the QR code cannot be discerned. But too bright and the white will "bleed" and prevent the QR code being recognised. See below for some examples.
+* Depending on the device and software being used to run the tests, some device/software specific configuration may be required. For example, by default some browsers may add menu footers or headers that could partially obscure the QR codes. These will need to be set into a "full screen" mode. If any part of a QR code is obscured, then the Observation Framework cannot operate.
+
+Once the camera/device are set up, *DO NOT* change or alter settings during the recording. If changes are necessary, then a new recording shall be taken.
+
+Note: Minimizing time between the start of recording and when the pre-test QR code shows up
+helps Device Observation Framework to process faster and give test results quicker.
+
+### **Clear capture example:**
+
+![image](images/good_capture_example.png)
+
+### **Examples of good and bad captures**
+The QR codes outlined in GREEN were successfully decoded. Those outlined in RED failed to be decoded:
+
+![image](images/good_and_bad_capture_example.png)
+
+### How to verify the camera setup
+For the initial set up, we recommend a user try to run a sequential track playback test.
+
+From Test Runner select and run the "*/<selected_tests_group>/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ). 
+
+Once the recording is taken, the following steps should be followed to verify the camera setup and the recording:
+* Try playing back the recording to check that the full duration of the test session is recorded. 
+* The recording captured full clear QR codes. Nothing obscured the screen, there is no blur in the QR codes, and they are not too dim or too bright. The focus is stable for the whole duration of the recording.
+* Try to run the OF with the recording, and there shall be no exceptions or error raised by OF. When the camera/device set up does not meet the requirement, which makes it unable to capture clear QR codes, the following exceptions will be raised by OF. 
+
+```shell
+At camera frame N there were X consecutive camera frames where no mezzanine QR codes were detected. Device Observation Framework is exiting, and the remaining tests are not observed.
+```
+* Check the observation result. If there are a lot of missing frames reported, we recommend user to look at the recording manually to observe whether the reported missing frames are actually missing from the recording. This can be done by jumping to any of the previous frames, which are close to the target frame, then go frame by frame. If the reported missing frame is present in the recording, the set up can be improved slightly to get a better recording.
+
+Above steps can be repeated, if necessary, in order to find the best set up for the selected device and the camera. For small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lens, such as a micro lens which can capture small details, might be required for testing on smaller screen devices.
 
 ## Troubleshooting
 
@@ -285,11 +289,11 @@ This includes information such as decoding of QR codes:
 Check that Test Runner is installed and running without problems and that it is visible to the Observation Framework.
 
 ### Observation results are reporting large number of missing frames:
-If a large number of expected frames containing QR codes are missing then this indicates something is seriously wrong. The Observation Framework will terminate the session analysis with an error result. (the threshold for this can be set in the *"config.ini"* file with the *'missing_frame_threshold'* parameter).
+If a large number of expected frames containing QR codes are missing, then this indicates something is seriously wrong. The Observation Framework will terminate the session analysis with an error result. (the threshold for this can be set in the *"config.ini"* file with the *'missing_frame_threshold'* parameter).
 
 If this occurs, check the quality of the recorded video. Ensure that the camera/device set up instructions described earlier have been followed.
 
-More inforamtion about Debugging Observation Failures can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debugging-Observation-Failures).
+More information about Debugging Observation Failures can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Debugging-Observation-Failures).
 
 # Adding Support for New Tests to the Observation Framework
 When new tests are added to the **dcptf-tests** repository, support for these will also need adding to the Observation Framework.
@@ -333,7 +337,7 @@ Then override the appropriate methods to provide the correct parameters for the 
 Add the new test name, python module, and class name to the *"of_testname_map.json"* file.
 
 ## d) When brand new observations are required
-Create new observation class(es) either derived from an existing observation if an appropriate one exists, or derived from the '_Observation_' base class.
+Create new observation class(es) either derived from an existing observation if an appropriate one exists or derived from the '_Observation_' base class.
 Override methods as needed and provide a *make_observation()* method. For example,
 
     class EverySampleRendered(Observation):
@@ -412,6 +416,6 @@ Add the new test name, python module, and class name to the *"of_testname_map.js
 ---
 
 **NOTE**
-No audio swiching for tests 8.8, 8.9, 8.13, 8.14 and 9.4
+No audio switching for tests 8.8, 8.9, 8.13, 8.14 and 9.4
 
 ---
