@@ -75,11 +75,13 @@ optional arguments:
                         Specific condition to ignore. To support recording devices that has corrupted video or audio.
 ```
 
-* Where **range** this is optional argument for video only tests. However, when the 1st test is audio only test it is important to set scan range so that the process can find mezzanine QR code area correctly for mixed video and audio tests. Setting the range is also useful to speed up the processing time when observing audio only tests. The range argument requires three digit variables separated by ":", {id(file_index):start(s):duration(s)}.
-e.g: "--range 0:20:2" states for scan QR code area in 1st recording file starts from 20 seconds and ends the scan at 22 seconds when QR code area not detected.
-** id: file_index normally 0 if one recording file is selected to be observed
-** start: start of the scan in seconds from beginning of the recording file
-** duration: scan duration in seconds
+* Where **range** this is optional argument for video only tests. However, when the 1st test is audio only test it is important to set scan range so that the process can find mezzanine QR code area correctly for mixed video and audio tests. Setting the range is also useful to speed up the processing time when observing audio only tests. The range argument requires three digit variables separated by ":", ```{id(file_index):start(s):duration(s)}```.
+
+    For example, ```--range 0:20:2``` states for scan QR code area in 1st recording file starts from 20 seconds and ends the scan at 22 seconds when QR code area not detected.
+
+    * id: file_index normally 0 if one recording file is selected to be observed
+    * start: start of the scan in seconds from beginning of the recording file
+    * duration: scan duration in seconds
 
 * Where **log** specifies log level. Default value is "info" when not specified. When ```--log debug``` is selected, full QR code detection will be extracted to a CSV file at ```logs/<session-id>/qr_code_list.csv```, and the system displays more information to the terminal as well as to a log file ```logs/<session-id>/session.log```.
 This includes information such as decoding of QR codes:
@@ -109,7 +111,7 @@ For the Phase 1 Observation Framework a variety of cameras should be suitable. (
 The camera's requirements are:
 * produces an output recording file in a format compatible with the OpenCV library (typically a .mp4 or .mov format). Domestic cameras from Sony, Canon, GoPro have been tried and all produced OpenCV compatible output.
 * support recordings at a minimum of 119 frames per second at full HD.
-* sufficient quality lens/sensor to allow sharp QR code capture at low resolutions on the smallest screen device to be tested. Note that small screen devices such as mobile phones will be more demanding than a e.g. a large screen TV device.
+* sufficient quality lens/sensor to allow sharp QR code capture at low resolutions on the smallest screen device to be tested. Note that small screen devices such as mobile phones will be more demanding than a For example a large screen TV device.
 
 ### Recording environment set up
 The set up needs to be in a light-controlled environment and the camera configured to record high quality footage to allow consistent QR code detection. **It is highly unlikely that simply setting up the equipment on a desk in a standard office environment will produce satisfactory results!**
@@ -158,7 +160,7 @@ Above steps can be repeated, if necessary, in order to find the best set up for 
 
 ## Troubleshooting
 
-### Http connection exception raised:
+### Failed to get configuration file from test runner:
 Check that Test Runner is installed and running without problems and that it is visible to the Observation Framework.
 
 ### Observation results are reporting large number of missing frames:
