@@ -19,15 +19,15 @@ Please follow the instructions at [QUICK START](https://github.com/cta-wave/dpct
 
 ## Setting up the Device Observation Framework 
 
-### Setting up **inside Docker container**
+* Setting up **inside Docker container**
 
-The [dpctf-deploy](https://github.com/cta-wave/dpctf-deploy) contains scripts to set up Device Observation Framework **inside a Docker container**. It also contains a script to run Device Observation Framework analysis. Instructions can be found here [QUICK_START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md).
+  The [dpctf-deploy](https://github.com/cta-wave/dpctf-deploy) contains scripts to set up Device Observation Framework **inside a Docker container**. It also contains a script to run Device Observation Framework analysis. Instructions can be found here [QUICK_START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md).
 
-### Or setting up **without Docker**
+* Or setting up **without Docker**
 
-The Device Observation Framework can also be installed **without Docker**, instructions can be found from [deploy_without_docker](deploy_without_docker.md).
+  The Device Observation Framework can also be installed **without Docker**, instructions can be found here [deploy_without_docker](deploy_without_docker.md).
 
-### Running the Device Observation Framework
+## Running the Device Observation Framework
 Ahead of running Device Observation Framework the user **MUST** set up the camera and device under test (DUT) carefully to record the tests; instructions can be found in the following section. Once the camera and DUT set-up is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at around of 120 fps). Record the Test Runner session from beginning to end and then stop the camera recording.
 
 Only one session may be contained in a single recording. A single session may contain multiple tests.
