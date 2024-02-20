@@ -1,19 +1,18 @@
 # CTA WAVE Streaming Media Test Suite - Devices: Observation Framework
 
 This repository contains the Observation Framework component of the "WAVE Streaming Media Test Suite - Devices".
-The Observation Framework determines pass or fail results, based on observations of screen recordings of tests which are run on a device by the Test Runner of the "WAVE Streaming Media Test Suite - Devices".
+The Observation Framework determines pass or fail results, based on observations of screen recordings of tests which are run on a device by the Test Runner.
 
 The test suite implements the tests and observations as defined in the CTA WAVE Device Playback Capabilities specification. For more information:
-* CTA WAVE project: https://CTA.tech/WAVE
-* Latest published Device Playback Capabilities specification:
-https://shop.cta.tech/collections/standards/products/web-application-video-ecosystem-device-playback-capabilities
-* To contact the CTA: standards@CTA.tech
+* [CTA WAVE project](https://CTA.tech/WAVE)
+* Latest published [Device Playback Capabilities specification](https://shop.cta.tech/collections/standards/products/web-application-video-ecosystem-device-playback-capabilities)
+* [Contact](standards@CTA.tech) the CTA
 
-## First set up the WAVE Streaming Media Test Suite - Devices: Test Runner
+## First set up the Test Runner
 
 The Device Observation Framework **must** work together with the Test Runner.
 The Test Runner should be set up prior to the Device Observation Framework.
-Please follow the instructions at [QUICK START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md).
+Please follow the instructions in the main WAVE Streaming Media Test Suite [README](https://github.com/cta-wave/dpctf-deploy/blob/master/README.md).
 
 <span style="color:red">**Check that the Test Runner is functioning correctly and able to run tests prior to installing the Observation Framework.**</span>
 
@@ -21,20 +20,21 @@ Please follow the instructions at [QUICK START](https://github.com/cta-wave/dpct
 
 * Setting up **inside Docker container**
 
-  The [dpctf-deploy](https://github.com/cta-wave/dpctf-deploy) contains scripts to set up Device Observation Framework **inside a Docker container**. It also contains a script to run Device Observation Framework analysis. Instructions can be found here [QUICK_START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md).
+  The [dpctf-deploy repo](https://github.com/cta-wave/dpctf-deploy) contains scripts to set up Device Observation Framework **inside a Docker container**. It also contains a script to run Device Observation Framework analysis. Instructions can be found here [README](https://github.com/cta-wave/dpctf-deploy/blob/master/README.md).
 
 * Or setting up **without Docker**
 
-  The Device Observation Framework can also be installed **without Docker**, instructions can be found here [deploy_without_docker](deploy_without_docker.md).
+  The Device Observation Framework can also be installed **without Docker**; instructions can be found here [deploy_without_docker](deploy_without_docker.md).
 
 ## Running the Device Observation Framework
+
 Ahead of running Device Observation Framework the user **MUST** set up the camera and device under test (DUT) carefully to record the tests; instructions can be found in the following section. Once the camera and DUT set-up is correct then Test Runner sessions can be analysed. See https://web-platform-tests.org/running-tests/ for instructions on how to run a test session. Prior to starting the session, begin the camera recording (ensuring that camera is set to record at around of 120 fps). Record the Test Runner session from beginning to end and then stop the camera recording.
 
 Only one session may be contained in a single recording. A single session may contain multiple tests.
 
 Once the recording is complete, follow the camera manufacturer's instructions to transfer the recorded file to the PC where Observation Framework is installed.
 
-Command to run the Device Observation Framework can be found in [QUICK_START](https://github.com/cta-wave/dpctf-deploy/blob/master/QUICK_START.md#running-the-analysis).
+Command to run the Device Observation Framework can be found in [README](https://github.com/cta-wave/dpctf-deploy/blob/master/README.md).
 
 You **MUST** add the .mp4 extension to the file name.
 
