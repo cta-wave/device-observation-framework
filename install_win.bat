@@ -50,6 +50,8 @@ if errorlevel 1 goto installFail
 if errorlevel 1 goto installFail
 %PYEXE% -m pip install --no-cache-dir pyaudio
 if errorlevel 1 goto pyaudio
+%PYEXE% -m pip install --no-cache-dir sounddevice
+if errorlevel 1 goto sounddevice
 %PYEXE% -m pip install --no-cache-dir matplotlib
 if errorlevel 1 goto matplotlib
 

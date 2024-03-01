@@ -34,6 +34,7 @@ import subprocess
 import wave
 import numpy as np
 import pyaudio
+import sounddevice
 
 from wave import Wave_read
 from exceptions import ObsFrameTerminate
@@ -41,6 +42,10 @@ from global_configurations import GlobalConfigurations
 
 # audio file reader chunk size
 CHUNK_SIZE = 1024 * 1000
+# only accept 48KHz required for dpctf WAVE
+REQUIRED_SAMPLE_RATE = 48
+# only accept 16b (8 bytes) required for dpctf WAVE
+REQUIRED_SAMPLE_FORMAT = 8
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +110,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
         )
 
         if result == 0:
+            _check_audio_recording(audio_file_name)
             return audio_file_name
         else:
             logger.warning(
@@ -114,6 +120,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
             )
             return ""
     else:
+        _check_audio_recording(audio_file_name)
         return audio_file_name
 
 
@@ -167,24 +174,17 @@ def _read_chunk(wf: Wave_read, channels: int, chunk_size: int) -> list:
     frames_left_ch = np.reshape(frames_as_channels, (channels, chunk_size), "F")[0]
     return frames_left_ch
 
-def _open_data_file(file_name: str, verify_hash: bool):
+def _read_data_file(file_name: str, start: int, count: int) -> tuple:
     """Accepts
-    1) filename: An OS file of recorded data, with or without path (must be in exec directory if without path)
-    2) verify_hash: A boolean, should we check the file hash to verify integrity (used for the archived PN files)
-    If verify_hash is set, checks the MD5 hash of the file first.
-    Then opens and reads the file.
+        filename: An OS file of recorded data, with or without path (must be in exec directory if without path)
+        start: start sample to read from
+        count: sample count to read to
     Returns a tuple of:
-    1) sample_rate, typically 48000 Hz
-    2) data, the array of data (frames) read from the file
-    3) channels, the number of channels (stereo == 2)
-    4) sampleformat, bit depth, e.g. uint16
-    5) MD5 check result, True == pass, False == fail.
+        sample_rate, typically 48000 Hz
+        data, the array of data (frames) read from the file
+        channels, the number of channels (stereo == 2)
+        sampleformat, bit depth, e.g. uint16
     """
-    # If this is a PN file, verify integrity before using
-    hash_result = False
-    if verify_hash == True:
-        hash_result = _check_hash(file_name)
-
     frames_left_ch = []
     wf = wave.open(file_name, "rb")
 
@@ -194,10 +194,17 @@ def _open_data_file(file_name: str, verify_hash: bool):
     channels = wf.getnchannels()
     sample_rate = wf.getframerate()
 
+    # set start position and sampe count to read
+    if start > 0:
+        wf.setpos(start)
+    if count:
+        sample_count = count
+    else:
+        sample_count = wf.getnframes() - start
+
     # Read the data into an array.
-    frame_count = wf.getnframes()
-    loop_count = int(frame_count / CHUNK_SIZE)
-    last_chunk_size = frame_count % CHUNK_SIZE
+    loop_count = int(sample_count / CHUNK_SIZE)
+    last_chunk_size = sample_count % CHUNK_SIZE
     for i in range(loop_count):
         left_ch_data = _read_chunk(wf, channels, CHUNK_SIZE)
         frames_left_ch.extend(left_ch_data)
@@ -207,7 +214,7 @@ def _open_data_file(file_name: str, verify_hash: bool):
     p.terminate()
 
     # Return data includes channeldata but only the part that represents the L channel.
-    return (sample_rate, frames_left_ch, channels, sample_format, hash_result)
+    return (sample_rate, frames_left_ch, channels, sample_format)
 
 
 def read_audio_mezzanine(
@@ -221,44 +228,87 @@ def read_audio_mezzanine(
     audio_mezzanine_file_path = (
         "./" + global_configurations.get_audio_mezzanine_file_path() + "/"
     )
-
     segment_file = audio_mezzanine_file_path + audio_content_id + ".wav"
 
-    segment_info = _open_data_file(segment_file, verify_hash=True)
-    segment_data = segment_info[1]
-    hash_result = segment_info[4]
-
+    # If this is a PN file, verify integrity before using
+    hash_result = _check_hash(segment_file)
     if hash_result != True:
         raise ObsFrameTerminate(
             f"Error, PN file {segment_file} appears corrupted (failed hash check)"
         )
+    segment_info = _read_data_file(segment_file, start=0, count=None)
+    segment_data = segment_info[1]
 
     return segment_data
 
+def _check_audio_recording(subject_file: str):
+    """
+    Check recorded audio file.
+    Get information about the recording
+    and check if it matches with wave requirement.
+    """
+    wf = wave.open(subject_file, "rb")
+    p = pyaudio.PyAudio()
+    sample_format = p.get_format_from_width(wf.getsampwidth())
+    sample_rate = wf.getframerate()
+    p.terminate()
+    if sample_rate != REQUIRED_SAMPLE_RATE * 1000:
+        logger.warning(
+            f"The sample rate is {sample_rate}, should be {REQUIRED_SAMPLE_RATE}kHz."
+            f"If the recording file contains audio testing, "
+            f"audio observation will not be made correctly."
+        )
+    if sample_format != REQUIRED_SAMPLE_FORMAT:
+        logger.warning(
+            f"The file format is {sample_format*2}b; should be {REQUIRED_SAMPLE_FORMAT*2}b PCM."
+            f"If the recording file contains audio testing, "
+            f"audio observation will not be made correctly."
+        )
 
-def read_audio_recording(subject_file: str) -> list:
+def read_audio_recording(
+        subject_file: str, test_start_time: float, test_finish_time: float
+    ) -> list:
     """
     Read recorded audio file.
     Open the PN sequence file (archived pseudo noise sequence in audio format),
     and extract the L channel
+    When test_finish_time is not defined read till the end of audio file.
     """
-    subject_info = _open_data_file(subject_file, verify_hash=False)
+    if test_start_time < 0:
+        raise ObsFrameTerminate(
+            f"Error, the test_start_time={test_start_time} should not be negative."
+        )
+    audio_test_start_sample = math.ceil(test_start_time * REQUIRED_SAMPLE_RATE)
+
+    if test_finish_time:
+        if test_finish_time < 0:
+            raise ObsFrameTerminate(
+                f"Error, the test_finish_time={test_finish_time} should not be negative."
+            )
+        audio_test_end_sample = math.ceil(test_finish_time * REQUIRED_SAMPLE_RATE)
+        audio_test_sample_count = audio_test_end_sample - audio_test_start_sample
+        if audio_test_sample_count < 0:
+            raise ObsFrameTerminate(
+                f"Error, the test_start_time={test_start_time}, "
+                f"should be before the test_finish_time={test_finish_time}."
+            )
+    else:
+        audio_test_sample_count = None
+
+    subject_info = _read_data_file(
+        subject_file, audio_test_start_sample, audio_test_sample_count
+    )
     sample_rate = subject_info[0]
     subject_data = subject_info[1]
     sample_format = subject_info[3]
 
-    # only accept 48KHz required for dpctf WAVE
-    required_sample_rate = 48000
-    # only accept 16b (8 bytes) required for dpctf WAVE
-    required_sample_format = 8
-
-    if sample_rate != required_sample_rate:
+    if sample_rate != REQUIRED_SAMPLE_RATE * 1000:
         raise ObsFrameTerminate(
-            f"Error, thesample rate is {sample_rate}, should be {required_sample_rate}"
+            f"Error, the sample rate is {sample_rate}, should be {REQUIRED_SAMPLE_RATE}kHz."
         )
-    if sample_format != required_sample_format:
+    if sample_format != REQUIRED_SAMPLE_FORMAT:
         raise ObsFrameTerminate(
-            f"Error, the file format is {sample_format*2}b; should be {required_sample_format*2}b PCM"
+            f"Error, the file format is {sample_format*2}b; should be {REQUIRED_SAMPLE_FORMAT*2}b PCM."
         )
 
     return subject_data

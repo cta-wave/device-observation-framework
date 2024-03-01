@@ -32,7 +32,7 @@ import logging
 import math
 import os
 import cv2
-from typing import List
+from typing import List, Tuple
 
 from audio_file_reader import extract_audio_to_wav_file, read_audio_recording
 from configuration_parser import ConfigurationParser
@@ -141,14 +141,8 @@ class ObservationFrameworkProcessor:
     results: list
     """ Holds the results of the observations """
 
-    audio_file_data: list
-    """current audio file data"""
-    audio_recording_sample_rate: int
-    """audio recording sample rate"""
-    valid_audio_start_index: int
-    """audio sample is normally taken from 0
-    however on some recording devices there are 
-    some invalid samples inserted at the begining"""
+    input_audio_path_list: list
+    """list of input audio file path"""
 
     def __init__(
         self,
@@ -204,27 +198,19 @@ class ObservationFrameworkProcessor:
         self.test_started = False
         self.results = []
 
-        self.audio_file_data = []
-        self.audio_recording_sample_rate = 48
-        self.valid_audio_start_index = 0
+        self.input_audio_path_list = []
 
-    def extract_and_read_audio_data(self, input_video_path_str: str, file_index: int):
-        """Extract audio to a wav file and read data"""
+    def extract_audio(
+            self, input_video_path_str: str, starting_camera_frame_number: int
+        ):
+        """
+        Extract audio to a wav file and save file name in string
+        and starting camera frame number
+        """
         input_audio_path_str = extract_audio_to_wav_file(input_video_path_str)
-        # append new data to privous data for multiple files
-        if input_audio_path_str:
-            audio_data = read_audio_recording(input_audio_path_str)
-        else:
-            audio_data = []
-
-        ignore_corrupted = self.global_configurations.get_ignore_corrupted()
-        if "audio" in ignore_corrupted and file_index == 0:
-        	# update the valid index of audio in recording
-            for i in range(0, len(audio_data)):
-                if audio_data[i] != 0:
-                    self.valid_audio_start_index = i
-                    break
-        self.audio_file_data.extend(audio_data)
+        self.input_audio_path_list.append(
+            [input_audio_path_str, starting_camera_frame_number]
+        )
 
     def sort_new_mezzanine(
             self, new_mezzanine_qr_codes: List[DecodedQr]
@@ -382,37 +368,67 @@ class ObservationFrameworkProcessor:
             else:
                 self.max_qr_code_num_in_frame = 3
 
-    def _make_observations(self, test_start_time: int, test_finish_time: int):
+    def process_audio_data(self, content_type: str) -> Tuple[float, list]:
+        """Process audio data for audio observation
+        returns audio_test_start_time and audio_subject_data"""
+        # if video only test returns empty audio data
+        if "audio" not in content_type:
+            return 0.0, []
+
+        try:
+            current_audio_path_str = self.input_audio_path_list[-1][0]
+            starting_camera_frame_number = self.input_audio_path_list[-1][1]
+
+            if starting_camera_frame_number <= self.pre_test_qr_code.camera_frame_num:
+                # audio data can be read from single file
+                test_start_time = (
+                    (self.pre_test_qr_code.camera_frame_num - starting_camera_frame_number)
+                    * self.camera_frame_duration_ms
+                )
+                test_finish_time = (
+                    (self.last_end_of_test_camera_frame_num - starting_camera_frame_number)
+                    * self.camera_frame_duration_ms
+                ) + TEST_FINISH_DELAY
+                audio_subject_data = read_audio_recording(
+                    current_audio_path_str, test_start_time, test_finish_time
+                )
+            else:
+                # audio data seperated into two files
+                previous_audio_path_str = self.input_audio_path_list[-2][0]
+                previous_starting_camera_frame_number = self.input_audio_path_list[-2][1]
+                test_start_time = (
+                    (self.pre_test_qr_code.camera_frame_num - previous_starting_camera_frame_number)
+                    * self.camera_frame_duration_ms
+                )
+                audio_subject_data = read_audio_recording(
+                    previous_audio_path_str, test_start_time, None
+                )
+                test_finish_time = (
+                    (self.last_end_of_test_camera_frame_num - starting_camera_frame_number)
+                    * self.camera_frame_duration_ms
+                ) + TEST_FINISH_DELAY
+                audio_subject_data.extend(
+                    read_audio_recording(current_audio_path_str, 0, test_finish_time)
+                )
+
+            # audio recording time is relative time to audio_test_start_time
+            # and also adjust audio and video sync on camera
+            audio_test_start_time = (
+                self.pre_test_qr_code.camera_frame_num * self.camera_frame_duration_ms
+            )
+            return audio_test_start_time, audio_subject_data
+        except:
+            return 0.0, []
+
+    def _make_observations(self):
         """make observations when move to next test
         or at the end of the recording
         the observation result is to be posted after
         observations being made
         """
-        audio_subject_data = []
-        audio_test_start_time = 0.0
-
         if self.test_class:
             content_type = self.test_class._get_content_type()
-
-            if "audio" in content_type:
-                audio_test_start_sample = math.ceil(
-                    test_start_time * self.audio_recording_sample_rate
-                )
-                test_finish_time += TEST_FINISH_DELAY
-                audio_test_end_sample = math.ceil(
-                    test_finish_time * self.audio_recording_sample_rate
-                )
-                if audio_test_end_sample > len(self.audio_file_data):
-                    audio_test_end_sample = len(self.audio_file_data)
-                audio_subject_data = self.audio_file_data[
-                    audio_test_start_sample:audio_test_end_sample
-                ]
-                # audio recording time is relative time to audio_test_start_time
-                # and also adjust audio and video sync on camera
-                audio_test_start_time = (
-                    test_start_time -
-                    self.valid_audio_start_index  / self.audio_recording_sample_rate
-                )
+            audio_test_start_time, audio_subject_data = self.process_audio_data(content_type)
 
             try:
                 results = self.test_class.make_observations(
@@ -501,13 +517,7 @@ class ObservationFrameworkProcessor:
             self.last_end_of_test_camera_frame_num = (
                 new_test_status_qr_code.camera_frame_num
             )
-            test_start_time = (
-                self.pre_test_qr_code.camera_frame_num * self.camera_frame_duration_ms
-            )
-            test_finish_time = (
-                self.last_end_of_test_camera_frame_num * self.camera_frame_duration_ms
-            )
-            self._make_observations(test_start_time, test_finish_time)
+            self._make_observations()
             self._post_observation_result()
             self.test_class = None
 

@@ -438,7 +438,9 @@ def run(
                     log_manager, global_configurations, fps, do_adaptive_threshold_scan
                 )
 
-            observation_framework.extract_and_read_audio_data(input_video_path_str, i)
+            observation_framework.extract_audio(
+                input_video_path_str, starting_camera_frame_number
+            )
 
             last_camera_frame_number = observation_framework.iter_qr_codes_in_video(
                 vidcap, starting_camera_frame_number, qr_code_areas
