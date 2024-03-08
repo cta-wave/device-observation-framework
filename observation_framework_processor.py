@@ -453,8 +453,8 @@ class ObservationFrameworkProcessor:
                 )
                 raise ObsFrameTerminate(result["message"])
         else:
-            raise Exception(
-                "Unable to identify the test. Observation will not be made."
+            logger.warning(
+                "Unable to identify current test. Observation will not be made."
             )
 
     def _save_results(self, results: list) -> None:
