@@ -92,11 +92,12 @@ class StartUpDelay(Observation):
                 mezzanine_qr_codes
             )
             if len(content_starting_index_list) != 2:
+                self.result["status"] = "FAIL"
                 self.result["message"] += (
                     f"Truncated test should change presentatation once. "
-                    f"Actual presentatation change is {len(content_starting_index_list)}. "
+                    f"Actual presentatation change is {len(content_starting_index_list) - 1}."
                 )
-                return False
+                return self.result, []
 
             # only check the 2nd presentation start up delay
             mezzanine_qr_codes = mezzanine_qr_codes[content_starting_index_list[1] :]

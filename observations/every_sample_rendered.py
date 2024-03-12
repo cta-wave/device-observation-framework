@@ -622,7 +622,7 @@ class EverySampleRendered(Observation):
         if len(content_starting_index_list) != 2:
             self.result["message"] += (
                 f"Truncated test should change presentatation once. "
-                f"Actual presentatation change is {len(content_starting_index_list)}. "
+                f"Actual presentatation change is {len(content_starting_index_list) - 1}."
             )
             return False
 

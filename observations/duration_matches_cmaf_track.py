@@ -299,6 +299,13 @@ class DurationMatchesCMAFTrack(Observation):
             change_starting_index_list = Observation.get_content_change_position(
                 mezzanine_qr_codes
             )
+            if len(change_starting_index_list) != 2:
+                self.result["status"] = "FAIL"
+                self.result["message"] += (
+                    f" Truncated test should change presentatation once. "
+                    f"Actual presentatation change is {len(change_starting_index_list) - 1}."
+                )
+                return self.result, []
             # only concider start missing frames
             adjust_starting_missing_frames = True
             adjust_ending_missing_frames = False
