@@ -77,7 +77,7 @@ class DurationMatchesCMAFTrack(Observation):
     def _get_waiting_duration(self, test_status_qr_codes, camera_frame_duration_ms):
         """
         calculate waiting duration based on the test runner status qr code
-        return minimin possible gap duration and maximun possible gap duration
+        return minimum possible gap duration and maximum possible gap duration
         """
         min_gap_duration = 0
         max_gap_duration = 0
@@ -169,7 +169,7 @@ class DurationMatchesCMAFTrack(Observation):
             total_tolerance_duration += parameters_dict["random_access_from_tolerance"]
 
         # duration check for truncated test presentation one
-        # where adjust_starting_missing_frames=True and adjust_ending_missing_frames=Flase
+        # where adjust_starting_missing_frames=True and adjust_ending_missing_frames=False
         if adjust_starting_missing_frames and not adjust_ending_missing_frames:
             duration_diff = playback_duration - expected_track_duration
             if duration_diff >= 0:
@@ -190,29 +190,39 @@ class DurationMatchesCMAFTrack(Observation):
 
         # waiting in playback
         # if gap in duration check the different duration is within the minimum possible gap
-        # and mximun possible gap taking into account the duration tolerance as well
+        # and maximum possible gap taking into account the duration tolerance as well
         if waiting_durations:
-            duration_diff = abs(expected_track_duration - playback_duration)
+            min_waiting_duration = waiting_durations[0] - total_tolerance_duration
+            max_waiting_duration = waiting_durations[1] + total_tolerance_duration
+            self.result["message"] += (
+                f"Minimum waiting duration is {round(min_waiting_duration, 2)}ms, "
+                f"and maximum waiting duration is {round(max_waiting_duration, 2)}ms. "
+                f"Playback duration is {round(playback_duration, 2)}ms, track duration is "
+                f"{round(expected_track_duration, 2)}ms. "
+            )
+            diff = playback_duration - expected_track_duration
             if (
-                duration_diff > waiting_durations[1] + total_tolerance_duration
-                or duration_diff < waiting_durations[0] - total_tolerance_duration
+                diff > max_waiting_duration
             ):
                 result = False
                 self.result["message"] += (
-                    f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
-                    f"{round(expected_track_duration, 2)}ms. "
-                    f"Detected duration is different by {round(duration_diff, 2)}ms. "
-                    f"Minimum waiting durationn is {round(waiting_durations[0], 2)}ms, "
-                    f"and Maximun waiting duration is {round(waiting_durations[1], 2)}ms."
+                    f"Detected playback gap {round(diff, 2)}ms "
+                    f"exceeded the maximum possible waiting duration."
+                )
+            elif (
+                diff <  min_waiting_duration
+            ):
+                result = False
+                self.result["message"] += (
+                    f"Detected playback gap {round(diff, 2)}ms "
+                    f"is smaller than the minimum possible waiting duration."
                 )
             else:
                 result = True
                 self.result["message"] += (
-                    f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
-                    f"{round(expected_track_duration, 2)}ms. "
-                    f"Detected duration is different by {round(duration_diff, 2)}ms. "
-                    f"Minimum waiting durationn is {round(waiting_durations[0], 2)}ms, "
-                    f"and Maximun waiting duration is {round(waiting_durations[1], 2)}ms."
+                    f"Detected playback gap {round(diff, 2)}ms "
+                    f"is within the minimum possible waiting duration "
+                    f"and the maximum possible waiting duration."
                 )
         # all other general playback
         else:
@@ -295,18 +305,18 @@ class DurationMatchesCMAFTrack(Observation):
             )
 
         if test_type == TestType.TRUNCATED:
-            # check individualy for first presentation and second presentaion
+            # check individually for first presentation and second presentation
             change_starting_index_list = Observation.get_content_change_position(
                 mezzanine_qr_codes
             )
             if len(change_starting_index_list) != 2:
                 self.result["status"] = "FAIL"
                 self.result["message"] += (
-                    f" Truncated test should change presentatation once. "
-                    f"Actual presentatation change is {len(change_starting_index_list) - 1}."
+                    f" Truncated test should change presentation once. "
+                    f"Actual presentation change is {len(change_starting_index_list) - 1}."
                 )
                 return self.result, []
-            # only concider start missing frames
+            # only consider start missing frames
             adjust_starting_missing_frames = True
             adjust_ending_missing_frames = False
             self.result["message"] += "First presentation: "
@@ -319,7 +329,7 @@ class DurationMatchesCMAFTrack(Observation):
                 adjust_starting_missing_frames,
                 adjust_ending_missing_frames,
             )
-            # only concider ending missing frames
+            # only consider ending missing frames
             adjust_starting_missing_frames = False
             adjust_ending_missing_frames = True
             self.result["message"] += " Second presentation: "
