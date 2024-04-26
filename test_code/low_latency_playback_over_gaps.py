@@ -20,7 +20,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
@@ -61,7 +61,9 @@ class LowLatencyPlaybackOverGaps(
         else:
             # if "gap_duration" not defined the gap will be same as a video_fragment_duration
             # taking video_fragment_duration from the 1st video fragment
-            gap_to = gap_from + self.parameters_dict["video_fragment_durations"][0] / 1000
+            gap_to = (
+                gap_from + self.parameters_dict["video_fragment_durations"][0] / 1000
+            )
         gap_from_frame = math.floor(gap_from * frame_rate)
         gap_to_frame = math.floor(gap_to * frame_rate) + 1
         return [gap_from_frame, gap_to_frame]

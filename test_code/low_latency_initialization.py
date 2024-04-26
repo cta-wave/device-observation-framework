@@ -19,8 +19,9 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
+
 import logging
 
 from .mse_append_window import MseAppendWindow

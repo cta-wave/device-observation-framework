@@ -21,8 +21,9 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
+
 import logging
 from typing import Dict, List, Tuple
 
@@ -30,7 +31,7 @@ from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 
 from .observation import Observation
 
-FIRST_FRAME_APPLIED_EVNT = "appended"
+FIRST_FRAME_APPLIED_EVENT = "appended"
 
 logger = logging.getLogger(__name__)
 
@@ -51,22 +52,22 @@ class RenderingDelayWithinThreshold(Observation):
     @staticmethod
     def _get_frame_applied_event(
         test_status_qr_codes: List[TestStatusDecodedQr], camera_frame_duration_ms: float
-    ) -> (Tuple[bool, float]):
-        """loop through event qr code to find 1st FIRST_FRAME_APPLIED_EVNT event
+    ) -> Tuple[bool, float]:
+        """loop through event qr code to find 1st FIRST_FRAME_APPLIED_EVENT event
 
         Args:
             test_status_qr_codes (List[TestStatusDecodedQr]): Test Status QR codes list containing
                 currentTime as reported by MSE.
-            camera_frame_duration_ms (float): duration of a camera frame on msecs.
+            camera_frame_duration_ms (float): duration of a camera frame on milliseconds.
 
         Returns:
-            (bool, float): True if the 1st FIRST_FRAME_APPLIED_EVNT is found
-            event_current_time: current time of the 1st test runner FIRST_FRAME_APPLIED_EVNT event.
+            (bool, float): True if the 1st FIRST_FRAME_APPLIED_EVENT is found
+            event_current_time: current time of the 1st test runner FIRST_FRAME_APPLIED_EVENT event.
         """
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             # check for the 1st "appended" action from TR events
-            if current_status.status == FIRST_FRAME_APPLIED_EVNT:
+            if current_status.status == FIRST_FRAME_APPLIED_EVENT:
                 event_camera_frame_num = current_status.camera_frame_num
                 if i + 1 < len(test_status_qr_codes):
                     next_status = test_status_qr_codes[i + 1]
@@ -106,9 +107,9 @@ class RenderingDelayWithinThreshold(Observation):
         logger.info(f"Making observation {self.result['name']}...")
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
@@ -124,9 +125,9 @@ class RenderingDelayWithinThreshold(Observation):
         )
         if not event_found:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"'{FIRST_FRAME_APPLIED_EVNT}' event was not found."
+            self.result["message"] = (
+                f"'{FIRST_FRAME_APPLIED_EVENT}' event was not found."
+            )
         else:
             render_delay = first_mezzanine_frame_time - event_ct
             self.result["message"] = (

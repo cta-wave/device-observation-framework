@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import sys
@@ -30,8 +30,8 @@ from typing import Dict, List, Tuple
 
 from configuration_parser import PlayoutParser
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-from test_code.test import TestType
 from output_file_handler import write_data_to_csv_file
+from test_code.test import TestType
 
 from .observation import Observation
 
@@ -53,7 +53,7 @@ class SampleMatchesCurrentTime(Observation):
         if name is None:
             name = (
                 "[OF] Video: The presented sample shall match the one reported by the currentTime value"
-                " within the tolerance of +/-(2/framerate + 20ms)"
+                " within the tolerance."
             )
         super().__init__(name)
 
@@ -65,7 +65,7 @@ class SampleMatchesCurrentTime(Observation):
         camera_frame_rate: float,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         ct_frame_tolerance: int,
-    ) -> (Tuple[float, float]):
+    ) -> Tuple[float, float]:
         """Calculate expected target camera frame numbers of the current time event
         by compensating for the delay in the QR code generation and applying tolerances.
         sample_tolerance_in_recording = 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
@@ -73,10 +73,11 @@ class SampleMatchesCurrentTime(Observation):
 
         Args:
             camera_frame_num (int): camera frame on which the status event QR code was first seen.
-            delay (int): time taken to generate the status event QR code in msecs.
-            camera_frame_duration_ms (float): duration of a camera frame on msecs.
+            delay (int): time taken to generate the status event QR code in milliseconds.
+            camera_frame_duration_ms (float): duration of a camera frame on milliseconds.
             camera_frame_rate: recording frame rate
             mezzanine_qr_codes (List[MezzanineDecodedQr]): Ordered list of unique mezzanine QR codes found.
+            allowed_tolerance (float): Test-specific tolerance as specified in test-config.json.
             ct_frame_tolerance(int): OF tolerance of frame number configured test-config.json.
 
         Returns:
@@ -86,8 +87,11 @@ class SampleMatchesCurrentTime(Observation):
 
         mezzanine_frame_rate = mezzanine_qr_codes[0].frame_rate
         for i in range(0, len(mezzanine_qr_codes)):
-            if mezzanine_qr_codes[i].first_camera_frame_num > target_camera_frame_num:
-                mezzanine_frame_rate = mezzanine_qr_codes[i - 1].frame_rate
+            if mezzanine_qr_codes[i].first_camera_frame_num >= target_camera_frame_num:
+                mezzanine_frame_rate = min(
+                    mezzanine_qr_codes[i].frame_rate,
+                    mezzanine_qr_codes[i - 1].frame_rate
+                )
                 break
 
         sample_tolerance_in_recording = (
@@ -114,7 +118,7 @@ class SampleMatchesCurrentTime(Observation):
         last_possible: float,
         allowed_tolerance: float,
         ct_frame_tolerance: int,
-    ) -> (Tuple[bool, float]):
+    ) -> Tuple[bool, float]:
         """Applies the logic:
         for first_possible_camera_frame_num_of_target to last_possible_camera_frame_num_of_target
             foreach mezzanine_qr_code on camera_frame
@@ -134,6 +138,7 @@ class SampleMatchesCurrentTime(Observation):
         """
         result = False
         time_diff = sys.float_info.max
+        frame_rate = sys.float_info.max
         current_time_ms = current_status.current_time * 1000
 
         for code in mezzanine_qr_codes:
@@ -147,9 +152,13 @@ class SampleMatchesCurrentTime(Observation):
                 if new_time_diff < time_diff:
                     time_diff = new_time_diff
 
+                # obtain smallest possible frame rate for playback switching
+                if frame_rate > code.frame_rate:
+                    frame_rate = code.frame_rate
+
                 if (
                     time_diff
-                    <= allowed_tolerance + ct_frame_tolerance * 1000 / code.frame_rate
+                    <= allowed_tolerance + ct_frame_tolerance * 1000 / frame_rate
                 ):
                     result = True
                     break
@@ -195,11 +204,6 @@ class SampleMatchesCurrentTime(Observation):
         allowed_tolerance = parameters_dict["tolerance"]
         ct_frame_tolerance = parameters_dict["frame_tolerance"]
         failure_report_count = 0
-        self.result[
-            "message"
-        ] += (
-            f" Allowed tolerance is {ct_frame_tolerance} frames, {allowed_tolerance}ms."
-        )
 
         # for splicing test adjust media time in mezzanine_qr_codes
         # media time for period 2 starts from 0 so the actual media time is += period_duration[0]
@@ -257,10 +261,9 @@ class SampleMatchesCurrentTime(Observation):
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             if i + 1 < len(test_status_qr_codes):
-                if (
-                    current_status.status == "playing" and
-                    (current_status.last_action == "play" or
-                    current_status.last_action == "representation_change")
+                if current_status.status == "playing" and (
+                    current_status.last_action == "play"
+                    or current_status.last_action == "representation_change"
                 ):
                     if first_current_time == None:
                         first_current_time = current_status.current_time
@@ -278,7 +281,9 @@ class SampleMatchesCurrentTime(Observation):
                         mezzanine_qr_codes,
                         ct_frame_tolerance,
                     )
-                    result, time_diff = self._check_video_diff_within_tolerance(
+                    result, time_diff = (
+                        self._check_video_diff_within_tolerance
+                        (
                         mezzanine_qr_codes,
                         current_status,
                         first_possible,
@@ -286,6 +291,11 @@ class SampleMatchesCurrentTime(Observation):
                         allowed_tolerance,
                         ct_frame_tolerance,
                     )
+                    )
+                    if time_diff == sys.float_info.max:
+                        # when no rendered frame found for the current time report
+                        # ignore the check
+                        continue
                     # The multiplication happens so that we get the results in ms
                     time_differences.append(
                         (current_status.current_time * 1000, time_diff)
@@ -307,14 +317,14 @@ class SampleMatchesCurrentTime(Observation):
                         failure_report_count += 1
 
         if failure_report_count >= REPORT_NUM_OF_FAILURE:
-            self.result[
-                "message"
-            ] += f"...too many failures, reporting truncated."
+            self.result["message"] += f"...too many failures, reporting truncated."
 
+        self.result["message"] += f" Total failure count is {failure_report_count}."
         self.result[
             "message"
-        ] += f" Total failure count is {failure_report_count}."
-
+        ] += (
+            f" Tolerances: +/- ({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
+        )
 
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"
@@ -326,7 +336,7 @@ class SampleMatchesCurrentTime(Observation):
             write_data_to_csv_file(
                 observation_data_export_file + "_video_ct_diff.csv",
                 ["Current Time", "Time Difference"],
-                time_differences
+                time_differences,
             )
 
         return self.result, []

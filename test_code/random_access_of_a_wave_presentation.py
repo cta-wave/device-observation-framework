@@ -22,15 +22,16 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
-
 from typing import Tuple
+
+from audio_file_reader import read_audio_mezzanine
+
 from .random_access_to_fragment import RandomAccessToFragment
 from .test import TestContentType
-from audio_file_reader import read_audio_mezzanine
 
 logger = logging.getLogger(__name__)
 
@@ -57,50 +58,23 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            (
-                "every_sample_rendered",
-                "EverySampleRendered"
-            ),
-            (
-                "audio_every_sample_rendered",
-                "AudioEverySampleRendered"
-            ),
-            (
-                "unexpected_sample_not_rendered",
-                "UnexpectSampleNotRendered"
-            ),
+            ("every_sample_rendered", "EverySampleRendered"),
+            ("audio_every_sample_rendered", "AudioEverySampleRendered"),
+            ("unexpected_sample_not_rendered", "UnexpectedSampleNotRendered"),
             (
                 "audio_unexpected_sample_not_rendered",
-                "AudioUnexpectedSampleNotRendered"
+                "AudioUnexpectedSampleNotRendered",
             ),
-            (
-                "start_up_delay",
-                "StartUpDelay"
-            ),
-            (
-                "audio_start_up_delay",
-                "AudioStartUpDelay"
-            ),
-            (
-                "duration_matches_cmaf_track",
-                "DurationMatchesCMAFTrack"
-            ),
-            (
-                "audio_duration_matches_cmaf_track",
-                "AudioDurationMatchesCMAFTrack"
-            ),
-            (
-                "sample_matches_current_time",
-                "SampleMatchesCurrentTime"
-            ),
+            ("start_up_delay", "StartUpDelay"),
+            ("audio_start_up_delay", "AudioStartUpDelay"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
             (
                 "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime"
+                "EarliestSampleSamePresentationTime",
             ),
-            (
-                "audio_video_synchronization",
-                "AudioVideoSynchronization"
-            )
+            ("audio_video_synchronization", "AudioVideoSynchronization"),
         ]
 
     def _set_test_content_type(self) -> None:
@@ -110,27 +84,22 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio track duration"""
         # audio should match video
-        random_access_to_time_ms = (
-            self._convert_random_access_fragment_to_time("video")
-        )
+        random_access_to_time_ms = self._convert_random_access_fragment_to_time("video")
         self.parameters_dict["expected_audio_track_duration"] = (
-            self.parameters_dict["video_content_duration"]
-            - random_access_to_time_ms
+            self.parameters_dict["video_content_duration"] - random_access_to_time_ms
         )
 
     def _save_audio_ending_time(self) -> None:
         """save audio ending time"""
         # audio should match video
-        self.parameters_dict["audio_ending_time"] = (
-            self.parameters_dict["video_content_duration"]
-        )
+        self.parameters_dict["audio_ending_time"] = self.parameters_dict[
+            "video_content_duration"
+        ]
 
     def _save_audio_starting_time(self) -> None:
         """save audio starting time"""
         # audio should match video
-        random_access_to_time_ms = (
-            self._convert_random_access_fragment_to_time("video")
-        )
+        random_access_to_time_ms = self._convert_random_access_fragment_to_time("video")
         self.parameters_dict["audio_starting_time"] = math.floor(
             random_access_to_time_ms
         )
@@ -149,9 +118,7 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
             self.global_configurations, audio_content_ids[0]
         )
         # audio random access should match video
-        start_media_time = (
-            self._convert_random_access_fragment_to_time("video")
-        )
+        start_media_time = self._convert_random_access_fragment_to_time("video")
         random_access_point = math.floor(
             start_media_time * self.parameters_dict["sample_rate"]
         )

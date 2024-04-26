@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
@@ -69,9 +69,9 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         this is calculated based on last track duration
         """
         last_playout = self.parameters_dict["playout"][-1]
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "video_fragment_duration_multi_mpd"
+        ]
 
         last_track_duration = 0
         for i in range(last_playout[2]):
@@ -89,26 +89,22 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
         for splicing test this is sum of all fragment duration from the playout
         """
         cmaf_track_duration = 0
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "video_fragment_duration_multi_mpd"
+        ]
         for playout in self.parameters_dict["playout"]:
-            video_fragment_duration = (
-                fragment_duration_multi_mpd[tuple(playout)]
-            )
+            video_fragment_duration = fragment_duration_multi_mpd[tuple(playout)]
             cmaf_track_duration += video_fragment_duration
         self.parameters_dict["expected_video_track_duration"] = cmaf_track_duration
 
     def _save_expected_audio_track_duration(self) -> None:
         """save the expected audio cmaf duration"""
         cmaf_track_duration = 0
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["audio_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "audio_fragment_duration_multi_mpd"
+        ]
         for playout in self.parameters_dict["playout"]:
-            audio_fragment_duration = (
-                fragment_duration_multi_mpd[tuple(playout)]
-            )
+            audio_fragment_duration = fragment_duration_multi_mpd[tuple(playout)]
             cmaf_track_duration += audio_fragment_duration
         self.parameters_dict["expected_audio_track_duration"] = cmaf_track_duration
 
@@ -122,18 +118,18 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             unexpected_audio_segment_data: unexpected audio data
         """
         sample_rate = self.parameters_dict["sample_rate"]
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["audio_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "audio_fragment_duration_multi_mpd"
+        ]
         playouts = self.parameters_dict["playout"]
         audio_segment_data_list = []
         audio_mezzanine_data = []
 
         # loop through content ids getting audio mezzanine
         for i in range(len(audio_content_ids)):
-            audio_mezzanine_data.append(read_audio_mezzanine(
-                self.global_configurations, audio_content_ids[i]
-            ))
+            audio_mezzanine_data.append(
+                read_audio_mezzanine(self.global_configurations, audio_content_ids[i])
+            )
 
         # loop through playout fragments getting audio segment data
         pre_audio_mezzanine_id = playouts[0][0] - 1
@@ -157,7 +153,9 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             if audio_mezzanine_id != pre_audio_mezzanine_id:
                 audio_segment_data_list.append(audio_segment_data)
                 audio_segment_data = []
-            audio_segment_data.extend(audio_mezzanine_data[audio_mezzanine_id][start:end])
+            audio_segment_data.extend(
+                audio_mezzanine_data[audio_mezzanine_id][start:end]
+            )
             pre_audio_mezzanine_id = audio_mezzanine_id
         audio_segment_data_list.append(audio_segment_data)
 
@@ -165,6 +163,6 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
 
     def _save_audio_ending_time(self) -> None:
         """save audio ending time"""
-        self.parameters_dict["audio_ending_time"] = (
-            self.parameters_dict["expected_audio_track_duration"]
-        )
+        self.parameters_dict["audio_ending_time"] = self.parameters_dict[
+            "expected_audio_track_duration"
+        ]

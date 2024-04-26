@@ -20,12 +20,11 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 
-from .regular_playback_of_a_cmaf_presentation import \
-    RegularPlaybackOfACmafPresentation
+from .regular_playback_of_a_cmaf_presentation import RegularPlaybackOfACmafPresentation
 
 logger = logging.getLogger(__name__)
 
@@ -46,29 +45,14 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
                 "audio_every_sample_rendered",
                 "AudioEverySampleRendered",
             ),
-            (
-                "start_up_delay",
-                "StartUpDelay"
-            ),
-            (
-                "audio_start_up_delay",
-                "AudioStartUpDelay"
-            ),
-            (
-                "duration_matches_cmaf_track",
-                "DurationMatchesCMAFTrack"
-            ),
-            (
-                "audio_duration_matches_cmaf_track",
-                "AudioDurationMatchesCMAFTrack"
-            ),
-            (
-                "sample_matches_current_time",
-                "SampleMatchesCurrentTime"
-            ),
+            ("start_up_delay", "StartUpDelay"),
+            ("audio_start_up_delay", "AudioStartUpDelay"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
             (
                 "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime"
+                "EarliestSampleSamePresentationTime",
             ),
             (
                 "audio_video_synchronization",

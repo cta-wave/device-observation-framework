@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
@@ -75,7 +75,7 @@ class AudioStartUpDelay(Observation):
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
-        # Get time when test staus = play
+        # Get time when test status = play
         event_found, event_ct = Observation._find_event(
             "play", test_status_qr_codes, parameters_dict["camera_frame_duration_ms"]
         )

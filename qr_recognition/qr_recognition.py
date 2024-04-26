@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""qr recognision
+"""qr recognition
 
 contains functions to extract QR codes from a video frame.
 
@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Any, List
@@ -151,7 +151,7 @@ class FrameAnalysis:
 
         # do adaptiveThreshold scan when it is defined to do so
         if do_adaptive_threshold_scan and not self.all_code_found():
-            thresholded_image = cv2.adaptiveThreshold(
+            threshold_image = cv2.adaptiveThreshold(
                 image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
             )
-            self._scan_image(thresholded_image)
+            self._scan_image(threshold_image)

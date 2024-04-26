@@ -23,13 +23,14 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from test_code.test import TestType
+
 from .observation import Observation
 
 logger = logging.getLogger(__name__)
@@ -70,16 +71,18 @@ class StartUpDelay(Observation):
             Result status and message.
         """
         if test_type == TestType.TRUNCATED:
-            self.result["name"] = self.result["name"].replace(
-                "The start-up delay", "The start-up delay for second presentation"
+            self.result["name"] = (
+                "[OF] Video start-up delay: "
+                "The delay between 'representation_change' and presenting "
+                "the first frame of the second presentation should be sufficiently low."
             )
         logger.info(f"Making observation {self.result['name']}...")
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
@@ -94,8 +97,8 @@ class StartUpDelay(Observation):
             if len(content_starting_index_list) != 2:
                 self.result["status"] = "FAIL"
                 self.result["message"] += (
-                    f"Truncated test should change presentatation once. "
-                    f"Actual presentatation change is {len(content_starting_index_list) - 1}."
+                    f" Truncated test should change presentation once. "
+                    f"Actual presentation change is {len(content_starting_index_list) - 1}."
                 )
                 return self.result, []
 
@@ -131,7 +134,7 @@ class StartUpDelay(Observation):
             start_up_delay = frame_ct - event_ct
             self.result["message"] = (
                 f"Maximum permitted startup delay is {max_permitted_startup_delay_ms}ms."
-                f"The presentation start up delay is {round(start_up_delay, 4)}ms"
+                f"The presentation start up delay is {round(start_up_delay, 4)}ms."
             )
 
             if start_up_delay < max_permitted_startup_delay_ms:

@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import configparser
 import logging
@@ -57,7 +57,11 @@ class GlobalConfigurations:
             temp_range = qr_search_range.split(":")
             if len(temp_range) != 3:
                 raise ValueError("Not enough arguments specified for range")
-            if int(temp_range[0]) < 0 or int(temp_range[1]) < 0 or int(temp_range[2]) < 0:
+            if (
+                int(temp_range[0]) < 0
+                or int(temp_range[1]) < 0
+                or int(temp_range[2]) < 0
+            ):
                 raise ValueError("Input arguments for range must be positive integers")
             test_range = [int(num) for num in temp_range]
             self.qr_search_range = test_range

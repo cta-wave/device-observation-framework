@@ -21,7 +21,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 
 import logging
@@ -55,9 +55,9 @@ class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
         this is calculated based on last track duration
         """
         last_playout = self.parameters_dict["playout"][-1]
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "video_fragment_duration_multi_mpd"
+        ]
         last_track_duration = 0
         for i in range(last_playout[2]):
             key = (last_playout[0], last_playout[1], i + 1)
@@ -74,17 +74,13 @@ class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
         for splicing test this is sum of all fragment duration from the playout
         """
         cmaf_track_duration = 0
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "video_fragment_duration_multi_mpd"
+        ]
         for playout in self.parameters_dict["playout"]:
-            fragment_duration = (
-                fragment_duration_multi_mpd[tuple(playout)]
-            )
+            fragment_duration = fragment_duration_multi_mpd[tuple(playout)]
             cmaf_track_duration += fragment_duration
-        self.parameters_dict[
-            "expected_video_track_duration"
-        ] = cmaf_track_duration
+        self.parameters_dict["expected_video_track_duration"] = cmaf_track_duration
 
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio CMAF duration"""

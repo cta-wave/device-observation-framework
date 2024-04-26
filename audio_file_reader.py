@@ -22,21 +22,22 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
-import logging
 import hashlib
 import json
+import logging
 import math
 import os
 import struct
 import subprocess
 import wave
+from wave import Wave_read
+
 import numpy as np
 import pyaudio
 import sounddevice
 
-from wave import Wave_read
 from exceptions import ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 
@@ -53,7 +54,7 @@ logger = logging.getLogger(__name__)
 def _next_power_of_2(value):
     """
     calculate and return next power of 2
-    if given valuse is less then 2 then return 0
+    if given value is less then 2 then return 0
     """
     if value < 2:
         return 0
@@ -95,7 +96,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
     """
     Converts video to audio directly using ffmpeg command
     with the help of subprocess module.
-    Not concert when file exisit already, running OF multiple times.
+    Not concert when file exist already, running OF multiple times.
     """
     file_name, _ = os.path.splitext(video_file)
     audio_file_name = f"{file_name}.{output_ext}"
@@ -135,9 +136,9 @@ def _check_hash(file_name: str) -> bool:
     we assume the test software "knows" which file to use; this is checking integrity).
     These are Lch only version from PN build 2, should match hash via http://onlinemd5.com/
     """
-    # define hashs for audio mezzanine extracted from json files located in the audio mezzanine folder
+    # define hashes for audio mezzanine extracted from json files located in the audio mezzanine folder
     hash_dict ={}
-    content_list = os.listdir('audio_mezzanine/')
+    content_list = os.listdir("audio_mezzanine/")
     count = sum(item.count("wav") for item in content_list)
     for i in range(1,count+1):
         temp = open(f"audio_mezzanine/PN0{i}.json", encoding="utf-8")
@@ -162,6 +163,7 @@ def _check_hash(file_name: str) -> bool:
         result = True
     return result
 
+
 def _read_chunk(wf: Wave_read, channels: int, chunk_size: int) -> list:
     """
     read audio wave data in a small chunk
@@ -173,6 +175,7 @@ def _read_chunk(wf: Wave_read, channels: int, chunk_size: int) -> list:
     # extract only left channel
     frames_left_ch = np.reshape(frames_as_channels, (channels, chunk_size), "F")[0]
     return frames_left_ch
+
 
 def _read_data_file(file_name: str, start: int, count: int) -> tuple:
     """Accepts
@@ -194,7 +197,7 @@ def _read_data_file(file_name: str, start: int, count: int) -> tuple:
     channels = wf.getnchannels()
     sample_rate = wf.getframerate()
 
-    # set start position and sampe count to read
+    # set start position and sample count to read
     if start > 0:
         wf.setpos(start)
     if count:
@@ -241,6 +244,7 @@ def read_audio_mezzanine(
 
     return segment_data
 
+
 def _check_audio_recording(subject_file: str):
     """
     Check recorded audio file.
@@ -264,6 +268,7 @@ def _check_audio_recording(subject_file: str):
             f"If the recording file contains audio testing, "
             f"audio observation will not be made correctly."
         )
+
 
 def read_audio_recording(
         subject_file: str, test_start_time: float, test_finish_time: float

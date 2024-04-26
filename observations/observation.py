@@ -21,7 +21,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
@@ -49,7 +49,7 @@ class Observation:
     missing_frame_threshold: int
     """Threshold of missing frame.
     If the number of missing frames on an individual test is greater than this
-    post error messege and terminate the session.
+    post error message and terminate the session.
     """
     global_configurations: GlobalConfigurations
     """global configuration object to get some OF configuration from"""
@@ -76,14 +76,14 @@ class Observation:
         event: str,
         test_status_qr_codes: List[TestStatusDecodedQr],
         camera_frame_duration_ms: float,
-    ) -> (Tuple[bool, float]):
+    ) -> Tuple[bool, float]:
         """loop through event qr code to find 1st event
 
         Args:
             event: 1st event string to find
             test_status_qr_codes (List[TestStatusDecodedQr]): Test Status QR codes list containing
                 currentTime as reported by MSE.
-            camera_frame_duration_ms (float): duration of a camera frame on msecs.
+            camera_frame_duration_ms (float): duration of a camera frame on milliseconds.
 
         Returns:
             (bool, float): True if the 1st event is found,

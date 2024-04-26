@@ -23,14 +23,14 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
 
-from test_code.test import TestType
 from dpctf_audio_decoder import AudioSegment
 from global_configurations import GlobalConfigurations
+from test_code.test import TestType
 
 from .observation import Observation
 
@@ -60,7 +60,7 @@ class AudioEverySampleRendered(Observation):
     def _get_detected_time(
         self, audio_segment: AudioSegment, parameters_dict: dict
     ) -> float:
-        """return detected time from given segement"""
+        """return detected time from given segment"""
         detected_time = (
             audio_segment.audio_segment_timing
             + parameters_dict["audio_starting_time"]
@@ -81,15 +81,16 @@ class AudioEverySampleRendered(Observation):
             return True
 
     def _check_in_line_with_previous(
-        self, audio_segment: AudioSegment,
+        self,
+        audio_segment: AudioSegment,
         previous_audio_segment: AudioSegment,
-        parameters_dict: dict
+        parameters_dict: dict,
     ) -> bool:
-        """Check current segement is in line with previous segment"""
+        """Check current segment is in line with previous segment"""
         tolerance = parameters_dict["audio_sample_length"] * 2
         detected_time = self._get_detected_time(audio_segment, parameters_dict)
-        previous_segment_detected_time = (
-            self._get_detected_time(previous_audio_segment, parameters_dict)
+        previous_segment_detected_time = self._get_detected_time(
+            previous_audio_segment, parameters_dict
         )
         diff_with_previous_segment = detected_time - previous_segment_detected_time
         if diff_with_previous_segment <= 0:
@@ -100,15 +101,16 @@ class AudioEverySampleRendered(Observation):
             return True
 
     def _check_in_line_with_next(
-        self, audio_segment: AudioSegment,
+        self,
+        audio_segment: AudioSegment,
         next_audio_segment: AudioSegment,
-        parameters_dict: dict
+        parameters_dict: dict,
     ) -> bool:
-        """Check current segement is in line with next segment"""
+        """Check current segment is in line with next segment"""
         tolerance = parameters_dict["audio_sample_length"] * 2
         detected_time = self._get_detected_time(audio_segment, parameters_dict)
-        next_segment_detected_time = (
-            self._get_detected_time(next_audio_segment, parameters_dict)
+        next_segment_detected_time = self._get_detected_time(
+            next_audio_segment, parameters_dict
         )
         diff_with_next_segment = next_segment_detected_time - detected_time
         if diff_with_next_segment <= 0:
@@ -124,16 +126,16 @@ class AudioEverySampleRendered(Observation):
         """check segment is rendered one by one:
         When a segment matches expected time return True.
 
-        If not, check the current segement is in line with other segements.
-        Check that three points determins a line:
-            when a segment is in line with the previous segment and the next segement return True
-            when a segment is NOT in line with the previous segment and the next segement return False
+        If not, check the current segment is in line with other segments.
+        Check that three points determine a line:
+            when a segment is in line with the previous segment and the next segment return True
+            when a segment is NOT in line with the previous segment and the next segment return False
 
             when a segment is in line with two previous segments return True
             when a segment is in line with two next segments return True
         """
-        segment_match_expected_time = (
-            self._check_match_expected_time(audio_segments[i], parameters_dict)
+        segment_match_expected_time = self._check_match_expected_time(
+            audio_segments[i], parameters_dict
         )
         if segment_match_expected_time:
             return True
@@ -155,7 +157,7 @@ class AudioEverySampleRendered(Observation):
         if in_line_with_previous_segment and in_line_with_next_segment:
             return True
 
-        # check a segmemt is in line with two previous segments or two next segments
+        # check a segment is in line with two previous segments or two next segments
         if in_line_with_previous_segment:
             # check in line with one more previous segment
             # for 2nd segment, True if 1st segment is in line with it
@@ -180,7 +182,7 @@ class AudioEverySampleRendered(Observation):
     ) -> Tuple[int, List[AudioSegment]]:
         """checks every sample is rendered and in increasing order
         returns error count and
-        a list of updated audio segement which only contains correct segements"""
+        a list of updated audio segment which only contains correct segments"""
         updated_audio_segments = []
         starting_error_count = None
         ending_error_count = 0
@@ -198,8 +200,8 @@ class AudioEverySampleRendered(Observation):
             else:
                 if error_count < REPORT_NUM_OF_FAILURE:
                     expected_time = float(audio_segments[i].media_time)
-                    detected_time = (
-                        self._get_detected_time(audio_segments[i], parameters_dict)
+                    detected_time = self._get_detected_time(
+                        audio_segments[i], parameters_dict
                     )
                     failing_message += (
                         f"Segment({round(expected_time, 2)}ms) "
@@ -211,14 +213,18 @@ class AudioEverySampleRendered(Observation):
         self.total_error_count += error_count
         mid_error_count = error_count - starting_error_count - ending_error_count
         if error_count > 0:
-            self.result["message"] += "Failed segmets are: "
+            self.result["message"] += "Failed segments are: "
             self.result["message"] += failing_message
 
         if error_count >= REPORT_NUM_OF_FAILURE:
             self.result["message"] += "...too many failures, reporting truncated. "
 
-        return (starting_error_count, ending_error_count, mid_error_count,
-                updated_audio_segments)
+        return (
+            starting_error_count,
+            ending_error_count,
+            mid_error_count,
+            updated_audio_segments,
+        )
 
     def make_observation(
         self,
@@ -250,8 +256,12 @@ class AudioEverySampleRendered(Observation):
         start_segment_num_tolerance = self.tolerances["start_segment_num_tolerance"]
         end_segment_num_tolerance = self.tolerances["end_segment_num_tolerance"]
         mid_segment_num_tolerance = self.tolerances["mid_segment_num_tolerance"]
-        splice_start_segment_num_tolerance = self.tolerances["splice_start_segment_num_tolerance"]
-        splice_end_segment_num_tolerance = self.tolerances["splice_end_segment_num_tolerance"]
+        splice_start_segment_num_tolerance = self.tolerances[
+            "splice_start_segment_num_tolerance"
+        ]
+        splice_end_segment_num_tolerance = self.tolerances[
+            "splice_end_segment_num_tolerance"
+        ]
 
         starting_error_count = 0
         ending_error_count = 0
@@ -261,16 +271,14 @@ class AudioEverySampleRendered(Observation):
         updated_audio_segments = []
 
         if test_type == TestType.SPLICING:
-            chunk_list = (
-                Observation.get_audio_segments_chunk(audio_segments)
-            )
+            chunk_list = Observation.get_audio_segments_chunk(audio_segments)
             mid_error_count = 0
             for i in range(0, len(chunk_list)):
                 (
                     splice_starting_error_count,
                     splice_ending_error_count,
                     splice_mid_error_count,
-                    updated_audio_chunk
+                    updated_audio_chunk,
                 ) = self._check_every_sample_rendered(chunk_list[i], parameters_dict)
                 mid_error_count += splice_mid_error_count
                 if i == 0:
@@ -289,32 +297,46 @@ class AudioEverySampleRendered(Observation):
                 starting_error_count,
                 ending_error_count,
                 mid_error_count,
-                updated_audio_segments
+                updated_audio_segments,
             ) = self._check_every_sample_rendered(audio_segments, parameters_dict)
 
-        self.result["message"] += (
-            f"Found {self.total_error_count} segments out of order. "
-        )
+        self.result[
+            "message"
+        ] += f"Found {self.total_error_count} segments out of order. "
         if (
-            mid_error_count > mid_segment_num_tolerance or
-            starting_error_count > start_segment_num_tolerance or
-            ending_error_count > end_segment_num_tolerance or
-            max_splice_starting_error_count > splice_start_segment_num_tolerance or
-            max_splice_ending_error_count > splice_end_segment_num_tolerance
+            mid_error_count > mid_segment_num_tolerance
+            or starting_error_count > start_segment_num_tolerance
+            or ending_error_count > end_segment_num_tolerance
+            or max_splice_starting_error_count > splice_start_segment_num_tolerance
+            or max_splice_ending_error_count > splice_end_segment_num_tolerance
         ):
             if starting_error_count > 0:
-                self.result["message"] += f"Start segment number tolerance is {start_segment_num_tolerance}. "
+                self.result[
+                    "message"
+                ] += (
+                    f"Start segment number tolerance is {start_segment_num_tolerance}. "
+                )
             if ending_error_count > 0:
-                self.result["message"] += f"End segment number tolerance is {end_segment_num_tolerance}. "
+                self.result[
+                    "message"
+                ] += f"End segment number tolerance is {end_segment_num_tolerance}. "
             if mid_error_count > 0:
-                self.result["message"] += f"Mid segment number tolerance is {mid_segment_num_tolerance}. "
+                self.result[
+                    "message"
+                ] += f"Mid segment number tolerance is {mid_segment_num_tolerance}. "
             if max_splice_starting_error_count > 0:
-                self.result["message"] += f"Splice start segment number tolerance is {splice_start_segment_num_tolerance}. "
+                self.result[
+                    "message"
+                ] += f"Splice start segment number tolerance is {splice_start_segment_num_tolerance}. "
             if max_splice_ending_error_count > 0:
-                self.result["message"] += f"Splice end segment number tolerance is {splice_end_segment_num_tolerance}. "
+                self.result[
+                    "message"
+                ] += f"Splice end segment number tolerance is {splice_end_segment_num_tolerance}. "
             self.result["status"] = "FAIL"
         else:
-            self.result["message"] += "Segments are rendered in order within the tolerance."
+            self.result[
+                "message"
+            ] += "Segments are rendered in order within the tolerance."
             self.result["status"] = "PASS"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")

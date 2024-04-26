@@ -23,11 +23,11 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from configuration_parser import PlayoutParser
 from dpctf_qr_decoder import MezzanineDecodedQr
@@ -46,9 +46,9 @@ class EverySampleRendered(Observation):
     in increasing presentation time order.
     """
 
-    missing_frame_count = 0
+    missing_frame_count: int
     """total missing frame count"""
-    mid_missing_frame_count = 0
+    mid_missing_frame_count: int
     """mid missing frame count not include frame missing at start and end and
     when contents switches"""
 
@@ -59,6 +59,8 @@ class EverySampleRendered(Observation):
                 "shall be rendered in increasing presentation time order."
             )
         super().__init__(name, global_configurations)
+        self.missing_frame_count = 0
+        self.mid_missing_frame_count = 0
 
     def _check_first_frame(
         self, first_frame_num: int, first_qr_code: MezzanineDecodedQr
@@ -290,10 +292,11 @@ class EverySampleRendered(Observation):
                 # the expected relative time of the switch
                 # (derived from the test config) * that content's frames per second
                 half_frame_duration = (
-                    (1000 / mezzanine_qr_codes[starting_index - 1].frame_rate) / 2
-                )
+                    1000 / mezzanine_qr_codes[starting_index - 1].frame_rate
+                ) / 2
                 previous_ending_frame_num = math.floor(
-                    (switching_positions[i] + half_frame_duration) / 1000
+                    (switching_positions[i] + half_frame_duration)
+                    / 1000
                     * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
                 # compare expected with the actual frame number detected at this switch point
@@ -309,18 +312,20 @@ class EverySampleRendered(Observation):
                         f" expected to end with {previous_ending_frame_num}."
                     )
 
-                # the expected frame number position in the content being switched to isthe expected
+                # the expected frame number position in the content being switched to the expected
                 # the expected relative time of the switch
                 # (derived from the test config) * that content's frames per second
                 # compare expected with the actual frame number detected at this switch point
                 half_frame_duration = (
-                    (1000 / mezzanine_qr_codes[starting_index].frame_rate) / 2
-                )
+                    1000 / mezzanine_qr_codes[starting_index].frame_rate
+                ) / 2
                 current_starting_frame_num = (
                     math.floor(
-                        (switching_positions[i] + half_frame_duration) / 1000
+                        (switching_positions[i] + half_frame_duration)
+                        / 1000
                         * mezzanine_qr_codes[starting_index].frame_rate
-                    ) + 1
+                    )
+                    + 1
                 )
                 diff_starting_frame = abs(
                     mezzanine_qr_codes[starting_index].frame_number
@@ -399,7 +404,9 @@ class EverySampleRendered(Observation):
                     key = (ending_playout[0], ending_playout[1], j + 1)
                     ending_time += fragment_duration_multi_mpd[key]
                 previous_ending_frame_num = math.floor(
-                    ending_time / 1000 * mezzanine_qr_codes[starting_index - 1].frame_rate
+                    ending_time
+                    / 1000
+                    * mezzanine_qr_codes[starting_index - 1].frame_rate
                 )
 
                 # compare expected with the actual frame number detected at this splice point
@@ -431,9 +438,14 @@ class EverySampleRendered(Observation):
                 for j in range(starting_playout[2] - 1):
                     key = (starting_playout[0], starting_playout[1], j + 1)
                     starting_time += fragment_duration_multi_mpd[key]
-                current_starting_frame_num = math.floor(
-                    starting_time / 1000 * mezzanine_qr_codes[starting_index].frame_rate
-                ) + 1
+                current_starting_frame_num = (
+                    math.floor(
+                        starting_time
+                        / 1000
+                        * mezzanine_qr_codes[starting_index].frame_rate
+                    )
+                    + 1
+                )
 
                 # compare expected with the actual frame number detected at this splice point
                 diff_starting_frame = abs(
@@ -466,10 +478,11 @@ class EverySampleRendered(Observation):
     ) -> bool:
         """
         observe gap_in_playback mid-frames
-        check mid frames from begining to gap_from_frame and from gap_to_frame till the end
+        check mid frames from beginning to gap_from_frame and from gap_to_frame till the end
         check for any frames within gap_from_frame to gap_to_frame are not rendered
         """
         mid_frame_result = False
+        message = ""
         start_index = 0
         end_index = 0
 
@@ -477,24 +490,26 @@ class EverySampleRendered(Observation):
         gap_to_frame = parameters_dict["gap_from_and_to_frames"][1]
 
         if gap_to_frame < gap_from_frame:
-            self.result["message"] += (
-                "Test configuration error: frame at the begining of gap "
+            message += (
+                "Test configuration error: frame at the beginning of gap "
                 "cannot be smaller than the ending of gap."
             )
             return mid_frame_result
 
-        # observe every frame is rendered by seperating qr codes into 2 parts
+        # observe every frame is rendered by separating qr codes into 2 parts
         # search to get the end index of the adjusted_gap_from_frame (added tolerance)
         adjusted_gap_from_frame = gap_from_frame
         if "stall_tolerance_margin" in parameters_dict:
             stall_tolerance_frame = (
-                parameters_dict["stall_tolerance_margin"] / 1000
+                parameters_dict["stall_tolerance_margin"]
+                / 1000
                 * mezzanine_qr_codes[-1].frame_rate
             )
             adjusted_gap_from_frame += stall_tolerance_frame
         if "random_access_from_tolerance" in parameters_dict:
             random_access_from_tolerance_frame = (
-                parameters_dict["random_access_from_tolerance"] / 1000
+                parameters_dict["random_access_from_tolerance"]
+                / 1000
                 * mezzanine_qr_codes[-1].frame_rate
             )
             adjusted_gap_from_frame += random_access_from_tolerance_frame
@@ -520,81 +535,72 @@ class EverySampleRendered(Observation):
 
         # check the gap_from_frame and gap_to_frame matched with
         # the frames at end_index and start_index
-        if mezzanine_qr_codes[end_index].frame_number != gap_from_frame:
+        if mezzanine_qr_codes[start_index - 1].frame_number != gap_from_frame:
             if "stall_tolerance_margin" in parameters_dict:
                 stall_tolerance_frame = (
-                    parameters_dict["stall_tolerance_margin"] / 1000
+                    parameters_dict["stall_tolerance_margin"]
+                    / 1000
                     * mezzanine_qr_codes[-1].frame_rate
                 )
                 if (
-                    abs(mezzanine_qr_codes[end_index].frame_number - gap_from_frame)
+                    abs(
+                        mezzanine_qr_codes[start_index - 1].frame_number
+                        - gap_from_frame
+                    )
                     > stall_tolerance_frame
                 ):
                     mid_frame_result = False
-                    self.result["message"] += (
-                        f" Last frame detected before gap {mezzanine_qr_codes[end_index].frame_number}"
+                    message += (
+                        f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number}"
                         f" exceeded 'stall_tolerance_margin'={stall_tolerance_frame} frames"
                         f" of expected frame {gap_from_frame}."
                     )
                 else:
-                    self.result["message"] += (
-                        f" Last frame detected before gap {mezzanine_qr_codes[end_index].frame_number}"
+                    message += (
+                        f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number}"
                         f" is within the tolerance of 'stall_tolerance_margin'={stall_tolerance_frame}"
                         f" frames of expected frame {gap_from_frame}."
                     )
             elif "random_access_from_tolerance" in parameters_dict:
                 random_access_from_tolerance_frame = (
-                    parameters_dict["random_access_from_tolerance"] / 1000
+                    parameters_dict["random_access_from_tolerance"]
+                    / 1000
                     * mezzanine_qr_codes[-1].frame_rate
                 )
                 if (
-                    abs(mezzanine_qr_codes[end_index].frame_number - gap_from_frame)
+                    abs(
+                        mezzanine_qr_codes[start_index - 1].frame_number
+                        - gap_from_frame
+                    )
                     > random_access_from_tolerance_frame
                 ):
                     mid_frame_result = False
-                    self.result["message"] += (
-                        f" Last frame detected before gap {mezzanine_qr_codes[end_index].frame_number} exceeded"
+                    message += (
+                        f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number} exceeded"
                         f" 'random_access_from_tolerance':{random_access_from_tolerance_frame} frame"
                         f" of expected frame {gap_from_frame}."
                     )
                 else:
-                    self.result["message"] += (
-                        f" Last frame detected before gap {mezzanine_qr_codes[end_index].frame_number} is within the tolerance of"
+                    message += (
+                        f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number} is within the tolerance of"
                         f" 'random_access_from_tolerance':{random_access_from_tolerance_frame} frame"
                         f" of expected frame {gap_from_frame}."
                     )
             else:
                 mid_frame_result = False
-                self.result["message"] += (
+                message += (
                     f" Last frame detected before gap {gap_from_frame} doesn't matches"
-                    f" expected frame {mezzanine_qr_codes[end_index].frame_number}."
+                    f" expected frame {mezzanine_qr_codes[start_index - 1].frame_number}."
                 )
 
         if mezzanine_qr_codes[start_index].frame_number != gap_to_frame:
             mid_frame_result = False
-            self.result["message"] += (
+            message += (
                 f" First frame detected after gap {gap_to_frame} doesn't matches"
                 f" expected frame {mezzanine_qr_codes[start_index].frame_number}."
             )
 
-        if (end_index + 1) != start_index:
-            mid_frame_result = False
-            unexpected_frame_count = start_index - 1 - end_index
-            self.result["message"] += (
-                f" Samples within a gap shall not be rendered."
-                f" {unexpected_frame_count} number of following frames should not be rendered."
-            )
-            for x in range(unexpected_frame_count):
-                if x > 10:
-                    self.result[
-                        "message"
-                    ] += f" ... {mezzanine_qr_codes[end_index + unexpected_frame_count].frame_number}."
-                    break
-                self.result[
-                    "message"
-                ] += f" {mezzanine_qr_codes[end_index + 1 + x].frame_number}"
-
-        return mid_frame_result
+        return mid_frame_result, message
 
     def observe_truncated_mid_frame(
         self,
@@ -621,8 +627,8 @@ class EverySampleRendered(Observation):
         )
         if len(content_starting_index_list) != 2:
             self.result["message"] += (
-                f"Truncated test should change presentatation once. "
-                f"Actual presentatation change is {len(content_starting_index_list) - 1}."
+                f" Truncated test should change presentation once. "
+                f"Actual presentation change is {len(content_starting_index_list) - 1}."
             )
             return False
 
@@ -683,7 +689,9 @@ class EverySampleRendered(Observation):
                 # the expected frame number position in the content being switched from is the expected relative time
                 # of the switch (derived from the test config) * that content's frames per second
                 previous_ending_frame_num = math.floor(
-                    switching_positions[i] / 1000 * mezzanine_qr_codes_1[starting_index - 1].frame_rate
+                    switching_positions[i]
+                    / 1000
+                    * mezzanine_qr_codes_1[starting_index - 1].frame_rate
                 )
                 # compare expected with the actual frame number detected at this switch point
                 diff_ending_frame = abs(
@@ -703,7 +711,9 @@ class EverySampleRendered(Observation):
                 # compare expected with the actual frame number detected at this switch point
                 current_starting_frame_num = (
                     math.floor(
-                        switching_positions[i] / 1000 * mezzanine_qr_codes_1[starting_index].frame_rate
+                        switching_positions[i]
+                        / 1000
+                        * mezzanine_qr_codes_1[starting_index].frame_rate
                     )
                     + 1
                 )
@@ -720,7 +730,7 @@ class EverySampleRendered(Observation):
                     )
 
         # check presentation one ending frame this should be in range
-        # betweeen the second_playout_switching_time and end of playout
+        # between the second_playout_switching_time and end of playout
         ending_frame_from = math.floor(
             second_playout_switching_time * mezzanine_qr_codes_1[-1].frame_rate
         )
@@ -807,7 +817,9 @@ class EverySampleRendered(Observation):
                 # the expected frame number position in the content being switched from is the expected relative time
                 # of the switch (derived from the test config) * that content's frames per second
                 previous_ending_frame_num = math.floor(
-                    switching_positions[i] / 1000 * mezzanine_qr_codes_2[starting_index - 1].frame_rate
+                    switching_positions[i]
+                    / 1000
+                    * mezzanine_qr_codes_2[starting_index - 1].frame_rate
                 )
                 # compare expected with the actual frame number detected at this switch point
                 diff_ending_frame = abs(
@@ -827,7 +839,9 @@ class EverySampleRendered(Observation):
                 # compare expected with the actual frame number detected at this switch point
                 current_starting_frame_num = (
                     math.floor(
-                        switching_positions[i] / 1000 * mezzanine_qr_codes_2[starting_index].frame_rate
+                        switching_positions[i]
+                        / 1000
+                        * mezzanine_qr_codes_2[starting_index].frame_rate
                     )
                     + 1
                 )
@@ -882,9 +896,9 @@ class EverySampleRendered(Observation):
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
@@ -895,6 +909,7 @@ class EverySampleRendered(Observation):
             parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
         )
 
+        message = ""
         if test_type == TestType.SWITCHING:
             mid_frame_result = self.observe_switching_mid_frame(
                 mezzanine_qr_codes,
@@ -908,7 +923,7 @@ class EverySampleRendered(Observation):
                 parameters_dict["video_fragment_duration_multi_mpd"],
             )
         elif test_type == TestType.GAPSINPLAYBACK:
-            mid_frame_result = self.observe_gap_in_playback_mid_frame(
+            mid_frame_result, message = self.observe_gap_in_playback_mid_frame(
                 mezzanine_qr_codes, parameters_dict
             )
         elif test_type == TestType.TRUNCATED:
@@ -924,9 +939,9 @@ class EverySampleRendered(Observation):
             # for QRb to QRn: QR[i-1].mezzanine_frame_num + 1 == QR[i].mezzanine_frame_num
             mid_frame_result = self._check_every_frame(mezzanine_qr_codes)
 
-        self.result[
-            "message"
-        ] += f" Total of missing frames is {self.missing_frame_count}."
+        self.result["message"] += (
+            f" Total of missing frame count is {self.missing_frame_count}." f"{message}"
+        )
 
         if first_frame_result and last_frame_result and mid_frame_result:
             self.result["status"] = "PASS"

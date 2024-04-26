@@ -20,7 +20,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 from enum import Enum
 
@@ -34,6 +34,7 @@ class TestType(Enum):
     WAITINGINPLAYBACK: playback test which contents waiting time in playback but no gaps in frames.
         The original content may then be returned to (such as an advert insertion test).
     """
+
     SEQUENTIAL = 1
     SWITCHING = 2
     SPLICING = 3
@@ -47,5 +48,6 @@ class TestContentType(Enum):
     SINGLE: test with video or audio only
     COMBINED: test with combined video and audio
     """
+
     SINGLE = 1
     COMBINED = 2

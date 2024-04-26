@@ -23,16 +23,18 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
-
-from .playback_over_wave_baseline_splice_constraints import \
-    PlaybackOverWaveBaselineSpliceConstraints
-from .test import TestContentType
-from audio_file_reader import read_audio_mezzanine
 from typing import Tuple
+
+from audio_file_reader import read_audio_mezzanine
+
+from .playback_over_wave_baseline_splice_constraints import (
+    PlaybackOverWaveBaselineSpliceConstraints,
+)
+from .test import TestContentType
 
 logger = logging.getLogger(__name__)
 
@@ -63,42 +65,18 @@ class SplicingOfWaveProgramWithBaselineConstraints(
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            (
-                "every_sample_rendered",
-                "EverySampleRendered"
-            ),
-            (
-                "audio_every_sample_rendered",
-                "AudioEverySampleRendered"
-            ),
-            (
-                "start_up_delay",
-                "StartUpDelay"
-            ),
-            (
-                "audio_start_up_delay",
-                "AudioStartUpDelay"
-            ),
-            (
-                "duration_matches_cmaf_track",
-                "DurationMatchesCMAFTrack"
-            ),
-            (
-                "audio_duration_matches_cmaf_track",
-                "AudioDurationMatchesCMAFTrack"
-            ),
-            (
-                "sample_matches_current_time",
-                "SampleMatchesCurrentTime"
-            ),
+            ("every_sample_rendered", "EverySampleRendered"),
+            ("audio_every_sample_rendered", "AudioEverySampleRendered"),
+            ("start_up_delay", "StartUpDelay"),
+            ("audio_start_up_delay", "AudioStartUpDelay"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
             (
                 "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime"
+                "EarliestSampleSamePresentationTime",
             ),
-            (
-                "audio_video_synchronization",
-                "AudioVideoSynchronization"
-            )
+            ("audio_video_synchronization", "AudioVideoSynchronization"),
         ]
 
     def _set_test_content_type(self) -> None:
@@ -108,9 +86,9 @@ class SplicingOfWaveProgramWithBaselineConstraints(
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio track duration"""
         # audio should match video
-        self.parameters_dict["expected_audio_track_duration"] = (
-            self.parameters_dict["expected_video_track_duration"]
-        )
+        self.parameters_dict["expected_audio_track_duration"] = self.parameters_dict[
+            "expected_video_track_duration"
+        ]
 
     def _get_audio_segment_data(
         self, audio_content_ids: list
@@ -122,18 +100,18 @@ class SplicingOfWaveProgramWithBaselineConstraints(
         unexpected_audio_segment_data: unexpected audio data
         """
         sample_rate = self.parameters_dict["sample_rate"]
-        fragment_duration_multi_mpd = (
-            self.parameters_dict["video_fragment_duration_multi_mpd"]
-        )
+        fragment_duration_multi_mpd = self.parameters_dict[
+            "video_fragment_duration_multi_mpd"
+        ]
         playouts = self.parameters_dict["playout"]
         audio_segment_data_list = []
         audio_mezzanine_data = []
 
         # loop through content ids getting audio mezzanine
         for i in range(len(audio_content_ids)):
-            audio_mezzanine_data.append(read_audio_mezzanine(
-                self.global_configurations, audio_content_ids[i]
-            ))
+            audio_mezzanine_data.append(
+                read_audio_mezzanine(self.global_configurations, audio_content_ids[i])
+            )
 
         # loop through playout fragments getting audio segment data
         pre_audio_mezzanine_id = playouts[0][0] - 1
@@ -157,7 +135,9 @@ class SplicingOfWaveProgramWithBaselineConstraints(
             if audio_mezzanine_id != pre_audio_mezzanine_id:
                 audio_segment_data_list.append(audio_segment_data)
                 audio_segment_data = []
-            audio_segment_data.extend(audio_mezzanine_data[audio_mezzanine_id][start:end])
+            audio_segment_data.extend(
+                audio_mezzanine_data[audio_mezzanine_id][start:end]
+            )
             pre_audio_mezzanine_id = audio_mezzanine_id
         audio_segment_data_list.append(audio_segment_data)
 
@@ -166,6 +146,6 @@ class SplicingOfWaveProgramWithBaselineConstraints(
     def _save_audio_ending_time(self) -> None:
         """save audio ending time"""
         # audio should match video
-        self.parameters_dict["audio_ending_time"] = (
-            self.parameters_dict["expected_video_track_duration"]
-        )
+        self.parameters_dict["audio_ending_time"] = self.parameters_dict[
+            "expected_video_track_duration"
+        ]

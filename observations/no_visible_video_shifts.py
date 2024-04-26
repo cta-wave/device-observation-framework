@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 
 import logging
@@ -55,7 +55,7 @@ class NoVisibleVideoShifts(Observation):
         )
 
     def _calculate_average_location(self, mezzanine_qr_code: MezzanineDecodedQr):
-        """Calculate an averge location [left, top, with, height] 
+        """Calculate an average location [left, top, with, height]
         based on sum and qr code count"""
         location_average = [
             round(mezzanine_qr_code.location[x] / mezzanine_qr_code.detection_count, 2)
@@ -90,7 +90,7 @@ class NoVisibleVideoShifts(Observation):
             elif position_id == 0 and not positions["top_left"]:
                 positions["top_left"] = code
 
-            # break loop if all positons have been found
+            # break loop if all positions have been found
             if None not in positions.values():
                 break
 
@@ -212,17 +212,15 @@ class NoVisibleVideoShifts(Observation):
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
         switching_points = Observation.get_playback_change_position(mezzanine_qr_codes)
         shift_tolerance = parameters_dict["video_shifts_tolerance"]
-        self.result[
-            "message"
-        ] += f"Video shifts tolerance is {shift_tolerance} pixel. "
+        self.result["message"] += f"Video shifts tolerance is {shift_tolerance} pixel. "
 
         for switching_point in switching_points:
             if switching_point == 0:

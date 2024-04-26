@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=import-error,logging-fstring-interpolation
-"""Observation UnexpectSampleNotRendered
+"""Observation UnexpectedSampleNotRendered
 
 Make observation of unexpected_sample_not_rendered
 
@@ -23,27 +23,27 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr
 from global_configurations import GlobalConfigurations
+
 from .observation import Observation
 
 logger = logging.getLogger(__name__)
 REPORT_NUM_OF_FAILURE = 10
 
-class UnexpectSampleNotRendered(Observation):
-    """UnexpectSampleNotRendered class
+
+class UnexpectedSampleNotRendered(Observation):
+    """UnexpectedSampleNotRendered class
     No sample earlier than random_access_fragment shall be rendered.
     """
 
     def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
-        name = (
-            "[OF] No video sample earlier than random access shall be rendered."
-        )
+        name = "[OF] No video sample earlier than random access shall be rendered."
         super().__init__(name, global_configurations)
 
     def make_observation(
@@ -88,16 +88,14 @@ class UnexpectSampleNotRendered(Observation):
 
         if unexpected_frame_counter == 0:
             self.result["status"] = "PASS"
-            self.result[
-                "message"
-            ] += "No unexpected frames were rendered."
+            self.result["message"] += "No unexpected frames were rendered."
         else:
             self.result["status"] = "FAIL"
             if unexpected_frame_counter >= REPORT_NUM_OF_FAILURE:
-                self.result["message"] += "... too many unexpected frames detected"
+                self.result["message"] += "... too many unexpected frames detected. "
             self.result[
                 "message"
-            ] += f"Total unexpected frames rendered: {unexpected_frame_counter}"
+            ] += f"Total unexpected frames rendered: {unexpected_frame_counter}."
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
         return self.result, []

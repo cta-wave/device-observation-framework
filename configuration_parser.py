@@ -23,18 +23,18 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import json
 import logging
+import math
 from fractions import Fraction
 from typing import Dict, List, Tuple
 
 import isodate
 import requests
-import math
 
-from exceptions import ObsFrameTerminate, ConfigError
+from exceptions import ConfigError, ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 from test_code.test import TestContentType, TestType
 
@@ -82,7 +82,7 @@ class ConfigurationParser:
             return test_path, test_code
         except KeyError:
             raise ConfigError(
-                f"Unrecognised test id is detected. "
+                f"Unrecognized test id is detected. "
                 f'Detected test id({test_id}) is not defined in "tests.json". '
             )
 
@@ -94,9 +94,7 @@ class ConfigurationParser:
             switchingset_config = self.audio_config
         return switchingset_config
 
-    def get_content_duration(
-        self, test_path: str, content_type: str
-    ) -> dict:
+    def get_content_duration(self, test_path: str, content_type: str) -> dict:
         """get content durations from segment timeline or 
         from cmaf track durations when segment timeline not defined"""
         results = {}
@@ -118,8 +116,8 @@ class ConfigurationParser:
         timescale = self._get_timescale(switchingset_config)
 
         if segment_timeline and timescale != 0:
-            track_duration = (
-                self._calculate_track_duration_from_timeline(segment_timeline, timescale)
+            track_duration = self._calculate_track_duration_from_timeline(
+                segment_timeline, timescale
             )
         else:
             # when segment_timelines or timescales not defined 
@@ -130,11 +128,11 @@ class ConfigurationParser:
     def _calculate_track_duration_from_timeline(
             self, segment_timeline: list, timescale: int
         ) -> float:
-        """Calculate content duration in ms from timeline and timesale"""
+        """Calculate content duration in ms from timeline and timescale"""
         # Note: not parsing t we assume for 1st timeline t is always 0 and for others t not present
         total_duration = 0
         for segment in segment_timeline:
-            # parse repeat r:repeat defualt is 1
+            # parse repeat r:repeat default is 1
             repeat = 1
             try: 
                 repeat += segment["r"]
@@ -190,12 +188,12 @@ class ConfigurationParser:
     def _get_sample_rate(self) -> dict:
         """Extracts the audio sample rate in kHZ from tests.json"""
         sample_rate_list = []
-        # audio siwching not in scope only extract for the 1st representations
+        # audio switching not in scope only extract for the 1st representations
         for i in range(len(self.audio_config)):
             rep_id = next(iter(self.audio_config[i]["representations"]))
-            audioSamplingRate = (
-                self.audio_config[i]["representations"][rep_id]["audioSamplingRate"]
-            )
+            audioSamplingRate = self.audio_config[i]["representations"][rep_id][
+                "audioSamplingRate"
+            ]
             # sample rate is in kHZ
             sample_rate_list.append(int(audioSamplingRate / 1000))
         # assume audio sample rate are same for splicing test main and ad
@@ -211,11 +209,14 @@ class ConfigurationParser:
 
     def _get_cmaf_track_duration(self, test_path: str, content_type: str) -> float:
         """get the cmaf track duration from config
-        only parse the 1st switching set, multiple switching sets handled seperatly"""
+        only parse the 1st switching set, multiple switching sets handled separately"""
         result = 0
         switchingset_config = self.get_switchingset_config(content_type)[0]
         try:
-            if switchingset_config != [] and "cmaf_track_duration" in switchingset_config:
+            if (
+                switchingset_config != []
+                and "cmaf_track_duration" in switchingset_config
+            ):
                 video_config_value = isodate.parse_duration(
                     switchingset_config["cmaf_track_duration"]
                 )
@@ -257,17 +258,13 @@ class ConfigurationParser:
                  )
         else:
             if "video" in content_type:
-                results.update(self._get_fragment_duration("video", test_path)
-                )
+                results.update(self._get_fragment_duration("video", test_path))
             if "audio" in content_type:
-                results.update(self._get_fragment_duration("audio", test_path)
-                )
+                results.update(self._get_fragment_duration("audio", test_path))
         return results
 
-    def _get_fragment_duration(
-        self, content_type: str, test_path: str
-    ) -> dict:
-        """get the fragment duration for genenal playback
+    def _get_fragment_duration(self, content_type: str, test_path: str) -> dict:
+        """get the fragment duration for general playback
         set video_fragment_durations or audio_fragment_durations"""
         fragment_durations = []
         switchingset_config = self.get_switchingset_config(content_type)[0]
@@ -278,12 +275,12 @@ class ConfigurationParser:
         if segment_timeline and timescale != 0:
             # for general playback only parse segment_timeline from switchingSets level
             # not parse the representation level, assumed they are same
-            fragment_durations = (
-                self._convert_timeline_to_fragment_duration_list(segment_timeline, timescale)
+            fragment_durations = self._convert_timeline_to_fragment_duration_list(
+                segment_timeline, timescale
             )
         else:
-            fragment_durations = (
-                self._get_fragment_duration_from_mpd(content_type, test_path)
+            fragment_durations = self._get_fragment_duration_from_mpd(
+                content_type, test_path
             )
         return {parameter: fragment_durations} 
 
@@ -294,35 +291,31 @@ class ConfigurationParser:
         fragment_durations = []
         if segment_timeline and timescale != 0:
             for segment in segment_timeline:
-                # parse repeat r:repeat defualt is 1
+                # parse repeat r:repeat default is 1
                 repeat = 1
                 try:
                     repeat += segment["r"]
                 except KeyError:
                     repeat = 1
                 for r in range(repeat):
-                    fragment_durations.append(
-                        Fraction(segment["d"], timescale) * 1000
-                    )
+                    fragment_durations.append(Fraction(segment["d"], timescale) * 1000)
         return fragment_durations
 
     def _get_fragment_durations_from_timeline(
             self, representation: dict, segment_timeline: list, timescale: int
         ) -> list:
-        """read fragment_durations from timeline and timescle"""
+        """read fragment_durations from timeline and timescale"""
         fragment_durations = []
         try:
             if not representation["segmentTimeline"] or not representation["timescale"]:
                 raise TypeError
             #use own representation_segmentTimeline:
-            fragment_durations = (
-                self._convert_timeline_to_fragment_duration_list(
+            fragment_durations = self._convert_timeline_to_fragment_duration_list(
                     representation["segmentTimeline"], representation["timescale"]
                 )
-            )
         except (TypeError, KeyError):
-            fragment_durations = (
-                self._convert_timeline_to_fragment_duration_list(segment_timeline, timescale)
+            fragment_durations = self._convert_timeline_to_fragment_duration_list(
+                segment_timeline, timescale
             )
         return fragment_durations
 
@@ -334,7 +327,9 @@ class ConfigurationParser:
         try:
             if representation["fragment_duration"] is None:
                 raise TypeError
-            fragment_duration = Fraction(str(representation["fragment_duration"])) * 1000
+            fragment_duration = (
+                Fraction(str(representation["fragment_duration"])) * 1000
+            )
             repeat = math.ceil(representation["duration"] / fragment_duration)
             for r in range(repeat):
                 fragment_duration_list.append(fragment_duration)
@@ -355,8 +350,8 @@ class ConfigurationParser:
         # we are interested just about the first video representations fragment duration
         for representation in switchingset_config["representations"].values():
             if representation["type"] == content_type:
-                fragment_duration_list = (
-                    self._convert_fragment_duration_to_list(representation, test_path)
+                fragment_duration_list = self._convert_fragment_duration_to_list(
+                    representation, test_path
                 )
         return fragment_duration_list
 
@@ -390,7 +385,9 @@ class ConfigurationParser:
                     )
                 for i in range(len(fragment_durations)):
                     fragment_index = i + 1
-                    results[parameter][(rep_index, fragment_index)] = fragment_durations[i]
+                    results[parameter][(rep_index, fragment_index)] = (
+                        fragment_durations[i]
+                    )
                 rep_index += 1
 
         return results
@@ -400,7 +397,7 @@ class ConfigurationParser:
     ) -> dict:
         """get the video fragment duration multi mpds
         set video_fragment_duration_multi_mpd or audio_fragment_duration_multi_mpd
-        reutrn dictoary of fragment duration
+        return dictionary of fragment duration
             {(content_index, rep_index, fragment_index): fragment_duration}
         """
         results = {}
@@ -427,7 +424,9 @@ class ConfigurationParser:
                         )
                 for i in range(len(fragment_durations)):
                     fragment_index = i + 1
-                    results[parameter][(content_index, rep_index, fragment_index)] = fragment_durations[i]
+                    results[parameter][(content_index, rep_index, fragment_index)] = (
+                        fragment_durations[i]
+                    )
                 rep_index += 1
             content_index += 1
 

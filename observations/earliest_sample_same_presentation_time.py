@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import sys
@@ -30,6 +30,7 @@ from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+
 from .observation import Observation
 
 logger = logging.getLogger(__name__)
@@ -63,9 +64,9 @@ class EarliestSampleSamePresentationTime(Observation):
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
@@ -73,25 +74,24 @@ class EarliestSampleSamePresentationTime(Observation):
         starting_ct = None
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
-            if (
-                current_status.status == "playing" and
-                (current_status.last_action == "play" or
-                current_status.last_action == "representation_change")
+            if current_status.status == "playing" and (
+                current_status.last_action == "play"
+                or current_status.last_action == "representation_change"
             ):
                 starting_ct = current_status.current_time * 1000
                 break
 
         if starting_ct == None:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"HTML starting presentation time is not found."
+            self.result["message"] = f"HTML starting presentation time is not found."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, []
 
         video_result = False
         video_frame_duration = round(1000 / mezzanine_qr_codes[0].frame_rate)
-        earliest_video_media_time = mezzanine_qr_codes[0].media_time - video_frame_duration
+        earliest_video_media_time = (
+            mezzanine_qr_codes[0].media_time - video_frame_duration
+        )
         if earliest_video_media_time == starting_ct:
             video_result = True
         else:
@@ -116,9 +116,9 @@ class EarliestSampleSamePresentationTime(Observation):
                 self.result["status"] = "PASS"
             else:
                 self.result["status"] = "FAIL"
-            self.result["message"] += (
-                f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
-            )
+            self.result[
+                "message"
+            ] += f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
         return self.result, []

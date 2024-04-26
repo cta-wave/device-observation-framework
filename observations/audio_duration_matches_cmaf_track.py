@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 from typing import Dict, List, Tuple
@@ -101,7 +101,7 @@ class AudioDurationMatchesCMAFTrack(Observation):
         tolerance = parameters_dict["duration_tolerance"]
         time_difference = abs(detected_audio_duration - expected_duration)
 
-        # checking for negative dected audio duration
+        # checking for negative detected audio duration
         if detected_audio_duration < 0:
             self.result["status"] = "FAIL"
             self.result["message"] = (

@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import sys
@@ -47,9 +47,7 @@ class AudioVideoSynchronization(Observation):
     """
 
     def __init__(self, _):
-        super().__init__(
-            "[OF] Audio-Video Synchronization."
-        )
+        super().__init__("[OF] Audio-Video Synchronization.")
 
     def _calculate_video_offsets(
         self,
@@ -62,7 +60,7 @@ class AudioVideoSynchronization(Observation):
         video_offsets = []
 
         for j in range(0, len(mezzanine_qr_codes)):
-            # claculate mean detection time based on 1st and last qr code detection time
+            # calculate mean detection time based on 1st and last qr code detection time
             first_detection_time = (
                 mezzanine_qr_codes[j].first_camera_frame_num * camera_frame_duration_ms
             )
@@ -76,7 +74,7 @@ class AudioVideoSynchronization(Observation):
                 mean_detection_time = last_detection_time
                 video_media_time = mezzanine_qr_codes[j].media_time
             elif j == len(mezzanine_qr_codes) - 1:
-                # for last frame it might rendered after play stoped so take the first detection time
+                # for last frame it might rendered after play stopped so take the first detection time
                 mean_detection_time = first_detection_time
                 video_media_time = (
                     mezzanine_qr_codes[j].media_time - video_frame_duration
@@ -98,7 +96,7 @@ class AudioVideoSynchronization(Observation):
             )
             video_offsets.append((video_media_time, clean_video_offset))
 
-            # debuging only remove this when done
+            # debugging only remove this when done
             video_data.append(
                 (
                     mezzanine_qr_codes[j].frame_number,
@@ -111,16 +109,17 @@ class AudioVideoSynchronization(Observation):
                 )
             )
 
-        if (
-            logger.getEffectiveLevel() == logging.DEBUG
-            and observation_data_export_file
-        ):
+        if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
             write_data_to_csv_file(
                 observation_data_export_file + "_video_data.csv",
                 [
                     "frame_number",
-                    "mean_media_time", "mean_detection mean",
-                    "first", "last", "offset", "clean_offset",
+                    "mean_media_time",
+                    "mean_detection mean",
+                    "first",
+                    "last",
+                    "offset",
+                    "clean_offset",
                 ],
                 video_data,
             )
@@ -147,17 +146,16 @@ class AudioVideoSynchronization(Observation):
                 + audio_segments[i].audio_segment_timing
                 - audio_segments[i].media_time
             )
-            audio_offsets.append((
+            audio_offsets.append(
+                (
                 audio_segments[i].audio_content_id,
                 audio_segments[i].media_time,
                 mean_time,
-                audio_offset
-            ))
+                    audio_offset,
+                )
+            )
 
-        if (
-            logger.getEffectiveLevel() == logging.DEBUG
-            and observation_data_export_file
-        ):
+        if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
             write_data_to_csv_file(
                 observation_data_export_file + "_audio_data.csv",
                 ["content id", "media time", "mean_time", "offsets"],
@@ -241,13 +239,11 @@ class AudioVideoSynchronization(Observation):
             if time_diff > av_sync_tolerance[0] or time_diff < av_sync_tolerance[1]:
                 self.result["status"] = "FAIL"
                 if failure_count == 0:
-                    self.result["message"] += (
-                        " The Audio-Video Synchronization failed at following events:"
-                    )
-                if failure_count < REPORT_NUM_OF_FAILURE:
                     self.result[
                         "message"
-                    ] += (
+                    ] += " The Audio-Video Synchronization failed at following events:"
+                if failure_count < REPORT_NUM_OF_FAILURE:
+                    self.result["message"] += (
                         f" audio media time={audio_offsets[i][0]}:{audio_offsets[i][1]}ms"
                         f" AV Sync time diff={round(time_diff, 4)}ms; "
                     )
@@ -257,18 +253,11 @@ class AudioVideoSynchronization(Observation):
                 pass_count += 1
 
         if failure_count >= REPORT_NUM_OF_FAILURE:
-            self.result[
-                "message"
-            ] += f"...too many failures, reporting truncated. "
+            self.result["message"] += f"...too many failures, reporting truncated. "
 
-        percent = (
-            failure_count / (pass_count + failure_count)
-        ) * 100
-        self.result[
-            "message"
-        ] += (
-            f"Total failure count is {failure_count}, "
-            f"{round(percent, 2)}% faild. "
+        percent = (failure_count / (pass_count + failure_count)) * 100
+        self.result["message"] += (
+            f"Total failure count is {failure_count}, " f"{round(percent, 2)}% failed. "
         )
 
         if self.result["status"] != "FAIL":

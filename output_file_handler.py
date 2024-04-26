@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """WAVE DPCTF output file handler
 
@@ -23,30 +22,26 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
-import logging
 import csv
+import logging
 import os
-import matplotlib.pyplot as plt
 from typing import List, Tuple
+
+import matplotlib.pyplot as plt
+
 from dpctf_audio_decoder import AudioSegment
-from dpctf_qr_decoder import (
-    MezzanineDecodedQr,
-    PreTestDecodedQr,
-    TestStatusDecodedQr,
-)
+from dpctf_qr_decoder import MezzanineDecodedQr, PreTestDecodedQr, TestStatusDecodedQr
 from qr_recognition.qr_decoder import DecodedQr
 
 logger = logging.getLogger(__name__)
-logging.getLogger('matplotlib.font_manager').disabled = True
+logging.getLogger("matplotlib.font_manager").disabled = True
 
 
-def write_header_to_csv_file(
-    file_name: str, header: List[str]
-):
+def write_header_to_csv_file(file_name: str, header: List[str]):
     """write header to a csv file"""
-    # remove exsisting csv file, only keep the last result
+    # remove existing csv file, only keep the last result
     if os.path.exists(file_name):
         os.remove(file_name)
 
@@ -56,16 +51,14 @@ def write_header_to_csv_file(
         file.close()
 
 
-def write_data_to_csv_file(
-    file_name: str, header: List[str], data: List[Tuple]
-):
+def write_data_to_csv_file(file_name: str, header: List[str], data: List[Tuple]):
     """export time differences to csv file"""
     # remove existing csv file, only keep the last result
     if os.path.exists(file_name):
         os.remove(file_name)
 
-    with open(file_name, "a") as csvfile:
-        writer = csv.writer(csvfile)
+    with open(file_name, "a") as csv_file:
+        writer = csv.writer(csv_file)
         writer.writerow(header)
 
         for row_data in data:
@@ -140,17 +133,21 @@ def extract_qr_data_to_csv(
         file.close()
 
 
-def audio_data_to_csv(
-    file_name: str, data: List[AudioSegment], parameters_dict: dict
-):
+def audio_data_to_csv(file_name: str, data: List[AudioSegment], parameters_dict: dict):
     """export audio segment data to csv file"""
     # remove existing csv file, only keep the last result
     if os.path.exists(file_name):
         os.remove(file_name)
 
-    header = ["Content ID", "Duration", "Media Time", "Time in Recording", "Detected Time"]
-    with open(file_name, "a") as csvfile:
-        writer = csv.writer(csvfile)
+    header = [
+        "Content ID",
+        "Duration",
+        "Media Time",
+        "Time in Recording",
+        "Detected Time",
+    ]
+    with open(file_name, "a") as csv_file:
+        writer = csv.writer(csv_file)
         writer.writerow(header)
 
         for row_data in data:

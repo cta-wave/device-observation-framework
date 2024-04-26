@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import sys
@@ -66,21 +66,22 @@ class AudioSampleMatchesCurrentTime(Observation):
         test_start_time: float,
         allowed_tolerance: float,
         ct_sample_tolerance: float,
-    ) -> (Tuple[bool, float]):
+    ) -> Tuple[bool, float]:
         """check diff between reported status current time and audio sample time recorded jointly
 
         Args:
             audio_segments: Ordered list of audio segment found.
-            audio_sample_length: audio sample duration in msecs defined in test-config.json.
+            audio_sample_length: audio sample duration in milliseconds defined in test-config.json.
             current_status (TestStatusDecodedQr): Test Status QR code containing currentTime as reported by MSE.
-            delay (int): time taken to generate the status event QR code in msecs.
-            camera_frame_duration_ms (float): duration of a camera frame on msecs.
-            test_start_time: 1st pre-test qr code detection time in msecs.
+            delay (int): time taken to generate the status event QR code in milliseconds.
+            camera_frame_duration_ms (float): duration of a camera frame on milliseconds.
+            test_start_time: 1st pre-test qr code detection time in milliseconds.
             allowed_tolerance (float): Test-specific tolerance as specified in test-config.json.
             ct_sample_tolerance: OF tolerance of sample number configured in test-config.json.
 
         Returns:
-            (bool, float): True if time difference passed, Actual time difference detected."""
+            (bool, float): True if time difference passed, Actual time difference detected.
+        """
         result = False
         time_diff = sys.float_info.max
         current_time_ms = current_status.current_time * 1000
@@ -146,10 +147,9 @@ class AudioSampleMatchesCurrentTime(Observation):
         for i in range(0, len(test_status_qr_codes)):
             current_status = test_status_qr_codes[i]
             if i + 1 < len(test_status_qr_codes):
-                if (
-                    current_status.status == "playing" and
-                    (current_status.last_action == "play" or
-                    current_status.last_action == "representation_change")
+                if current_status.status == "playing" and (
+                    current_status.last_action == "play"
+                    or current_status.last_action == "representation_change"
                 ):
                     if first_current_time == None:
                         first_current_time = current_status.current_time
@@ -215,13 +215,9 @@ class AudioSampleMatchesCurrentTime(Observation):
         )
 
         if failure_report_count >= REPORT_NUM_OF_FAILURE:
-            self.result[
-                "message"
-            ] += f"...too many failures, reporting truncated."
+            self.result["message"] += f"...too many failures, reporting truncated."
 
-        self.result[
-            "message"
-        ] += f" Total failure count is {failure_report_count}."
+        self.result["message"] += f" Total failure count is {failure_report_count}."
 
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"

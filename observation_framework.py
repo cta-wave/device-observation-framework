@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import argparse
 import errno
@@ -37,9 +37,13 @@ from typing import List, Tuple
 
 import cv2
 
-from dpctf_qr_decoder import (DPCTFQrDecoder, MezzanineDecodedQr,
-                              PreTestDecodedQr, TestStatusDecodedQr)
-from exceptions import ConfigError, ObsFrameTerminate, ObsFrameError
+from dpctf_qr_decoder import (
+    DPCTFQrDecoder,
+    MezzanineDecodedQr,
+    PreTestDecodedQr,
+    TestStatusDecodedQr,
+)
+from exceptions import ConfigError, ObsFrameError, ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 from log_handler import LogManager
 from observation_framework_processor import ObservationFrameworkProcessor
@@ -89,7 +93,7 @@ def rename_input_file(
 
 
 def iter_to_get_qr_area(
-    vidcap,
+    vid_cap,
     camera_frame_rate: float,
     width: int,
     height: int,
@@ -101,7 +105,7 @@ def iter_to_get_qr_area(
     """Iterate video frame by frame and detect mezzanine QR codes area.
 
     Args:
-        vidcap: VideoCapture instance for the current file.
+        vid_cap: VideoCapture instance for the current file.
         camera_frame_rate: recording camera frame rate
         width: recording image width
         height: recording image height
@@ -118,13 +122,13 @@ def iter_to_get_qr_area(
     first_pre_test_qr_time = 0
     qr_code_areas = [[], []]
     corrupted_frame_num = 0
-    vidcap.set(cv2.CAP_PROP_POS_MSEC, starting_point_s*1000)
-    len_frames = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    vid_cap.set(cv2.CAP_PROP_POS_MSEC, starting_point_s * 1000)
+    len_frames = int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     starting_frame = math.floor(starting_point_s * camera_frame_rate)
     capture_frame_num = starting_frame
 
     while (len_frames + corrupted_frame_num) > capture_frame_num:
-        got_frame, image = vidcap.read()
+        got_frame, image = vid_cap.read()
         if not got_frame:
             if "video" in global_configurations.get_ignore_corrupted():
                 # work around for gopro
@@ -132,9 +136,7 @@ def iter_to_get_qr_area(
                 capture_frame_num += 1
                 continue
             else:
-                logger.warning(
-                    f"Recording frame {capture_frame_num} is corrupted."
-                )
+                logger.warning(f"Recording frame {capture_frame_num} is corrupted.")
                 break
 
         # print out where the processing is currently
@@ -230,7 +232,7 @@ def iter_to_get_qr_area(
         if capture_frame_num > end_iter_frame_num:
             logger.debug(
                 f"End of configured search is reached, "
-                f"search untill frame number {end_iter_frame_num}."
+                f"search until frame number {end_iter_frame_num}."
             )
             # if not full area found set to unknown
             if not mezzanine_found:
@@ -273,7 +275,7 @@ def get_qr_code_area(
     qr_code_areas = [[], []]
     first_pre_test_qr_time = 0
 
-    # default sart seach from 0s and finised at configuration from config.ini
+    # default start search from 0s and finished at configuration from config.ini
     starting_point_s = 0
     search_qr_area_to = global_configurations.get_search_qr_area_to()
     # read user input range parameter
@@ -283,11 +285,11 @@ def get_qr_code_area(
     if not input_video_path.is_file():
         raise Exception(f"Recorded file '{input_video_path}' not found")
 
-    vidcap = cv2.VideoCapture(input_video_path_str)
-    fps: float = vidcap.get(cv2.CAP_PROP_FPS)
-    width: int = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height: int = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    duration = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))/fps
+    vid_cap = cv2.VideoCapture(input_video_path_str)
+    fps: float = vid_cap.get(cv2.CAP_PROP_FPS)
+    width: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
 
     # if user input range parameter defined then update defaults
     if qr_search_range:
@@ -298,7 +300,7 @@ def get_qr_code_area(
         search_qr_area_to = starting_point_s + qr_code_search_duration
 
     if fps < 1 or width <= 0 or height <= 0:
-        vidcap.release()
+        vid_cap.release()
         open(input_video_path_str, "rb")
         # File is readable but invalid.
         raise OSError(errno.EINVAL, "Video is invalid")
@@ -306,7 +308,7 @@ def get_qr_code_area(
     if search_qr_area_to != 0:
         try:
             first_pre_test_qr_time, qr_code_areas = iter_to_get_qr_area(
-                vidcap,
+                vid_cap,
                 fps,
                 width,
                 height,
@@ -316,9 +318,9 @@ def get_qr_code_area(
                 starting_point_s,
             )
         finally:
-            vidcap.release()
+            vid_cap.release()
     else:
-        vidcap.release()
+        vid_cap.release()
 
     """check qr_code_area
     if not defined we just crop left half for mezzanine
@@ -349,16 +351,14 @@ def get_qr_code_area(
                     f"left half of image for mezzanine QR code."
                 )
             else:
-                # right half for test satus
+                # right half for test status
                 qr_code_areas[i] = [int(width / 2), 0, width, height]
                 logger.info(
                     f"QR code area for full scan is set to "
                     f"right half of image for test status QR code."
                 )
 
-    pre_test_qr_code_area = [
-    	int(width / 4), 0, int((width / 4) * 3), height
-    ]
+    pre_test_qr_code_area = [int(width / 4), 0, int((width / 4) * 3), height]
 
     return first_pre_test_qr_time, qr_code_areas, pre_test_qr_code_area
 
@@ -417,17 +417,17 @@ def run(
         if not input_video_path.is_file():
             raise Exception(f"Recorded file '{input_video_path}' not found")
 
-        vidcap = cv2.VideoCapture(input_video_path_str)
-        fps: float = vidcap.get(cv2.CAP_PROP_FPS)
-        width: int = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height: int = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        vid_cap = cv2.VideoCapture(input_video_path_str)
+        fps: float = vid_cap.get(cv2.CAP_PROP_FPS)
+        width: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         if input_video_files.index(input_video_path_str) == 0:
-            vidcap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
+            vid_cap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
             starting_camera_frame_number = int(first_pre_test_qr_time/1000 * fps)
 
         if fps < 1 or width <= 0 or height <= 0:
-            vidcap.release()
+            vid_cap.release()
             open(input_video_path_str, "rb")
             # File is readable but invalid.
             raise OSError(errno.EINVAL, "Video is invalid")
@@ -443,11 +443,11 @@ def run(
             )
 
             last_camera_frame_number = observation_framework.iter_qr_codes_in_video(
-                vidcap, starting_camera_frame_number, qr_code_areas
+                vid_cap, starting_camera_frame_number, qr_code_areas
             )
             starting_camera_frame_number += last_camera_frame_number
         finally:
-            vidcap.release()
+            vid_cap.release()
 
     if observation_framework:
         for input_video_path_str in input_video_files:
@@ -534,7 +534,9 @@ def main() -> None:
         default="",
         choices=["", "debug"],
     )
-    parser.add_argument("--ignore_corrupted", help="Specific condition to ignore.", default="")
+    parser.add_argument(
+        "--ignore_corrupted", help="Specific condition to ignore.", default=""
+    )
     parser.add_argument(
         "--range",
         help="Search QR codes to crop the QR code area for better detection. QR codes area detection includes mezzanine QR codes and Test Status QR code.",
@@ -614,9 +616,7 @@ def main() -> None:
         clear_up(global_configurations)
         sys.exit(1)
     except Exception as e:
-        logger.exception(
-            f"Serious error is detected! {e}: {traceback.format_exc()}"
-        )
+        logger.exception(f"Serious error is detected! {e}: {traceback.format_exc()}")
         clear_up(global_configurations)
         sys.exit(1)
 

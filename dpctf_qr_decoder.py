@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import json
 import logging
@@ -210,7 +210,7 @@ class DPCTFQrDecoder(QrDecoder):
                             camera_frame_num,
                         )
                     except Exception:
-                        logger.error(f"Unrecognised QR code detected: {data}")
+                        logger.error(f"Unrecognized QR code detected: {data}")
 
         return code
 
@@ -278,7 +278,7 @@ class DPCTFQrDecoder(QrDecoder):
                 )
             except json.decoder.JSONDecodeError as e:
                 logger.error(
-                    f"Unrecognised QR code JSON detected in '{data}'. JSON err: {e}"
+                    f"Unrecognized QR code JSON detected in '{data}'. JSON err: {e}"
                 )
 
         return code

@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
@@ -63,7 +63,7 @@ class RandomAccessToFragment(SequentialTrackPlayback):
                 ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
                 ("start_up_delay", "StartUpDelay"),
                 ("sample_matches_current_time", "SampleMatchesCurrentTime"),
-                ("unexpected_sample_not_rendered", "UnexpectSampleNotRendered"),
+                ("unexpected_sample_not_rendered", "UnexpectedSampleNotRendered"),
             ]
         else:
             self.observations = [
@@ -81,44 +81,34 @@ class RandomAccessToFragment(SequentialTrackPlayback):
         fragment_durations_parameter = content_type + "_fragment_durations"
         random_access_to_time = 0
         for i in range(self.parameters_dict["random_access_fragment"]):
-            random_access_to_time += (
-                self.parameters_dict[fragment_durations_parameter][i]
-            )
+            random_access_to_time += self.parameters_dict[fragment_durations_parameter][
+                i
+            ]
         return random_access_to_time
 
     def _get_first_frame_num(self, frame_rate: Fraction) -> int:
         """return first frame number"""
-        random_access_to_time = (
-            self._convert_random_access_fragment_to_time("video")
-        )
+        random_access_to_time = self._convert_random_access_fragment_to_time("video")
         first_frame_num = math.floor(random_access_to_time / 1000 * frame_rate + 1)
         return first_frame_num
 
     def _save_expected_video_track_duration(self) -> None:
         """save expected video cmaf track duration"""
-        random_access_to_time_ms = (
-            self._convert_random_access_fragment_to_time("video")
-        )
+        random_access_to_time_ms = self._convert_random_access_fragment_to_time("video")
         self.parameters_dict["expected_video_track_duration"] = (
-            self.parameters_dict["video_content_duration"]
-            - random_access_to_time_ms
+            self.parameters_dict["video_content_duration"] - random_access_to_time_ms
         )
 
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf track duration"""
-        random_access_to_time_ms = (
-            self._convert_random_access_fragment_to_time("audio")
-        )
+        random_access_to_time_ms = self._convert_random_access_fragment_to_time("audio")
         self.parameters_dict["expected_audio_track_duration"] = (
-            self.parameters_dict["audio_content_duration"]
-            - random_access_to_time_ms
+            self.parameters_dict["audio_content_duration"] - random_access_to_time_ms
         )
 
     def _save_audio_starting_time(self) -> None:
         """save audio starting time"""
-        random_access_to_time_ms = (
-            self._convert_random_access_fragment_to_time("audio")
-        )
+        random_access_to_time_ms = self._convert_random_access_fragment_to_time("audio")
         self.parameters_dict["audio_starting_time"] = math.floor(
             random_access_to_time_ms
         )
@@ -135,9 +125,7 @@ class RandomAccessToFragment(SequentialTrackPlayback):
         audio_segment_data = read_audio_mezzanine(
             self.global_configurations, audio_content_ids[0]
         )
-        start_media_time = (
-            self._convert_random_access_fragment_to_time("audio")
-        )
+        start_media_time = self._convert_random_access_fragment_to_time("audio")
         random_access_point = math.floor(
             start_media_time * self.parameters_dict["sample_rate"]
         )
@@ -158,9 +146,9 @@ class RandomAccessToFragment(SequentialTrackPlayback):
         """Override method to save audio data to be used in
         audio_unexpected_sample_not_rendered"""
         self.parameters_dict["audio_subject_data"] = audio_subject_data
-        self.parameters_dict[
-            "expected_audio_segment_data"
-        ] = expected_audio_segment_data
-        self.parameters_dict[
-            "unexpected_audio_segment_data"
-        ] = unexpected_audio_segment_data
+        self.parameters_dict["expected_audio_segment_data"] = (
+            expected_audio_segment_data
+        )
+        self.parameters_dict["unexpected_audio_segment_data"] = (
+            unexpected_audio_segment_data
+        )

@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import importlib
 import logging
@@ -34,9 +34,9 @@ from audio_file_reader import read_audio_mezzanine
 from configuration_parser import ConfigurationParser
 from dpctf_audio_decoder import decode_audio_segments
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+from exceptions import AudioAlignError
 from global_configurations import GlobalConfigurations
 from output_file_handler import audio_data_to_csv
-from exceptions import AudioAlignError
 
 from .test import TestContentType, TestType
 
@@ -58,7 +58,7 @@ class SequentialTrackPlayback:
     test_content_type: TestContentType
     """test type SINGLE|COMBINED"""
     global_configurations: GlobalConfigurations
-    """OF gloabal configuration"""
+    """OF global configuration"""
     observations: list
     """observations required for the test"""
     parameters: list
@@ -70,7 +70,7 @@ class SequentialTrackPlayback:
     parameters_dict: dict
     """Built dictionary of all the test_config_parameters required by this test"""
     concat_list: list
-    """List of file names that will be concatinated"""
+    """List of file names that will be concatenated"""
 
     def __init__(
         self,
@@ -88,7 +88,7 @@ class SequentialTrackPlayback:
             test_path: Test's path as read from Test Runner's tests.json.
             test_code: Test's code as read from Test Runner's tests.json.
             camera_frame_rate: Frames per second that the camera was recording at.
-            camera_frame_duration_ms: Duration of a single camera frame in msecs.
+            camera_frame_duration_ms: Duration of a single camera frame in milliseconds.
         """
         self._set_test_type()
         self._set_test_content_type()
@@ -110,12 +110,10 @@ class SequentialTrackPlayback:
         """set test type SINGLE|COMBINED"""
         self.test_content_type = TestContentType.SINGLE
 
-    def _set_content_type(
-        self, configuration_parser: ConfigurationParser
-    ) -> None:
+    def _set_content_type(self, configuration_parser: ConfigurationParser) -> None:
         """either video or audio test is determined by the linked content"""
-        self.content_type = (
-            configuration_parser.get_test_content_type(self.test_content_type)
+        self.content_type = configuration_parser.get_test_content_type(
+            self.test_content_type
         )
 
     def _init_observations(self) -> None:
@@ -165,7 +163,7 @@ class SequentialTrackPlayback:
     def _load_contents_parameters(
         self, configuration_parser: ConfigurationParser, test_path: str
     ) -> None:
-        """loads content parameters from parsing content configutation file"""
+        """loads content parameters from parsing content configuration file"""
         # set defined content_duration
         self.parameters_dict.update(
             configuration_parser.get_content_duration(
@@ -192,7 +190,7 @@ class SequentialTrackPlayback:
 
     def _get_content_type(self) -> str:
         """
-        return content tyep of the test
+        return content type of the test
             video: only video content is provided
             videoaudio: both video and audio content is provided
             audio: only audio content is provided
@@ -208,7 +206,8 @@ class SequentialTrackPlayback:
         half_frame_duration = (1000 / frame_rate) / 2
         return math.floor(
             (self.parameters_dict["video_content_duration"] + half_frame_duration)
-            / 1000 * frame_rate
+            / 1000
+            * frame_rate
         )
 
     def _get_gap_from_and_to_frames(self, _frame_rate: Fraction):
@@ -218,15 +217,15 @@ class SequentialTrackPlayback:
 
     def _save_expected_video_track_duration(self) -> None:
         """save expected video track duration"""
-        self.parameters_dict[
-            "expected_video_track_duration"
-        ] = self.parameters_dict["video_content_duration"]
+        self.parameters_dict["expected_video_track_duration"] = self.parameters_dict[
+            "video_content_duration"
+        ]
 
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio track duration"""
-        self.parameters_dict[
-            "expected_audio_track_duration"
-        ] = self.parameters_dict["audio_content_duration"]
+        self.parameters_dict["expected_audio_track_duration"] = self.parameters_dict[
+            "audio_content_duration"
+        ]
 
     def _save_audio_data(self, _unused, _unused2, _unused3) -> None:
         """Does nothing in sequential. Override methods exist in random access
@@ -245,9 +244,7 @@ class SequentialTrackPlayback:
         expected_audio_segment_data = read_audio_mezzanine(
             self.global_configurations, audio_content_ids[0]
         )
-        return (
-            0.0, [expected_audio_segment_data], []
-        )
+        return (0.0, [expected_audio_segment_data], [])
 
     def _save_audio_starting_time(self) -> None:
         """save audio starting time"""
@@ -255,15 +252,15 @@ class SequentialTrackPlayback:
 
     def _save_audio_ending_time(self) -> None:
         """save audio ending time"""
-        self.parameters_dict["audio_ending_time"] = (
-            self.parameters_dict["audio_content_duration"]
-        )
+        self.parameters_dict["audio_ending_time"] = self.parameters_dict[
+            "audio_content_duration"
+        ]
 
     def _get_audio_segments(
         self,
         audio_content_ids: list,
         audio_subject_data: list,
-        observation_data_export_file: str
+        observation_data_export_file: str,
     ) -> tuple:
         """Calculate the offset timings for an each audio segment"""
         if not audio_subject_data:
@@ -286,7 +283,7 @@ class SequentialTrackPlayback:
             sample_rate,
             audio_sample_length,
             self.global_configurations,
-            observation_data_export_file
+            observation_data_export_file,
         )
 
         self.parameters_dict["offset"] = offset
@@ -332,18 +329,18 @@ class SequentialTrackPlayback:
                 self.parameters_dict["last_frame_num"] = self._get_last_frame_num(
                     frame_rate
                 )
-                self.parameters_dict[
-                    "gap_from_and_to_frames"
-                ] = self._get_gap_from_and_to_frames(frame_rate)
+                self.parameters_dict["gap_from_and_to_frames"] = (
+                    self._get_gap_from_and_to_frames(frame_rate)
+                )
 
         if "audio" in self.content_type:
             self._save_expected_audio_track_duration()
             self.parameters_dict["test_start_time"] = test_start_time
-
             try:
                 audio_segments = self._get_audio_segments(
-                    self.parameters_dict["audio_content_ids"], audio_subject_data,
-                    observation_data_export_file
+                    self.parameters_dict["audio_content_ids"],
+                    audio_subject_data,
+                    observation_data_export_file,
                 )
             except AudioAlignError as e:
                 logger.error(f"Unable to get audio segments: {e}")

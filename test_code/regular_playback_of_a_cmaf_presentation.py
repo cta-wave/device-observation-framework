@@ -22,7 +22,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 
@@ -40,42 +40,18 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
-            (
-                "every_sample_rendered",
-                "EverySampleRendered"
-            ),
-            (
-                "audio_every_sample_rendered",
-                "AudioEverySampleRendered"
-            ),
-            (
-                "start_up_delay",
-                "StartUpDelay"
-            ),
-            (
-                "audio_start_up_delay",
-                "AudioStartUpDelay"
-            ),
-            (
-                "duration_matches_cmaf_track",
-                "DurationMatchesCMAFTrack"
-            ),
-            (
-                "audio_duration_matches_cmaf_track",
-                "AudioDurationMatchesCMAFTrack"
-            ),
-            (
-                "sample_matches_current_time",
-                "SampleMatchesCurrentTime"
-            ),
+            ("every_sample_rendered", "EverySampleRendered"),
+            ("audio_every_sample_rendered", "AudioEverySampleRendered"),
+            ("start_up_delay", "StartUpDelay"),
+            ("audio_start_up_delay", "AudioStartUpDelay"),
+            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
+            ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
             (
                 "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime"
+                "EarliestSampleSamePresentationTime",
             ),
-            (
-                "audio_video_synchronization",
-                "AudioVideoSynchronization"
-            ),
+            ("audio_video_synchronization", "AudioVideoSynchronization"),
         ]
 
     def _init_parameters(self) -> None:
@@ -89,7 +65,7 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
             "audio_sample_length",
             "audio_tolerance",
             "audio_sample_tolerance",
-            "av_sync_tolerance"
+            "av_sync_tolerance",
         ]
 
     def _set_test_content_type(self) -> None:
@@ -99,13 +75,13 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio track duration"""
         # audio should match video
-        self.parameters_dict["expected_audio_track_duration"] = (
-            self.parameters_dict["video_content_duration"]
-        )
+        self.parameters_dict["expected_audio_track_duration"] = self.parameters_dict[
+            "video_content_duration"
+        ]
 
     def _save_audio_ending_time(self) -> None:
         """save audio ending time"""
         # audio should match video
-        self.parameters_dict["audio_ending_time"] = (
-            self.parameters_dict["video_content_duration"]
-        )
+        self.parameters_dict["audio_ending_time"] = self.parameters_dict[
+            "video_content_duration"
+        ]

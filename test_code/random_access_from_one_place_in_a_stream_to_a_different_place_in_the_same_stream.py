@@ -23,7 +23,7 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
     MseAppendWindow
 ):
-
     """RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream to handle
     test random-access-from-one-place-in-a-stream-to-a-different-place-in-the-same-stream.html.
     Derived from MseAppendWindow test code. Uses same logic except start frame and duration take

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """WAVE DPCTF Audio decoder
 
-Translates the detected Audio Segemnts into AudioSegment object
+Translates the detected Audio Segments into AudioSegment object
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -22,20 +22,20 @@ notice.
 Software: WAVE Observation Framework
 License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
-Contributor: Eurofins Digital Product Testing UK Limited
+Contributor: Resillion UK Limited
 """
 import logging
 import math
 from typing import Tuple
 
-from audio_file_reader import get_time_from_segment
-from global_configurations import GlobalConfigurations
-from exceptions import AudioAlignError
-
 import matplotlib.pyplot as plt
 
+from audio_file_reader import get_time_from_segment
+from exceptions import AudioAlignError
+from global_configurations import GlobalConfigurations
+
 logger = logging.getLogger(__name__)
-logging.getLogger('matplotlib.font_manager').disabled = True
+logging.getLogger("matplotlib.font_manager").disabled = True
 
 
 class AudioSegment:
@@ -62,16 +62,19 @@ class AudioSegment:
 
 
 def get_trim_from(
-        subject_data: list, segment_data: list, observation_period: int,
-        global_configurations: GlobalConfigurations, exact: bool = False
+    subject_data: list,
+    segment_data: list,
+    observation_period: int,
+    global_configurations: GlobalConfigurations,
+    exact: bool = False,
     ) -> int:
     """
     Accepts
-    1) subjectdata: a first audio file that was presumably recorded with some dead time before the audio of interest,
-    2) segmentdata:  a segment of PN audio that should mark the end of the audio of interest,
+    1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
+    2) segment_data:  a segment of PN audio that should mark the end of the audio of interest,
     Returns: trim audio from position
-    To trim off the leading audio based on first occurance of matching segmentdata.
-    Align the archived copy of PN data (segmentdata) with the PN data in the recorded audio (subjectdata)
+    To trim off the leading audio based on first occurrence of matching segment_data.
+    Align the archived copy of PN data (segment_data) with the PN data in the recorded audio (subject_data)
     """
     alignment_count = 0
     check_count = global_configurations.get_audio_alignment_check_count()
@@ -109,8 +112,8 @@ def get_trim_from(
     # raise exception unable to align recording with PN file
     if alignment_count < 2:
         raise AudioAlignError(
-            f"Unable to align the archived copy of PN data (segmentdata) "
-            f"with the PN data in the recorded audio (subjectdata)"
+            f"Unable to align the archived copy of PN data (segment_data) "
+            f"with the PN data in the recorded audio (subject_data)"
         )
 
     trim_from = offset
@@ -121,16 +124,18 @@ def get_trim_from(
 
 
 def get_trim_to(
-        subject_data: list, segment_data: list, observation_period: int,
-        global_configurations: GlobalConfigurations
+    subject_data: list,
+    segment_data: list,
+    observation_period: int,
+    global_configurations: GlobalConfigurations,
     ) -> int:
     """
     Accepts
-    1) subjectdata: a first audio file that was presumably recorded with some dead time before the audio of interest,
-    2) segmentdata:  a segment of PN audio that should mark the end of the audio of interest,
+    1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
+    2) segment_data:  a segment of PN audio that should mark the end of the audio of interest,
     Returns: trim audio to position
-    To trim off the trailing audio based on last occurance of matching segmentdata.
-    Align the archived copy of PN data (segmentdata) with the PN data in the recorded audio (subjectdata)
+    To trim off the trailing audio based on last occurrence of matching segment_data.
+    Align the archived copy of PN data (segment_data) with the PN data in the recorded audio (subject_data)
     """
     segment_len = len(segment_data)
 
@@ -167,11 +172,11 @@ def get_trim_to(
     # raise exception unable to align recording with PN file
     if alignment_count < 2:
         raise AudioAlignError(
-            f"Unable to align the archived copy of PN data (segmentdata) "
-            f"with the PN data in the recorded audio (subjectdata)"
+            f"Unable to align the archived copy of PN data (segment_data) "
+            f"with the PN data in the recorded audio (subject_data)"
         )
 
-    # no margin added to trim_to as last segement is correctly detected
+    # no margin added to trim_to as last segment is correctly detected
     trim_to = offset
     if trim_to > len(subject_data):
         trim_to = len(subject_data)
@@ -180,37 +185,40 @@ def get_trim_to(
 
 
 def trim_audio(
-        index: int, subject_data: list, segment_data: list,
-        observation_period: int, global_configurations: GlobalConfigurations,
-        observation_data_export_file:str
+    index: int,
+    subject_data: list,
+    segment_data: list,
+    observation_period: int,
+    global_configurations: GlobalConfigurations,
+    observation_data_export_file: str,
     ) -> Tuple[list, int]:
     """
     Accepts
-    1) subjectdata: a first audio file that was presumably recorded with some dead time before the audio of interest,
-    2) segmentdata:  a segment of PN audio that should mark the end of the audio of interest,
-    Returns: a shorter copy of subjectdata with leading and trailing audio trimmed and offset of mezzanine from recording
-    prior to first occurance of segmentdata.
+    1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
+    2) segment_data:  a segment of PN audio that should mark the end of the audio of interest,
+    Returns: a shorter copy of subject_data with leading and trailing audio trimmed and offset of mezzanine from recording
+    prior to first occurrence of segment_data.
     """
-    trim_from = get_trim_from(subject_data, segment_data, observation_period, global_configurations)
-    trim_to = get_trim_to(subject_data, segment_data, observation_period, global_configurations)
+    trim_from = get_trim_from(
+        subject_data, segment_data, observation_period, global_configurations
+    )
+    trim_to = get_trim_to(
+        subject_data, segment_data, observation_period, global_configurations
+    )
     trimmed_data = subject_data[trim_from:trim_to].copy()
 
-    if (
-        logger.getEffectiveLevel() == logging.DEBUG
-        and observation_data_export_file
-    ):
+    if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
         plt.figure(index)
         plt.figure(figsize=(30,6))
         plt.xlabel("Time")
         plt.ylabel("Audio Wave")
         subject_data_file = (
-            observation_data_export_file +
-            "_subject_data_" + str(index) + ".png"
+            observation_data_export_file + "_subject_data_" + str(index) + ".png"
         )
         plt.title("subject_data")
         plt.plot(subject_data)
-        plt.axvline(x = trim_from, color = 'b')
-        plt.axvline(x = trim_to, color = 'g')
+        plt.axvline(x=trim_from, color="b")
+        plt.axvline(x=trim_to, color="g")
         plt.savefig(subject_data_file)
 
     return trimmed_data, trim_from
@@ -223,9 +231,9 @@ def decode_audio_segments(
     sample_rate: int,
     audio_sample_length: int,
     global_configurations: GlobalConfigurations,
-    observation_data_export_file: str
+    observation_data_export_file: str,
 ) -> list:
-    """Decode audio segemetn and return starting offset and audio segment data"""
+    """Decode audio segment and return starting offset and audio segment data"""
     audio_segments = []
     observation_period = sample_rate * audio_sample_length
     neighborhood = (
@@ -236,22 +244,26 @@ def decode_audio_segments(
     index = 0
     for audio_segment_data in audio_segment_data_list:
         # Trim off any leading (useless) audio prior to the watermarked portion
-        trimed_data, offset = trim_audio(
-            index, audio_subject_data, audio_segment_data,
-            observation_period, global_configurations, observation_data_export_file
+        trimmed_data, offset = trim_audio(
+            index,
+            audio_subject_data,
+            audio_segment_data,
+            observation_period,
+            global_configurations,
+            observation_data_export_file,
         )
         if not first_offset:
             first_offset = offset
 
-        trimed_data_len = len(trimed_data)
+        trimmed_data_len = len(trimmed_data)
         duration = math.floor((len(audio_segment_data)) / sample_rate)
         max_segments = math.floor(duration * sample_rate / observation_period)
         # To speed things up, only check in the expected neighborhood of the segment (e.g., +/- 500mS).
         for i in range(0, max_segments):
-            if trimed_data_len < neighborhood:
+            if trimmed_data_len < neighborhood:
                 # when too little data in recording raise exception
                 raise AudioAlignError(
-                    f"Too little valid data in recording the recorded audio (subjectdata)"
+                    f"Too little valid data in recording the recorded audio (subject_data)"
                 )
             else:
                 neighbor_start = (i * observation_period) - (neighborhood // 2)
@@ -259,26 +271,26 @@ def decode_audio_segments(
                 if neighbor_start < 0:
                     neighbor_start = 0
                     neighbor_end = neighborhood
-                if neighbor_end > trimed_data_len:
-                    neighbor_start = trimed_data_len - neighborhood
-                    neighbor_end = trimed_data_len
+                if neighbor_end > trimmed_data_len:
+                    neighbor_start = trimmed_data_len - neighborhood
+                    neighbor_end = trimmed_data_len
 
-                subjectdata = trimed_data[neighbor_start:neighbor_end]
+                subject_data = trimmed_data[neighbor_start:neighbor_end]
                 if i == max_segments - 1:
                     # if the last segment
-                    thissegment = audio_segment_data[
-                        (i * observation_period) : 
-                    ]
-                    segment_duration = len(thissegment) / sample_rate
+                    this_segment = audio_segment_data[(i * observation_period) :]
+                    segment_duration = len(this_segment) / sample_rate
                     media_time = start_media_time + i * audio_sample_length
                     start_media_time += segment_duration - audio_sample_length
                 else:
-                    thissegment = audio_segment_data[
+                    this_segment = audio_segment_data[
                         (i * observation_period) : ((i + 1) * observation_period)
                     ]
-                    segment_duration = len(thissegment) / sample_rate
+                    segment_duration = len(this_segment) / sample_rate
                     media_time = start_media_time + i * audio_sample_length
-                segment_time = get_time_from_segment(subjectdata, thissegment) + neighbor_start
+                segment_time = (
+                    get_time_from_segment(subject_data, this_segment) + neighbor_start
+                )
                 segment_time_in_ms = (segment_time + offset) / sample_rate
 
             # content ID is index of splicing points starts from 0
