@@ -88,7 +88,7 @@ class RenderingDelayWithinThreshold(Observation):
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """Implements the logic:
         render_delay = (QRa.first_camera_frame_num * camera_frame_duration_ms)
             - ((event.camera_frame_num * camera_frame_duration_ms) - d)
@@ -111,7 +111,7 @@ class RenderingDelayWithinThreshold(Observation):
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         render_threshold = parameters_dict["render_threshold"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
@@ -143,4 +143,4 @@ class RenderingDelayWithinThreshold(Observation):
                 self.result["status"] = "FAIL"
 
         logger.debug(f"[{self.result['status']}] {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

@@ -56,7 +56,7 @@ class EarliestSampleSamePresentationTime(Observation):
         test_status_qr_codes: List[TestStatusDecodedQr],
         _parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """Observation is derived from SampleMatchesCurrentTime and uses the same observations logic
         But it checks for the 1st event only.
         """
@@ -68,7 +68,7 @@ class EarliestSampleSamePresentationTime(Observation):
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         # Compare video presentation time with HTML reported presentation time
         starting_ct = None
@@ -85,7 +85,7 @@ class EarliestSampleSamePresentationTime(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = f"HTML starting presentation time is not found."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         video_result = False
         video_frame_duration = round(1000 / mezzanine_qr_codes[0].frame_rate)
@@ -108,7 +108,7 @@ class EarliestSampleSamePresentationTime(Observation):
                 self.result["status"] = "NOT_RUN"
                 self.result["message"] += " No audio segment is detected."
                 logger.info(f"[{self.result['status']}] {self.result['message']}")
-                return self.result, []
+                return self.result, [], []
 
             earliest_audio_media_time = audio_segments[0].media_time
 
@@ -121,4 +121,4 @@ class EarliestSampleSamePresentationTime(Observation):
             ] += f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

@@ -46,6 +46,23 @@ class StartUpDelay(Observation):
             "[OF] Video start-up delay: The start-up delay should be sufficiently low."
         )
 
+    def _get_additional_tolerance(self, parameters_dict: dict) -> float:
+        """ Get additional tolerance for random_access_time test"""
+        additional_tolerance = 0
+        if "random_access_time" in parameters_dict:
+            random_access_to_time = parameters_dict["random_access_time"] * 1000
+            for i in range(0, len(parameters_dict["video_fragment_durations"]) - 1):
+                random_access_to_time -= (
+                    parameters_dict["video_fragment_durations"][i]
+                )
+                if (
+                    random_access_to_time <
+                    parameters_dict["video_fragment_durations"][i + 1]
+                ):
+                    break
+            additional_tolerance = random_access_to_time
+        return additional_tolerance
+
     def make_observation(
         self,
         test_type,
@@ -54,7 +71,7 @@ class StartUpDelay(Observation):
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """Implements the logic:
         start_up_delay = (QRa.first_camera_frame_num * camera_frame_duration_ms)
             - ((play_event.camera_frame_num * camera_frame_duration_ms) - d)
@@ -84,9 +101,11 @@ class StartUpDelay(Observation):
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
-        max_permitted_startup_delay_ms = parameters_dict["ts_max"]
+        max_permitted_startup_delay_ms = (
+            parameters_dict["ts_max"] + self._get_additional_tolerance(parameters_dict)
+        )
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
 
         if test_type == TestType.TRUNCATED:
@@ -100,7 +119,7 @@ class StartUpDelay(Observation):
                     f" Truncated test should change presentation once. "
                     f"Actual presentation change is {len(content_starting_index_list) - 1}."
                 )
-                return self.result, []
+                return self.result, [], []
 
             # only check the 2nd presentation start up delay
             mezzanine_qr_codes = mezzanine_qr_codes[content_starting_index_list[1] :]
@@ -143,4 +162,4 @@ class StartUpDelay(Observation):
                 self.result["status"] = "FAIL"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

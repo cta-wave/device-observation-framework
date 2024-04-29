@@ -234,7 +234,7 @@ class AudioEverySampleRendered(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], List[AudioSegment]]:
+    ) -> Tuple[Dict[str, str], List[AudioSegment], list]:
         """
         make_observation for different test type
 
@@ -251,7 +251,7 @@ class AudioEverySampleRendered(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         start_segment_num_tolerance = self.tolerances["start_segment_num_tolerance"]
         end_segment_num_tolerance = self.tolerances["end_segment_num_tolerance"]
@@ -341,4 +341,4 @@ class AudioEverySampleRendered(Observation):
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
 
-        return self.result, updated_audio_segments
+        return self.result, updated_audio_segments, []

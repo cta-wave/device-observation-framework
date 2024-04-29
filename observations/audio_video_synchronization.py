@@ -171,7 +171,7 @@ class AudioVideoSynchronization(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         observation_data_export_file: str,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """make observation
 
         Args:
@@ -190,13 +190,13 @@ class AudioVideoSynchronization(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No mezzanine QR code is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         audio_offsets = []
         video_offsets = []
@@ -271,4 +271,4 @@ class AudioVideoSynchronization(Observation):
         )
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

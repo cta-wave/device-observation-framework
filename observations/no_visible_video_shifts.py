@@ -191,7 +191,7 @@ class NoVisibleVideoShifts(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """
         make_observation for video only observation
 
@@ -216,7 +216,7 @@ class NoVisibleVideoShifts(Observation):
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         switching_points = Observation.get_playback_change_position(mezzanine_qr_codes)
         shift_tolerance = parameters_dict["video_shifts_tolerance"]
@@ -263,4 +263,4 @@ class NoVisibleVideoShifts(Observation):
             self.result["status"] = "PASS"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

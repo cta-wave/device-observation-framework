@@ -64,6 +64,7 @@ class SampleMatchesCurrentTime(Observation):
         camera_frame_duration_ms: float,
         camera_frame_rate: float,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
+        allowed_tolerance: float,
         ct_frame_tolerance: int,
     ) -> Tuple[float, float]:
         """Calculate expected target camera frame numbers of the current time event
@@ -96,7 +97,7 @@ class SampleMatchesCurrentTime(Observation):
 
         sample_tolerance_in_recording = (
             ct_frame_tolerance * camera_frame_rate / mezzanine_frame_rate
-        )
+        ) + allowed_tolerance
         first_possible = (
             target_camera_frame_num
             - CAMERA_FRAME_ADJUSTMENT
@@ -173,7 +174,7 @@ class SampleMatchesCurrentTime(Observation):
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         observation_data_export_file: str,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """Implements the logic:
         sample_tolerance_in_recording = ct_frame_tolerance * 1000/mezzanine_frame_rate/(1000/camera_frame_rate)
             = ct_frame_tolerance * camera_frame_rate/mezzanine_frame_rate
@@ -197,7 +198,7 @@ class SampleMatchesCurrentTime(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = f"No QR mezzanine code detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
@@ -233,7 +234,7 @@ class SampleMatchesCurrentTime(Observation):
                     f"Actual number of change is {actual_change_num}. "
                 )
                 logger.info(f"[{self.result['status']}] {self.result['message']}")
-                return self.result, []
+                return self.result, [], []
 
             period_index = 0
             change_count = 0
@@ -279,6 +280,7 @@ class SampleMatchesCurrentTime(Observation):
                         camera_frame_duration_ms,
                         camera_frame_rate,
                         mezzanine_qr_codes,
+                        allowed_tolerance,
                         ct_frame_tolerance,
                     )
                     result, time_diff = (
@@ -339,4 +341,4 @@ class SampleMatchesCurrentTime(Observation):
                 time_differences,
             )
 
-        return self.result, []
+        return self.result, [], []

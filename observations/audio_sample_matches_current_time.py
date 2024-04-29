@@ -197,7 +197,7 @@ class AudioSampleMatchesCurrentTime(Observation):
         test_status_qr_codes: List[TestStatusDecodedQr],
         parameters_dict: dict,
         observation_data_export_file: str,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """make observation"""
         logger.info(f"Making observation {self.result['name']}...")
 
@@ -205,7 +205,7 @@ class AudioSampleMatchesCurrentTime(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         (
             failure_report_count,
@@ -231,4 +231,4 @@ class AudioSampleMatchesCurrentTime(Observation):
             )
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

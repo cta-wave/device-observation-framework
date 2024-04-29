@@ -51,6 +51,9 @@ class EverySampleRendered(Observation):
     mid_missing_frame_count: int
     """mid missing frame count not include frame missing at start and end and
     when contents switches"""
+    mid_missing_frame_duration: list
+    """sum of all mid missing frame duration for
+    presentation one and presentation two"""
 
     def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
         if name is None:
@@ -61,6 +64,7 @@ class EverySampleRendered(Observation):
         super().__init__(name, global_configurations)
         self.missing_frame_count = 0
         self.mid_missing_frame_count = 0
+        self.mid_missing_frame_duration = [0, 0]
 
     def _check_first_frame(
         self, first_frame_num: int, first_qr_code: MezzanineDecodedQr
@@ -124,6 +128,7 @@ class EverySampleRendered(Observation):
         self,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         playout_no: Optional[int] = None,
+        presentation_id: int = 1,
     ) -> bool:
         """Check all intervening frames. All frames must be present and in ascending order,
         except a mid_frame_num_tolerance of missing frames is allowed.
@@ -174,6 +179,14 @@ class EverySampleRendered(Observation):
                 missing_frames.remove(out_of_order_frame)
 
         self.mid_missing_frame_count += len(missing_frames)
+        if missing_frames and len(mezzanine_qr_codes) > 0:
+            missing_frame_duration = (
+                len(missing_frames) * 1000 / mezzanine_qr_codes[0].frame_rate
+            )
+            if presentation_id == 1:
+                self.mid_missing_frame_duration[0] += missing_frame_duration
+            else:
+                self.mid_missing_frame_duration[1] += missing_frame_duration
         self.missing_frame_count += len(missing_frames)
 
         if missing_frames:
@@ -218,6 +231,7 @@ class EverySampleRendered(Observation):
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         change_index_list: List[int],
         playout_sequence: List[int],
+        presentation_id: int = 1,
     ) -> bool:
         """check mid frames for block by block
         each block is different track
@@ -227,12 +241,16 @@ class EverySampleRendered(Observation):
             if starting_index == change_index_list[-1]:
                 # check mid frames for last block
                 mid_frame_result = mid_frame_result and self._check_every_frame(
-                    mezzanine_qr_codes[change_index_list[-1] :], playout_sequence[-1]
+                    mezzanine_qr_codes[change_index_list[-1] :],
+                    playout_sequence[-1],
+                    presentation_id
                 )
             else:
                 last_index = change_index_list[i + 1] - 1
                 mid_frame_result = mid_frame_result and self._check_every_frame(
-                    mezzanine_qr_codes[starting_index:last_index], playout_sequence[i]
+                    mezzanine_qr_codes[starting_index:last_index],
+                    playout_sequence[i],
+                    presentation_id
                 )
 
         return mid_frame_result
@@ -681,7 +699,7 @@ class EverySampleRendered(Observation):
         # check mid frames block by block
         playout_sequence = PlayoutParser.get_playout_sequence(first_playout)
         mid_frame_result_1 = self.check_every_frame_by_block(
-            mezzanine_qr_codes_1, change_switching_index_list, playout_sequence
+            mezzanine_qr_codes_1, change_switching_index_list, playout_sequence, 1
         )
         for i, starting_index in enumerate(change_switching_index_list):
             if i > 0:
@@ -809,7 +827,7 @@ class EverySampleRendered(Observation):
         # check mid frames block by block
         playout_sequence = PlayoutParser.get_playout_sequence(second_playout)
         mid_frame_result_2 = self.check_every_frame_by_block(
-            mezzanine_qr_codes_2, change_switching_index_list, playout_sequence
+            mezzanine_qr_codes_2, change_switching_index_list, playout_sequence, 2
         )
         for i, starting_index in enumerate(change_switching_index_list):
             if i > 0:
@@ -872,7 +890,7 @@ class EverySampleRendered(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """
         make_observation for different test type
 
@@ -900,7 +918,7 @@ class EverySampleRendered(Observation):
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         first_frame_result = self._check_first_frame(
             parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
@@ -949,4 +967,4 @@ class EverySampleRendered(Observation):
             self.result["status"] = "FAIL"
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], self.mid_missing_frame_duration

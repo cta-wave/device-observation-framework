@@ -54,7 +54,7 @@ class UnexpectedSampleNotRendered(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """
         Args:
             _unused
@@ -73,7 +73,7 @@ class UnexpectedSampleNotRendered(Observation):
             self.result["status"] = "PASS"
             self.result["message"] += "No unexpected frames were rendered."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         first_frame_num = parameters_dict["first_frame_num"]
         unexpected_frame_counter = 0
@@ -98,4 +98,4 @@ class UnexpectedSampleNotRendered(Observation):
             ] += f"Total unexpected frames rendered: {unexpected_frame_counter}."
 
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []

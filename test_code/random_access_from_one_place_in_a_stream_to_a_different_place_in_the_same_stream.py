@@ -69,18 +69,6 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
         )
         return [random_access_from_frame, random_access_to_frame]
 
-    def _save_expected_video_track_duration(self) -> None:
-        """save expected video cmaf track duration"""
-        video_cmaf_track_duration_ms = self.parameters_dict["video_content_duration"]
-        random_access_from_ms = self.parameters_dict["random_access_from"] * 1000
-        random_access_to_ms = self.parameters_dict["random_access_to"] * 1000
-        expected_video_track_duration = random_access_from_ms + (
-            video_cmaf_track_duration_ms - random_access_to_ms
-        )
-        self.parameters_dict[
-            "expected_video_track_duration"
-        ] = expected_video_track_duration
-
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf track duration"""
         # Audio observation not in scope

@@ -319,6 +319,8 @@ class SequentialTrackPlayback:
         results = []
         audio_segments = []
         self.concat_list = []
+        self.parameters_dict["mid_missing_frame_duration"] = []
+
         if "video" in self.content_type:
             self._save_expected_video_track_duration()
             if mezzanine_qr_codes:
@@ -361,7 +363,8 @@ class SequentialTrackPlayback:
                 observation[1],
             )(self.global_configurations)
 
-            result, updated_audio_segments = observation_class.make_observation(
+            result, updated_audio_segments, mid_missing_frame_duration = (
+                observation_class.make_observation(
                 self.test_type,
                 mezzanine_qr_codes,
                 audio_segments,
@@ -369,6 +372,12 @@ class SequentialTrackPlayback:
                 self.parameters_dict,
                 observation_data_export_file,
             )
+            )
+            # update mid_missing_frame_duration to use it on duration check
+            if mid_missing_frame_duration:
+                self.parameters_dict["mid_missing_frame_duration"] = (
+                    mid_missing_frame_duration
+                )
             # update audio segment to remove out of order segments
             if updated_audio_segments:
                 audio_segments = updated_audio_segments

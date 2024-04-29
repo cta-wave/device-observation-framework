@@ -71,7 +71,7 @@ class AudioDurationMatchesCMAFTrack(Observation):
         _test_status_qr_codes,
         parameters_dict: dict,
         _observation_data_export_file,
-    ) -> Tuple[Dict[str, str], list]:
+    ) -> Tuple[Dict[str, str], list, list]:
         """make observations"""
         logger.info(f"Making observation {self.result['name']}...")
 
@@ -79,7 +79,7 @@ class AudioDurationMatchesCMAFTrack(Observation):
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
             logger.info(f"[{self.result['status']}] {self.result['message']}")
-            return self.result, []
+            return self.result, [], []
 
         detected_audio_duration = (
             audio_segments[-1].audio_segment_timing
@@ -108,7 +108,7 @@ class AudioDurationMatchesCMAFTrack(Observation):
                 f"Detected duration is {detected_audio_duration}ms, "
                 "the duration can not be negative."
             )
-            return self.result
+            return self.result, [], []
 
         # checking if the time difference is greater than the tolerance
         if time_difference > tolerance:
@@ -128,4 +128,4 @@ class AudioDurationMatchesCMAFTrack(Observation):
                 f"Allowed tolerance is {tolerance}ms."
             )
         logger.debug(f"[{self.result['status']}]: {self.result['message']}")
-        return self.result, []
+        return self.result, [], []
