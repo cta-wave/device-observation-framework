@@ -279,7 +279,7 @@ class EverySampleRendered(Observation):
             frag_id = playout[i][2]
             switching_position += fragment_duration_multi_reps[(rep_id, frag_id)]
             # when track change
-            previous_rep_id = playout[i-1][1]
+            previous_rep_id = playout[i - 1][1]
             if rep_id != previous_rep_id:
                 switching_positions.append(switching_position)
 
@@ -537,7 +537,7 @@ class EverySampleRendered(Observation):
                 break
 
         # reverse search to get the start_index of gap_to_frame
-        for x in range(len(mezzanine_qr_codes) - 1, 0, -1):
+        for x in range(len(mezzanine_qr_codes) -1, 0, -1):
             if mezzanine_qr_codes[x].frame_number < gap_to_frame:
                 start_index = x + 1
                 break

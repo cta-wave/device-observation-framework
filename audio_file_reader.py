@@ -104,7 +104,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
         logger.info(
             f"Extracting audio from '{video_file}' and save it to a wav file..."
         )
-        result =subprocess.call(
+        result = subprocess.call(
             ["ffmpeg", "-y", "-i", video_file, audio_file_name],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
@@ -137,10 +137,10 @@ def _check_hash(file_name: str) -> bool:
     These are Lch only version from PN build 2, should match hash via http://onlinemd5.com/
     """
     # define hashes for audio mezzanine extracted from json files located in the audio mezzanine folder
-    hash_dict ={}
+    hash_dict = {}
     content_list = os.listdir("audio_mezzanine/")
     count = sum(item.count("wav") for item in content_list)
-    for i in range(1,count+1):
+    for i in range(1, count + 1):
         temp = open(f"audio_mezzanine/PN0{i}.json", encoding="utf-8")
         temp_data = json.load(temp)
         name = temp_data["Mezzanine"]["name"]
@@ -148,7 +148,7 @@ def _check_hash(file_name: str) -> bool:
         temp.close()
     temp_name1 = file_name.split("/")[2]
     file_name_pn = temp_name1.split(".")[0]
-    
+
     # Read and update hash in chunks of 4K
     md5_hash = hashlib.md5()
     with open(file_name, "rb") as file:
@@ -271,8 +271,8 @@ def _check_audio_recording(subject_file: str):
 
 
 def read_audio_recording(
-        subject_file: str, test_start_time: float, test_finish_time: float
-    ) -> list:
+    subject_file: str, test_start_time: float, test_finish_time: float
+) -> list:
     """
     Read recorded audio file.
     Open the PN sequence file (archived pseudo noise sequence in audio format),

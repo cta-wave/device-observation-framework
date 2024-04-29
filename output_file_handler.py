@@ -172,7 +172,7 @@ def audio_data_to_csv(file_name: str, data: List[AudioSegment], parameters_dict:
         audio_segment_timings.append(audio_segment.audio_segment_timing)
 
     plt.figure(0)
-    plt.figure(figsize=(20,15))
+    plt.figure(figsize=(20, 15))
     plt.xlabel("Segment Number")
     plt.ylabel("Detected Position")
     plt.title("Detected Audio Segments")

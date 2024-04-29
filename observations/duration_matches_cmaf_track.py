@@ -145,13 +145,13 @@ class DurationMatchesCMAFTrack(Observation):
         # adjust expected track duration based on the starting missing frames
         starting_missing_frame = self._get_starting_missing_frame(
             parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
-                )
+        )
         expected_track_duration -= starting_missing_frame * first_frame_duration
 
         # adjust expected track duration based on the ending missing frames
         ending_missing_frame = self._get_ending_missing_frame(
             parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
-                )
+        )
         expected_track_duration -= ending_missing_frame * last_frame_duration
 
         # playback duration get measured from the 2nd detected frame
@@ -217,16 +217,16 @@ class DurationMatchesCMAFTrack(Observation):
         last_frame_duration = 1000 / mezzanine_qr_codes[-1].frame_rate
 
         # adjust expected track duration based on the starting missing frames
-            starting_missing_frame = self._get_starting_missing_frame(
-                parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
-            )
-            expected_track_duration -= starting_missing_frame * first_frame_duration
+        starting_missing_frame = self._get_starting_missing_frame(
+            parameters_dict["first_frame_num"], mezzanine_qr_codes[0]
+        )
+        expected_track_duration -= starting_missing_frame * first_frame_duration
 
         # adjust expected track duration based on the ending missing frames
-            ending_missing_frame = self._get_ending_missing_frame(
-                parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
-            )
-            expected_track_duration -= ending_missing_frame * last_frame_duration
+        ending_missing_frame = self._get_ending_missing_frame(
+            parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
+        )
+        expected_track_duration -= ending_missing_frame * last_frame_duration
 
         # waiting in playback
         if waiting_frame > 1 and waiting_frame < len(mezzanine_qr_codes) - 1:
@@ -275,42 +275,42 @@ class DurationMatchesCMAFTrack(Observation):
                     duration_diff - mid_missing_frame_duration
                 )
                 if adjusted_duration_diff > total_tolerance_duration:
-                result = False
-                self.result["message"] += (
+                    result = False
+                    self.result["message"] += (
                         f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
                         f"{round(expected_track_duration, 2)}ms +/- tolerance of {duration_tolerance}ms. "
                         f"Detected duration is different by {round(duration_diff, 2)}ms. "
                         f"Mid missing frame duration is {round(mid_missing_frame_duration, 2)}ms. "
-                )
-            else:
-                result = True
-                self.result["message"] += (
+                    )
+                else:
+                    result = True
+                    self.result["message"] += (
                         f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
                         f"{round(expected_track_duration, 2)}ms. "
                         f"Detected duration is different by {round(duration_diff, 2)}ms. "
                         f"The media timeline is not preserved for mid missing frames and "
                         f"{round(mid_missing_frame_duration, 2)}ms duration is dropped from the media timeline."
-                )
-        else:
+                    )
+            else:
                 result = False
                 self.result["message"] += (
                     f"Playback duration {round(playback_duration, 2)}ms does not match expected duration "
                     f"{round(expected_track_duration, 2)}ms +/- tolerance of {duration_tolerance}ms. "
                     f"Detected duration is different by {round(duration_diff, 2)}ms."
                 )
-            else:
-                result = True
-                self.result["message"] += (
-                    f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
-                    f"{round(expected_track_duration, 2)}ms. "
-                    f"Detected duration is different by {round(duration_diff, 2)}ms."
-                )
-
+        else:
+            result = True
             self.result["message"] += (
-            f" Allowed tolerance is {duration_tolerance}ms and duration frame tolerance is {duration_frame_tolerance}."
-                f" Starting missing frame number is {starting_missing_frame}."
-            f" Ending missing frame number is {ending_missing_frame}."
+                f"Playback duration is {round(playback_duration, 2)}ms, expected track duration is "
+                f"{round(expected_track_duration, 2)}ms. "
+                f"Detected duration is different by {round(duration_diff, 2)}ms."
             )
+
+        self.result["message"] += (
+            f" Allowed tolerance is {duration_tolerance}ms and duration frame tolerance is {duration_frame_tolerance}."
+            f" Starting missing frame number is {starting_missing_frame}."
+            f" Ending missing frame number is {ending_missing_frame}."
+        )
         if "mse_reset_tolerance" in parameters_dict:
             additional_tolerance = parameters_dict["mse_reset_tolerance"]
             self.result[

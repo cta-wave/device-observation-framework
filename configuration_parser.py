@@ -95,7 +95,7 @@ class ConfigurationParser:
         return switchingset_config
 
     def get_content_duration(self, test_path: str, content_type: str) -> dict:
-        """get content durations from segment timeline or 
+        """get content durations from segment timeline or
         from cmaf track durations when segment timeline not defined"""
         results = {}
         if "video" in content_type:
@@ -120,21 +120,21 @@ class ConfigurationParser:
                 segment_timeline, timescale
             )
         else:
-            # when segment_timelines or timescales not defined 
+            # when segment_timelines or timescales not defined
             # get the duration from the CMAF track duration
             track_duration = self._get_cmaf_track_duration(test_path, content_type)
         return {parameter: track_duration}
 
     def _calculate_track_duration_from_timeline(
-            self, segment_timeline: list, timescale: int
-        ) -> float:
+        self, segment_timeline: list, timescale: int
+    ) -> float:
         """Calculate content duration in ms from timeline and timescale"""
         # Note: not parsing t we assume for 1st timeline t is always 0 and for others t not present
         total_duration = 0
         for segment in segment_timeline:
             # parse repeat r:repeat default is 1
             repeat = 1
-            try: 
+            try:
                 repeat += segment["r"]
             except KeyError:
                 repeat = 1
@@ -248,14 +248,14 @@ class ConfigurationParser:
                     self._get_fragment_duration_multi_contents("audio", test_path)
                 )
         elif test_type == TestType.SWITCHING:
-             if "video" in content_type:
-                 results.update(
-                     self._get_fragment_duration_multi_reps("video", test_path)
-                 )
-             if "audio" in content_type:
-                 results.update(
+            if "video" in content_type:
+                results.update(
+                    self._get_fragment_duration_multi_reps("video", test_path)
+                )
+            if "audio" in content_type:
+                results.update(
                     self._get_fragment_duration_multi_reps("audio", test_path)
-                 )
+                )
         else:
             if "video" in content_type:
                 results.update(self._get_fragment_duration("video", test_path))
@@ -282,7 +282,7 @@ class ConfigurationParser:
             fragment_durations = self._get_fragment_duration_from_mpd(
                 content_type, test_path
             )
-        return {parameter: fragment_durations} 
+        return {parameter: fragment_durations}
 
     def _convert_timeline_to_fragment_duration_list(
         self, segment_timeline: list, timescale: int
@@ -302,17 +302,17 @@ class ConfigurationParser:
         return fragment_durations
 
     def _get_fragment_durations_from_timeline(
-            self, representation: dict, segment_timeline: list, timescale: int
-        ) -> list:
+        self, representation: dict, segment_timeline: list, timescale: int
+    ) -> list:
         """read fragment_durations from timeline and timescale"""
         fragment_durations = []
         try:
             if not representation["segmentTimeline"] or not representation["timescale"]:
                 raise TypeError
-            #use own representation_segmentTimeline:
+            # use own representation_segmentTimeline:
             fragment_durations = self._convert_timeline_to_fragment_duration_list(
-                    representation["segmentTimeline"], representation["timescale"]
-                )
+                representation["segmentTimeline"], representation["timescale"]
+            )
         except (TypeError, KeyError):
             fragment_durations = self._convert_timeline_to_fragment_duration_list(
                 segment_timeline, timescale
@@ -462,7 +462,7 @@ class ConfigurationParser:
         self, parameters: list, test_path: str, test_code: str
     ) -> dict:
         """Parse shared configurations between test runner and observation framework
-        Such as tolerances. Which are defined in 'test-config.json' file. """
+        Such as tolerances. Which are defined in 'test-config.json' file."""
         parameters_dict = {}
         for parameter in parameters:
             try:

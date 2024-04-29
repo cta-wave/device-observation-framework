@@ -199,8 +199,8 @@ class ObservationFrameworkProcessor:
         self.input_audio_path_list = []
 
     def extract_audio(
-            self, input_video_path_str: str, starting_camera_frame_number: int
-        ):
+        self, input_video_path_str: str, starting_camera_frame_number: int
+    ):
         """
         Extract audio to a wav file and save file name in string
         and starting camera frame number
@@ -211,12 +211,12 @@ class ObservationFrameworkProcessor:
         )
 
     def sort_new_mezzanine(
-            self, new_mezzanine_qr_codes: List[DecodedQr]
-        ) -> List[DecodedQr]:
+        self, new_mezzanine_qr_codes: List[DecodedQr]
+    ) -> List[DecodedQr]:
         """
         sort newly detected mezzanine QR codes on same image
         to avoid false out of order detection.
-        sort by frame number if content not changed, 
+        sort by frame number if content not changed,
         else same content appended first.
         """
         if self.mezzanine_qr_codes:
@@ -281,7 +281,7 @@ class ObservationFrameworkProcessor:
                         self.mezzanine_qr_codes[index].location = [
                             self.mezzanine_qr_codes[index].location[x]
                             + detected_code.location[x]
-                            for x in range (len (detected_code.location))
+                            for x in range(len(detected_code.location))
                         ]
 
                         # increment detection count
@@ -386,7 +386,7 @@ class ObservationFrameworkProcessor:
                     (
                         self.last_end_of_test_camera_frame_num
                         - starting_camera_frame_number
-                )
+                    )
                     * self.camera_frame_duration_ms
                 ) + TEST_FINISH_DELAY
                 audio_subject_data = read_audio_recording(
@@ -587,7 +587,7 @@ class ObservationFrameworkProcessor:
     def check_timeout(
         self, last_frame_num: int, current_frame_num: int, timeout: int
     ) -> bool:
-        """check timeout and log error message when timedout
+        """check timeout and log error message when timed out
         this is used to detect end of session:
             timeout after the last status=finished is received until the next pre-test QR code
             and idle time when there is no QR code detected
@@ -599,7 +599,7 @@ class ObservationFrameworkProcessor:
             timeout: configured timeout in seconds from config.ini
 
         Return:
-            True: when timedout
+            True: when timed out
         """
         result = False
 

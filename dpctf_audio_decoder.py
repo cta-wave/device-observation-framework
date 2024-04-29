@@ -67,7 +67,7 @@ def get_trim_from(
     observation_period: int,
     global_configurations: GlobalConfigurations,
     exact: bool = False,
-    ) -> int:
+) -> int:
     """
     Accepts
     1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
@@ -78,17 +78,17 @@ def get_trim_from(
     """
     alignment_count = 0
     check_count = global_configurations.get_audio_alignment_check_count()
-    for count in range (0, check_count):
+    for count in range(0, check_count):
         alignment_count = 0
         # Checking if last 3 segments are aligned within the tolerance of segment duration.
         segments_to_check = count + 2
         for i in range(count, segments_to_check):
-            segment_data_1_start = observation_period*(i)
-            segment_data_1_end = observation_period*(i + 1)
+            segment_data_1_start = observation_period * (i)
+            segment_data_1_end = observation_period * (i + 1)
             segment_data_1 = segment_data[segment_data_1_start:segment_data_1_end]
 
-            segment_data_2_start = observation_period*(i + 1)
-            segment_data_2_end = observation_period*(i + 2)
+            segment_data_2_start = observation_period * (i + 1)
+            segment_data_2_end = observation_period * (i + 2)
             segment_data_2 = segment_data[segment_data_2_start:segment_data_2_end]
 
             offset1 = get_time_from_segment(subject_data, segment_data_1)
@@ -128,7 +128,7 @@ def get_trim_to(
     segment_data: list,
     observation_period: int,
     global_configurations: GlobalConfigurations,
-    ) -> int:
+) -> int:
     """
     Accepts
     1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
@@ -141,17 +141,17 @@ def get_trim_to(
 
     alignment_count = 0
     check_count = global_configurations.get_audio_alignment_check_count() + 1
-    for count in range (1, check_count):
+    for count in range(1, check_count):
         alignment_count = 0
         # Checking if last 3 segments are aligned within the tolerance of segment duration.
         segments_to_check = count + 2
         for i in range(count, segments_to_check):
-            segment_data_1_start = segment_len-(observation_period*i)
-            segment_data_1_end = segment_len-(observation_period*(i-1))
+            segment_data_1_start = segment_len - (observation_period * i)
+            segment_data_1_end = segment_len - (observation_period * (i - 1))
             segment_data_1 = segment_data[segment_data_1_start:segment_data_1_end]
 
-            segment_data_2_start = segment_len-(observation_period*(i+1))
-            segment_data_2_end = segment_len-(observation_period*i)
+            segment_data_2_start = segment_len - (observation_period * (i + 1))
+            segment_data_2_end = segment_len - (observation_period * i)
             segment_data_2 = segment_data[segment_data_2_start:segment_data_2_end]
 
             offset1 = get_time_from_segment(subject_data, segment_data_1)
@@ -191,7 +191,7 @@ def trim_audio(
     observation_period: int,
     global_configurations: GlobalConfigurations,
     observation_data_export_file: str,
-    ) -> Tuple[list, int]:
+) -> Tuple[list, int]:
     """
     Accepts
     1) subject_data: a first audio file that was presumably recorded with some dead time before the audio of interest,
@@ -209,7 +209,7 @@ def trim_audio(
 
     if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
         plt.figure(index)
-        plt.figure(figsize=(30,6))
+        plt.figure(figsize=(30, 6))
         plt.xlabel("Time")
         plt.ylabel("Audio Wave")
         subject_data_file = (

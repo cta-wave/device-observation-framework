@@ -160,7 +160,7 @@ def iter_to_get_qr_area(
             if (
                 isinstance(detected_code, PreTestDecodedQr)
                 and not first_pre_test_found
-                and starting_frame==0
+                and starting_frame == 0
             ):
                 first_pre_test_qr_time = capture_frame_num / camera_frame_rate * 1000
                 first_pre_test_found = True
@@ -377,7 +377,7 @@ def run(
     file_index = 0
     qr_search_range = global_configurations.get_qr_search_range()
     if qr_search_range:
-        file_index  = qr_search_range[0]
+        file_index = qr_search_range[0]
     starting_camera_frame_number = 0
 
     logger.info(f"Device Observation Framework (V{VERSION}) analysis started!")
@@ -409,7 +409,7 @@ def run(
         logger.info(
             f"Additional QR code scan with roughly cropped area {qr_code_areas[2]} for pre-test QR code is enabled."
         )
-    for i in range (0, len(input_video_files)):
+    for i in range(0, len(input_video_files)):
         input_video_path_str = input_video_files[i]
         logger.info(f"Analysing '{input_video_path_str}'...")
 
@@ -424,7 +424,7 @@ def run(
 
         if input_video_files.index(input_video_path_str) == 0:
             vid_cap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
-            starting_camera_frame_number = int(first_pre_test_qr_time/1000 * fps)
+            starting_camera_frame_number = int(first_pre_test_qr_time / 1000 * fps)
 
         if fps < 1 or width <= 0 or height <= 0:
             vid_cap.release()

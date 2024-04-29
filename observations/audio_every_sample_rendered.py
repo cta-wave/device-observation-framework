@@ -144,13 +144,13 @@ class AudioEverySampleRendered(Observation):
         in_line_with_previous_segment = False
         if i > 0:
             in_line_with_previous_segment = self._check_in_line_with_previous(
-                audio_segments[i], audio_segments[i-1], parameters_dict
+                audio_segments[i], audio_segments[i - 1], parameters_dict
             )
         # check current segment is in line with next segment
         in_line_with_next_segment = False
         if i < len(audio_segments) - 1:
             in_line_with_next_segment = self._check_in_line_with_next(
-                audio_segments[i], audio_segments[i+1], parameters_dict
+                audio_segments[i], audio_segments[i + 1], parameters_dict
             )
         if not in_line_with_previous_segment and not in_line_with_next_segment:
             return False
@@ -164,7 +164,7 @@ class AudioEverySampleRendered(Observation):
             in_line_with_previous_segment_2 = True
             if i > 1:
                 in_line_with_previous_segment_2 = self._check_in_line_with_previous(
-                    audio_segments[i-1], audio_segments[i-2], parameters_dict
+                    audio_segments[i - 1], audio_segments[i - 2], parameters_dict
                 )
             return in_line_with_previous_segment_2
         elif in_line_with_next_segment:
@@ -173,7 +173,7 @@ class AudioEverySampleRendered(Observation):
             in_line_with_next_segment_2 = True
             if i < len(audio_segments) - 2:
                 in_line_with_next_segment_2 = self._check_in_line_with_next(
-                    audio_segments[i+1], audio_segments[i+2], parameters_dict
+                    audio_segments[i + 1], audio_segments[i + 2], parameters_dict
                 )
             return in_line_with_next_segment_2
 

@@ -181,7 +181,7 @@ When new tests are added to the **dcptf-tests** repository, support for these wi
 The scale of changes required will depend on how much the new tests diverge from existing tests.
 ## a) When test and observations are the same as an existing test
 For example, the '*playback-of-encrypted-content*' test uses the same Observation Framework test code and observations as the (unencrypted) '*sequential_track_playback*' test.
-To add such a test simply requires adding a new testname mapping to the existing test module and class name in the *"of_testname_map.json"* file. For example:
+To add such a test simply requires adding a new test name mapping to the existing test module and class name in the *"of_testname_map.json"* file. For example:
 
     "playback-of-encrypted-content.html": [
         "sequential_track_playback",

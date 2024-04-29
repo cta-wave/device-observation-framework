@@ -365,13 +365,13 @@ class SequentialTrackPlayback:
 
             result, updated_audio_segments, mid_missing_frame_duration = (
                 observation_class.make_observation(
-                self.test_type,
-                mezzanine_qr_codes,
-                audio_segments,
-                test_status_qr_codes,
-                self.parameters_dict,
-                observation_data_export_file,
-            )
+                    self.test_type,
+                    mezzanine_qr_codes,
+                    audio_segments,
+                    test_status_qr_codes,
+                    self.parameters_dict,
+                    observation_data_export_file,
+                )
             )
             # update mid_missing_frame_duration to use it on duration check
             if mid_missing_frame_duration:
