@@ -37,7 +37,7 @@ class LogManager:
     """log file handler"""
 
     def __init__(self, log_file: str, loglevel: str):
-        """Create logger handlers for the logfiles and the console output
+        """Create logger handlers for the log files and the console output
 
         Args:
             log_file (str): path to the logfile to use.

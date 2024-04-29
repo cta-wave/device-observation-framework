@@ -148,9 +148,9 @@ class AudioVideoSynchronization(Observation):
             )
             audio_offsets.append(
                 (
-                audio_segments[i].audio_content_id,
-                audio_segments[i].media_time,
-                mean_time,
+                    audio_segments[i].audio_content_id,
+                    audio_segments[i].media_time,
+                    mean_time,
                     audio_offset,
                 )
             )

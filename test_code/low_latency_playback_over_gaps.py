@@ -78,8 +78,8 @@ class LowLatencyPlaybackOverGaps(
     #                video_cmaf_track_duration_ms - self.parameters_dict["gap_duration"]
     #            )
     #        else:
-                # if "gap_duration" not defined the gap will be same as a video_fragment_duration
-                # taking video_fragment_duration from the 1st video fragment
+    # if "gap_duration" not defined the gap will be same as a video_fragment_duration
+    # taking video_fragment_duration from the 1st video fragment
     #            expected_video_track_duration = (
     #                video_cmaf_track_duration_ms
     #                - self.parameters_dict["video_fragment_durations"][0]

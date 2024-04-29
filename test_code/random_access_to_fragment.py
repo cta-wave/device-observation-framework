@@ -75,7 +75,7 @@ class RandomAccessToFragment(SequentialTrackPlayback):
                     "AudioUnexpectedSampleNotRendered",
                 ),
             ]
-    
+
     def _convert_random_access_fragment_to_time(self, content_type) -> float:
         """convert random_access_fragment to random_access_to_time in second"""
         fragment_durations_parameter = content_type + "_fragment_durations"

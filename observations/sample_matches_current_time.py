@@ -286,13 +286,13 @@ class SampleMatchesCurrentTime(Observation):
                     result, time_diff = (
                         self._check_video_diff_within_tolerance
                         (
-                        mezzanine_qr_codes,
-                        current_status,
-                        first_possible,
-                        last_possible,
-                        allowed_tolerance,
-                        ct_frame_tolerance,
-                    )
+                            mezzanine_qr_codes,
+                            current_status,
+                            first_possible,
+                            last_possible,
+                            allowed_tolerance,
+                            ct_frame_tolerance,
+                        )
                     )
                     if time_diff == sys.float_info.max:
                         # when no rendered frame found for the current time report
@@ -325,7 +325,7 @@ class SampleMatchesCurrentTime(Observation):
         self.result[
             "message"
         ] += (
-            f" Tolerances: +/- ({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
+            f" Tolerances: +/-({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
         )
 
         if self.result["status"] != "FAIL":

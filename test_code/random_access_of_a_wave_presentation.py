@@ -108,7 +108,7 @@ class RandomAccessOfAWavePresentation(RandomAccessToFragment):
         self, audio_content_ids: list
     ) -> Tuple[float, list, list]:
         """get expected audio mezzanine data for the test
-        The audio presentation starts with the sample that corresponds to 
+        The audio presentation starts with the sample that corresponds to
         the same presentation time as the earliest video sample.
             start_media_time: start time of expected audio
             expected_audio_segment_data: list of expected audio data

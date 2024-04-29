@@ -54,7 +54,7 @@ class AudioUnexpectedSampleNotRendered(Observation):
     def _get_audio_segment_diffs(self, parameters: Dict) -> list:
         """
         Compare each segment of unexpected audio with recorded audio data
-        from start of tests till prior to beginning of expected segmentdata,
+        from start of tests till prior to beginning of expected segment data,
         and calculate offsets for an each unexpected audio segment.
         returns lists of differences with previous segment.
         """
@@ -72,7 +72,7 @@ class AudioUnexpectedSampleNotRendered(Observation):
             self.global_configurations,
             True,
         )
-        pre_segment_data = subject_data[0 : trim_to].copy()
+        pre_segment_data = subject_data[0:trim_to].copy()
         duration = math.floor((len(unexpected_segment)) / sample_rate)
         max_segments = math.floor(duration * sample_rate / observation_period)
         audio_segment_timings = np.zeros((max_segments), dtype=np.uint)

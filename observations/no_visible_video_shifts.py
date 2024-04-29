@@ -59,7 +59,7 @@ class NoVisibleVideoShifts(Observation):
         based on sum and qr code count"""
         location_average = [
             round(mezzanine_qr_code.location[x] / mezzanine_qr_code.detection_count, 2)
-            for x in range (len(mezzanine_qr_code.location))
+            for x in range(len(mezzanine_qr_code.location))
         ]
         return location_average
 
@@ -133,7 +133,7 @@ class NoVisibleVideoShifts(Observation):
         backward_batch: dict,
         tolerance: int,
     ) -> bool:
-        """compares two batches of qr codes positions against eachother +/- tolerance
+        """compares two batches of qr codes positions against each other +/- tolerance
 
         Args:
             forward_batch (dict): batch after switching point

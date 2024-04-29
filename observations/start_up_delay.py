@@ -152,7 +152,7 @@ class StartUpDelay(Observation):
         else:
             start_up_delay = frame_ct - event_ct
             self.result["message"] = (
-                f"Maximum permitted startup delay is {max_permitted_startup_delay_ms}ms."
+                f"Maximum permitted startup delay is {max_permitted_startup_delay_ms}ms. "
                 f"The presentation start up delay is {round(start_up_delay, 4)}ms."
             )
 

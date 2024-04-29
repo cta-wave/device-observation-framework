@@ -45,7 +45,7 @@ class EarliestSampleSamePresentationTime(Observation):
     def __init__(self, _):
         super().__init__(
             "[OF] The WAVE presentation starts with the earliest video and audio sample that"
-             " corresponds to the same presentation time as the earliest video sample."
+            " corresponds to the same presentation time as the earliest video sample."
         )
 
     def make_observation(
