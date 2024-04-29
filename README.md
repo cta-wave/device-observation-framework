@@ -142,6 +142,8 @@ The QR codes outlined in GREEN were successfully decoded. Those outlined in RED 
 ![image](images/good_and_bad_capture_example.png)
 
 ### How to verify the camera setup
+
+#### Video only tests
 For the initial set up, we recommend a user try to run a sequential track playback test.
 
 From Test Runner select and run the "*/<selected_tests_group>/sequential-track-playback__stream__.html*" test. (See Test Runner documentation for how to run tests: https://github.com/cta-wave/dpctf-test-runner and https://web-platform-tests.org/running-tests/ ). 
@@ -157,6 +159,10 @@ At camera frame N there were X consecutive camera frames where no mezzanine QR c
 * Check the observation result. If there are a lot of missing frames reported, we recommend user to look at the recording manually to observe whether the reported missing frames are actually missing from the recording. This can be done by jumping to any of the previous frames, which are close to the target frame, then go frame by frame. If the reported missing frame is present in the recording, the set up can be improved slightly to get a better recording.
 
 Above steps can be repeated, if necessary, in order to find the best set up for the selected device and the camera. For small screen devices, such as a mobile phone, it is more difficult to find the good set up. A better camera or a better lens, such as a micro lens which can capture small details, might be required for testing on smaller screen devices.
+
+#### Tests contains audio (audio only tests and video and audio combined tests)
+How to verify your camera, and recording instructions for a combined audio and video synchronization test can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/How-to-jointly-record-audio-and-video-(%C2%A79-tests)).
+
 
 ## Troubleshooting
 
