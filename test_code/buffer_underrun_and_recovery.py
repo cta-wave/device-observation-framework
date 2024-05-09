@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class BufferUnderrunAndRecovery(MseAppendWindow):
-    """BufferUnderrunAndRecovery to handle test buffer_underrun_and_recovery.html
+    """BufferUnderrunAndRecovery to handle test buffer-underrun-and-recovery.html
     Derived from MseAppendWindow test code. Uses same logic.
     """
 

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class LowLatencyInitialization(MseAppendWindow):
-    """LowLatencyInitialization to handle test low_latency_initialization.html
+    """LowLatencyInitialization to handle test low-latency-initialization.html
     Derived from MseAppendWindow test code. Uses same logic.
     """
 
