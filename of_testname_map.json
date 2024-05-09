@@ -96,8 +96,8 @@
         "LowLatencyPlaybackOverGaps"
     ],
     "low-latency-short-buffer-playback.html" : [
-        "buffer_underrun_and_recovery",
-        "BufferUnderrunAndRecovery"
+        "low_latency_short_buffer_playback",
+        "LowLatencyShortBufferPlayback"
     ],
     "long-duration-playback.html":[
         "long_duration_playback",

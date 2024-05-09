@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 class LowLatencyPlaybackOverGaps(
     RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream
 ):
-    """LowLatencyPlaybackOverGaps to handle test low_latency_playback_over_gaps.html
+    """LowLatencyPlaybackOverGaps to handle test low-latency-playback-over-gaps.html
     Derived from MseAppendWindow test code. Uses same logic.
     """
 
@@ -67,26 +67,6 @@ class LowLatencyPlaybackOverGaps(
         gap_from_frame = math.floor(gap_from * frame_rate)
         gap_to_frame = math.floor(gap_to * frame_rate) + 1
         return [gap_from_frame, gap_to_frame]
-
-    # def _save_expected_video_track_duration(self) -> None:
-    #    """save expected video cmaf track duration"""
-    #    video_cmaf_track_duration_ms = self.parameters_dict["video_content_duration"]
-    #    expected_video_track_duration = video_cmaf_track_duration_ms
-    #    if self.parameters_dict["playback_mode"] == "vod":
-    #        if "gap_duration" in self.parameters_dict:
-    #            expected_video_track_duration = (
-    #                video_cmaf_track_duration_ms - self.parameters_dict["gap_duration"]
-    #            )
-    #        else:
-    # if "gap_duration" not defined the gap will be same as a video_fragment_duration
-    # taking video_fragment_duration from the 1st video fragment
-    #            expected_video_track_duration = (
-    #                video_cmaf_track_duration_ms
-    #                - self.parameters_dict["video_fragment_durations"][0]
-    #            )
-    #    self.parameters_dict[
-    #        "expected_video_track_duration"
-    #    ] = expected_video_track_duration
 
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf track duration"""

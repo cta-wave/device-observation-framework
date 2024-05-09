@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code mse_append_window
+"""DPCTF device observation test code low_latency_short_buffer_playback
 
 The Software is provided to you by the Licensor under the License, as
 defined below, subject to the following condition.
@@ -24,21 +24,21 @@ Contributor: Resillion UK Limited
 """
 import logging
 
-from .sequential_track_playback import SequentialTrackPlayback
+from .mse_append_window import MseAppendWindow
+from .test import TestType
 
 logger = logging.getLogger(__name__)
 
 
-class MseAppendWindow(SequentialTrackPlayback):
-    """MseAppendWindow to handle test mse-appendwindow.html
-    Derived from SequentialTrackPlayback test code. Uses same logic except
-    start_up_delay observation.
+class LowLatencyShortBufferPlayback(MseAppendWindow):
+    """LowLatencyShortBufferPlayback to handle test low-latency-short-buffer-playback.html
+    Derived from MseAppendWindow test code. Uses same logic.
     """
 
-    def _init_observations(self) -> None:
-        """initialise the observations required for the test"""
-        self.observations = [
-            ("every_sample_rendered", "EverySampleRendered"),
-            ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("sample_matches_current_time", "SampleMatchesCurrentTime"),
+    def _init_parameters(self) -> None:
+        self.parameters = [
+            "tolerance",
+            "frame_tolerance",
+            "duration_tolerance",
+            "duration_frame_tolerance",
         ]
