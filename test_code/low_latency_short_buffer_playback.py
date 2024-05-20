@@ -25,7 +25,6 @@ Contributor: Resillion UK Limited
 import logging
 
 from .mse_append_window import MseAppendWindow
-from .test import TestType
 
 logger = logging.getLogger(__name__)
 

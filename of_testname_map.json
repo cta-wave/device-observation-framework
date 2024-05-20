@@ -99,7 +99,7 @@
         "low_latency_short_buffer_playback",
         "LowLatencyShortBufferPlayback"
     ],
-    "long-duration-playback.html":[
+    "long-duration-playback-manual.html":[
         "long_duration_playback",
         "LongDurationPlayback"
     ]

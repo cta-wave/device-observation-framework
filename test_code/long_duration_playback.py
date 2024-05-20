@@ -25,6 +25,7 @@ Contributor: Resillion UK Limited
 import logging
 
 from .regular_playback_of_a_cmaf_presentation import RegularPlaybackOfACmafPresentation
+from .test import TestContentType
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,12 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
     Derived from RegularPlaybackOfACmafPresentation test code.
     """
 
+    # this function to be removed when we have audio stream for the test
+    def _set_test_content_type(self) -> None:
+        """set test type SINGLE|COMBINED"""
+        self.test_content_type = TestContentType.SINGLE
+
+    # audio test to be uncommented when we have audio stream for the test
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
         self.observations = [
@@ -41,21 +48,21 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
                 "every_sample_rendered",
                 "EverySampleRendered",
             ),
-            (
-                "audio_every_sample_rendered",
-                "AudioEverySampleRendered",
-            ),
+            #(
+            #    "audio_every_sample_rendered",
+            #    "AudioEverySampleRendered",
+            #),
             ("start_up_delay", "StartUpDelay"),
-            ("audio_start_up_delay", "AudioStartUpDelay"),
+            #("audio_start_up_delay", "AudioStartUpDelay"),
             ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            #("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
             ("sample_matches_current_time", "SampleMatchesCurrentTime"),
-            (
-                "earliest_sample_same_presentation_time",
-                "EarliestSampleSamePresentationTime",
-            ),
-            (
-                "audio_video_synchronization",
-                "AudioVideoSynchronization",
-            ),
+            #(
+            #    "earliest_sample_same_presentation_time",
+            #    "EarliestSampleSamePresentationTime",
+            #),
+            #(
+            #    "audio_video_synchronization",
+            #    "AudioVideoSynchronization",
+            #),
         ]
