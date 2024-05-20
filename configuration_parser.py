@@ -111,7 +111,13 @@ class ConfigurationParser:
         content_type is 'audio' or 'video'"""
         parameter = content_type + "_content_duration"
         track_duration = 0.0
-        switchingset_config = self.get_switchingset_config(content_type)[0]
+        try:
+            switchingset_config = self.get_switchingset_config(content_type)[0]
+        except IndexError:
+            raise ConfigError(
+                f"Failed to get {content_type} switching set configuration "
+                f"for the test '{test_path}'"
+            )
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
 
@@ -211,7 +217,13 @@ class ConfigurationParser:
         """get the cmaf track duration from config
         only parse the 1st switching set, multiple switching sets handled separately"""
         result = 0
-        switchingset_config = self.get_switchingset_config(content_type)[0]
+        try:
+            switchingset_config = self.get_switchingset_config(content_type)[0]
+        except IndexError:
+            raise ConfigError(
+                f"Failed to get {content_type} switching set configuration "
+                f"for the test '{test_path}'"
+            )
         try:
             if (
                 switchingset_config != []
@@ -267,7 +279,13 @@ class ConfigurationParser:
         """get the fragment duration for general playback
         set video_fragment_durations or audio_fragment_durations"""
         fragment_durations = []
-        switchingset_config = self.get_switchingset_config(content_type)[0]
+        try:
+            switchingset_config = self.get_switchingset_config(content_type)[0]
+        except IndexError:
+            raise ConfigError(
+                f"Failed to get {content_type} switching set configuration "
+                f"for the test '{test_path}'"
+            )
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
         parameter = content_type + "_fragment_durations"
@@ -346,7 +364,13 @@ class ConfigurationParser:
         # fragment_duration is used for test when only one representation is used
         # for example: sequential playback
         fragment_duration_list = []
-        switchingset_config = self.get_switchingset_config(content_type)[0]
+        try:
+            switchingset_config = self.get_switchingset_config(content_type)[0]
+        except IndexError:
+            raise ConfigError(
+                f"Failed to get {content_type} switching set configuration "
+                f"for the test '{test_path}'"
+            )
         # we are interested just about the first video representations fragment duration
         for representation in switchingset_config["representations"].values():
             if representation["type"] == content_type:
@@ -366,8 +390,13 @@ class ConfigurationParser:
         results = {}
         parameter = content_type + "_fragment_duration_multi_reps"
         results[parameter] = {}
-
-        switchingset_config = self.get_switchingset_config(content_type)[0]
+        try:
+            switchingset_config = self.get_switchingset_config(content_type)[0]
+        except IndexError:
+            raise ConfigError(
+                f"Failed to get {content_type} switching set configuration "
+                f"for the test '{test_path}'"
+            )
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
 
