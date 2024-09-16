@@ -210,7 +210,7 @@ class DPCTFQrDecoder(QrDecoder):
                             camera_frame_num,
                         )
                     except Exception:
-                        logger.error(f"Unrecognized QR code detected: {data}")
+                        logger.debug(f"Unrecognized QR code detected: {data} is ignored.")
 
         return code
 
@@ -277,8 +277,8 @@ class DPCTFQrDecoder(QrDecoder):
                     data, location, json_data, camera_frame_num
                 )
             except json.decoder.JSONDecodeError as e:
-                logger.error(
-                    f"Unrecognized QR code JSON detected in '{data}'. JSON err: {e}"
+                logger.debug(
+                    f"QR code '{data}' is not recognized by the system, ignored."
                 )
 
         return code

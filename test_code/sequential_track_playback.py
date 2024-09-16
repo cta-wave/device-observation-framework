@@ -42,6 +42,10 @@ from .test import TestContentType, TestType
 
 logger = logging.getLogger(__name__)
 
+# Capturing frame rate shall be close to twice the test frame rate
+# add warning if frame rate of recording is less than 1.5 of test content
+RECORDING_FRAME_RATE_RATIO = 1.5
+
 
 class SequentialTrackPlayback:
     """SequentialTrackPlayback to handle test
@@ -53,6 +57,8 @@ class SequentialTrackPlayback:
     playback-of-encrypted-content.html
     this is also a base class to other tests"""
 
+    error_message: str
+    """System error message"""
     test_type: TestType
     """test type SEQUENTIAL|SWITCHING|SPLICING"""
     test_content_type: TestContentType
@@ -90,9 +96,12 @@ class SequentialTrackPlayback:
             camera_frame_rate: Frames per second that the camera was recording at.
             camera_frame_duration_ms: Duration of a single camera frame in milliseconds.
         """
+        self.error_message = ""
+
         self._set_test_type()
         self._set_test_content_type()
         self._set_content_type(configuration_parser)
+        self._check_frame_rate_is_sufficient(configuration_parser, camera_frame_rate)
         self._init_parameters()
         self._load_parameters_dict(configuration_parser, test_path, test_code)
         self._load_contents_parameters(configuration_parser, test_path)
@@ -115,6 +124,24 @@ class SequentialTrackPlayback:
         self.content_type = configuration_parser.get_test_content_type(
             self.test_content_type
         )
+
+    def _check_frame_rate_is_sufficient(
+        self, configuration_parser: ConfigurationParser,
+        camera_frame_rate: float,
+    ) -> None:
+        """check if frame rate of recording is sufficient for test being run"""
+        frame_rates = configuration_parser.get_frame_rates(
+            self.content_type
+        )
+        for frame_rate in frame_rates:
+            if camera_frame_rate < frame_rate * RECORDING_FRAME_RATE_RATIO:
+                self.error_message += (
+                    f"Frame rate of recording {round(camera_frame_rate, 2)} fps "
+                    f"is insufficient for test being run. "
+                    f"Capturing frame rate shall be close to twice the test frame rate. "
+                )
+                logger.error(self.error_message)
+                break
 
     def _init_observations(self) -> None:
         """initialise the observations required for the test"""
@@ -382,5 +409,9 @@ class SequentialTrackPlayback:
             if updated_audio_segments:
                 audio_segments = updated_audio_segments
             results.append(result)
+
+        if self.error_message:
+            for result in results:
+                result["message"] = self.error_message + result["message"]
 
         return results
