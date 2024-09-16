@@ -42,8 +42,9 @@ fi
 
 # Install required packages
 $PYEXE -m pip install --upgrade pip
-install_package opencv-python==4.5.2.52
-install_package pyzbar==0.1.8
+install_package numpy==2.0.2
+install_package opencv-python==4.10.0.84
+install_package pyzbar==0.1.9
 install_package isodate
 install_package configparser
 install_package requests

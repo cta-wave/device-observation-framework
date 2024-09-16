@@ -241,6 +241,18 @@ class ConfigurationParser:
             )
         return result
 
+    def get_frame_rates(self, content_type: str) -> Tuple[dict, bool, bool]:
+        """returns a list of frame rates"""
+        frame_rates = []
+        if "video" in content_type:
+            switchingset_config_list = self.get_switchingset_config("video")
+            for switchingset_config in switchingset_config_list:
+                for representation in switchingset_config["representations"].values():
+                    if representation["type"] == "video":
+                        frame_rate = Fraction(representation["frame_rate"])
+                        frame_rates.append(frame_rate)
+        return frame_rates
+
     def get_fragment_durations(
         self, test_path: str, content_type: str, test_type: TestType
     ) -> Tuple[dict, bool, bool]:
