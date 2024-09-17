@@ -51,7 +51,7 @@ from qr_recognition.qr_recognition import FrameAnalysis
 
 MAJOR = 2
 MINOR = 0
-PATCH = 0
+PATCH = 1
 BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
