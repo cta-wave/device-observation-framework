@@ -76,11 +76,9 @@ class AudioStartUpDelay(Observation):
             return self.result, [], []
 
         # Get time when test status = play
-        event_found, event_ct = Observation._find_event(
+        event_found, event_ct = Observation.find_event(
             "play", test_status_qr_codes, parameters_dict["camera_frame_duration_ms"]
         )
-        # get relative event current time to test start time
-        event_ct -= parameters_dict["test_start_time"]
         max_permitted_startup_delay = parameters_dict["ts_max"]
 
         if not event_found:
@@ -90,9 +88,14 @@ class AudioStartUpDelay(Observation):
                 "followed by a further test status QR code was not found."
             )
         else:
-            start_up_delay = audio_segments[0].audio_segment_timing - event_ct
+            # calculate first_audio_detected_time
+            first_audio_detected_time = (
+                parameters_dict["test_start_time"]
+                + audio_segments[0].audio_segment_timing
+            )
+            start_up_delay = first_audio_detected_time - event_ct
             self.result["message"] = (
-                f"Maximum permitted startup delay is {max_permitted_startup_delay}ms."
+                f"Maximum permitted startup delay is {max_permitted_startup_delay}ms. "
                 f"The presentation start up delay is {round(start_up_delay, 4)}ms"
             )
 

@@ -68,7 +68,8 @@ class AudioUnexpectedSampleNotRendered(Observation):
         trim_to = get_trim_from(
             subject_data,
             expected_segment,
-            observation_period,
+            sample_rate,
+            parameters["audio_sample_length"],
             self.global_configurations,
             True,
         )

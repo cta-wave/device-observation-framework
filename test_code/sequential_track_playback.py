@@ -126,13 +126,12 @@ class SequentialTrackPlayback:
         )
 
     def _check_frame_rate_is_sufficient(
-        self, configuration_parser: ConfigurationParser,
+        self,
+        configuration_parser: ConfigurationParser,
         camera_frame_rate: float,
     ) -> None:
         """check if frame rate of recording is sufficient for test being run"""
-        frame_rates = configuration_parser.get_frame_rates(
-            self.content_type
-        )
+        frame_rates = configuration_parser.get_frame_rates(self.content_type)
         for frame_rate in frame_rates:
             if camera_frame_rate < frame_rate * RECORDING_FRAME_RATE_RATIO:
                 self.error_message += (
@@ -194,28 +193,28 @@ class SequentialTrackPlayback:
         # set defined content_duration
         self.parameters_dict.update(
             configuration_parser.get_content_duration(
-                test_path, self._get_content_type()
+                test_path, self.get_content_type()
             )
         )
 
         # set defined fragment durations
         self.parameters_dict.update(
             configuration_parser.get_fragment_durations(
-                test_path, self._get_content_type(), self.test_type
+                test_path, self.get_content_type(), self.test_type
             )
         )
 
         # set defined source for audio tests
         self.parameters_dict.update(
-            configuration_parser.get_source(test_path, self._get_content_type())
+            configuration_parser.get_source(test_path, self.get_content_type())
         )
 
         # getting audio sample rate
         self.parameters_dict.update(
-            configuration_parser.get_sample_rate(self._get_content_type())
+            configuration_parser.get_sample_rate(self.get_content_type())
         )
 
-    def _get_content_type(self) -> str:
+    def get_content_type(self) -> str:
         """
         return content type of the test
             video: only video content is provided
@@ -291,7 +290,7 @@ class SequentialTrackPlayback:
     ) -> tuple:
         """Calculate the offset timings for an each audio segment"""
         if not audio_subject_data:
-            raise AudioAlignError(f"The recorded audio data is empty.")
+            raise AudioAlignError("The recorded audio data is empty.")
 
         sample_rate = self.parameters_dict["sample_rate"]
         audio_sample_length = self.parameters_dict["audio_sample_length"]
@@ -335,7 +334,8 @@ class SequentialTrackPlayback:
         """Make observations for the Test 8.2
 
         Args:
-            test_start_time: test start time in msec (1st detected pre-test qr code time in recording).
+            test_start_time: test start time in msec
+              (1st detected pre-test qr code time in recording).
             audio_subject_data: recorded audio data.
             mezzanine_qr_codes: Sorted list of detected mezzanine QR codes.
             test_status_qr_codes: Sorted list of detected Test Runner status QR codes.

@@ -68,23 +68,25 @@ def get_time_from_segment(subject_data: list, segment_data: list):
     2) observationsegment: a slice of audio embedding a PN timestamp
     (i.e., should be from an audio file with encoded PN sequencing).
     Length of observationsegment is the observation period OP.
-    Returns
-    1) A resulting time value tR (scalar int) in (1/sample_rate) units.  The interpretation of this time value
-    is,     The value tD is referenced to t0, the beginning of the subject data, and is the delay from t0 until the first
-            sample of the segment appears when matched up with the subject data; the value tD is in (1/sample_rate) units,
-            where a positive tD indicates the segment appears later than t0, and negative tD implies the segment
-            is cut off by trying to start before t0.
+
+    Returns:
+    1) A resulting time value tR (scalar int) in (1/sample_rate) units.
+    The interpretation of this time value is:
+    The value tD is referenced to t0, the beginning of the subject data, and is the delay from t0
+    until the first sample of the segment appears when matched up with the subject data; the value
+    tD is in (1/sample_rate) units, where a positive tD indicates the segment appears later than t0,
+    and negative tD implies the segment is cut off by trying to start before t0.
     This method finds the media time where the observationsegment appears in the target segmentdata.
 
-    (Timing information: the next block (to RESULTDATA) takes about 0.03s on length_result 262144.)
+    (Timing information: the next block (to result_data) takes about 0.03s on length_result 262144.)
     Cross-correlate the two data sets to find where the segmentdata appears in the subjectdata.
     """
     length_result = _next_power_of_2(len(subject_data))
-    SUBJECTDATA = np.fft.fft(subject_data, n=length_result, norm="ortho")
-    SEGMENTDATA = np.fft.fft(segment_data, n=length_result, norm="ortho")
-    RESULTDATA = np.multiply(SUBJECTDATA, np.conj(SEGMENTDATA))
+    np_subject_data = np.fft.fft(subject_data, n=length_result, norm="ortho")
+    np_segment_data = np.fft.fft(segment_data, n=length_result, norm="ortho")
+    result_data = np.multiply(np_subject_data, np.conj(np_segment_data))
 
-    result_complex = np.fft.ifft(RESULTDATA, n=length_result, norm="ortho")
+    result_complex = np.fft.ifft(result_data, n=length_result, norm="ortho")
     result_data = np.absolute(result_complex)
     result_tuple = np.where(result_data == np.amax(np.absolute(result_data)))
     result = result_tuple[0][0]
@@ -127,16 +129,18 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
 
 def _check_hash(file_name: str) -> bool:
     """Python program to find MD5 hash value of a file
-    Adapted from: https://www.quickprogrammingtips.com/python/how-to-calculate-md5-hash-of-a-file-in-python.html
+    Adapted from:
+      https://www.quickprogrammingtips.com/python/how-to-calculate-md5-hash-of-a-file-in-python.html
     Accepts: filename
-    Returns: hashresult; True == pass, False == failed the check.
+    Returns: hash_result; True == pass, False == failed the check.
 
-    We assume the segmentfile is the correct one for the test but we want to check integrity.  For now,
-    that means the calculated hash must match one of the following (we don't care which one, because
-    we assume the test software "knows" which file to use; this is checking integrity).
+    We assume the segment file is the correct one for the test but we want to check integrity.
+    For now, that means the calculated hash must match one of the following (we don't care which
+    one, because we assume the test software "knows" which file to use; this is checking integrity).
     These are Lch only version from PN build 2, should match hash via http://onlinemd5.com/
     """
-    # define hashes for audio mezzanine extracted from json files located in the audio mezzanine folder
+    # define hashes for audio mezzanine extracted from json files
+    # located in the audio mezzanine folder
     hash_dict = {}
     content_list = os.listdir("audio_mezzanine/")
     count = sum(item.count("wav") for item in content_list)
@@ -170,8 +174,8 @@ def _read_chunk(wf: Wave_read, channels: int, chunk_size: int) -> list:
     """
     frame_string = wf.readframes(chunk_size)
     unpack_string = "{0}h{0}h".format(chunk_size)
-    framelist = list(struct.unpack(unpack_string, frame_string))
-    frames_as_channels = np.array(framelist, dtype=np.short, ndmin=2)
+    frame_list = list(struct.unpack(unpack_string, frame_string))
+    frames_as_channels = np.array(frame_list, dtype=np.short, ndmin=2)
     # extract only left channel
     frames_left_ch = np.reshape(frames_as_channels, (channels, chunk_size), "F")[0]
     return frames_left_ch
@@ -179,14 +183,15 @@ def _read_chunk(wf: Wave_read, channels: int, chunk_size: int) -> list:
 
 def _read_data_file(file_name: str, start: int, count: int) -> tuple:
     """Accepts
-        filename: An OS file of recorded data, with or without path (must be in exec directory if without path)
+        filename: An OS file of recorded data, with or without path
+          (must be in exec directory if without path)
         start: start sample to read from
         count: sample count to read to
     Returns a tuple of:
         sample_rate, typically 48000 Hz
         data, the array of data (frames) read from the file
         channels, the number of channels (stereo == 2)
-        sampleformat, bit depth, e.g. uint16
+        sample_format, bit depth, e.g. uint16
     """
     frames_left_ch = []
     wf = wave.open(file_name, "rb")
@@ -208,7 +213,7 @@ def _read_data_file(file_name: str, start: int, count: int) -> tuple:
     # Read the data into an array.
     loop_count = int(sample_count / CHUNK_SIZE)
     last_chunk_size = sample_count % CHUNK_SIZE
-    for i in range(loop_count):
+    for _i in range(loop_count):
         left_ch_data = _read_chunk(wf, channels, CHUNK_SIZE)
         frames_left_ch.extend(left_ch_data)
     left_ch_data = _read_chunk(wf, channels, last_chunk_size)
@@ -216,7 +221,7 @@ def _read_data_file(file_name: str, start: int, count: int) -> tuple:
 
     p.terminate()
 
-    # Return data includes channeldata but only the part that represents the L channel.
+    # Return data includes channel data but only the part that represents the L channel.
     return (sample_rate, frames_left_ch, channels, sample_format)
 
 
@@ -235,7 +240,7 @@ def read_audio_mezzanine(
 
     # If this is a PN file, verify integrity before using
     hash_result = _check_hash(segment_file)
-    if hash_result != True:
+    if hash_result is not True:
         raise ObsFrameTerminate(
             f"Error, PN file {segment_file} appears corrupted (failed hash check)"
         )
@@ -313,7 +318,8 @@ def read_audio_recording(
         )
     if sample_format != REQUIRED_SAMPLE_FORMAT:
         raise ObsFrameTerminate(
-            f"Error, the file format is {sample_format*2}b; should be {REQUIRED_SAMPLE_FORMAT*2}b PCM."
+            f"Error, the file format is {sample_format*2}b; "
+            f"should be {REQUIRED_SAMPLE_FORMAT*2}b PCM."
         )
 
     return subject_data

@@ -47,17 +47,15 @@ class StartUpDelay(Observation):
         )
 
     def _get_additional_tolerance(self, parameters_dict: dict) -> float:
-        """ Get additional tolerance for random_access_time test"""
+        """Get additional tolerance for random_access_time test"""
         additional_tolerance = 0
         if "random_access_time" in parameters_dict:
             random_access_to_time = parameters_dict["random_access_time"] * 1000
             for i in range(0, len(parameters_dict["video_fragment_durations"]) - 1):
-                random_access_to_time -= (
-                    parameters_dict["video_fragment_durations"][i]
-                )
+                random_access_to_time -= parameters_dict["video_fragment_durations"][i]
                 if (
-                    random_access_to_time <
-                    parameters_dict["video_fragment_durations"][i + 1]
+                    random_access_to_time
+                    < parameters_dict["video_fragment_durations"][i + 1]
                 ):
                     break
             additional_tolerance = random_access_to_time
@@ -103,9 +101,9 @@ class StartUpDelay(Observation):
             logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, [], []
 
-        max_permitted_startup_delay_ms = (
-            parameters_dict["ts_max"] + self._get_additional_tolerance(parameters_dict)
-        )
+        max_permitted_startup_delay_ms = parameters_dict[
+            "ts_max"
+        ] + self._get_additional_tolerance(parameters_dict)
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
 
         if test_type == TestType.TRUNCATED:
@@ -127,7 +125,7 @@ class StartUpDelay(Observation):
         else:
             event = "play"
 
-        event_found, event_ct = Observation._find_event(
+        event_found, event_ct = Observation.find_event(
             event, test_status_qr_codes, camera_frame_duration_ms
         )
 

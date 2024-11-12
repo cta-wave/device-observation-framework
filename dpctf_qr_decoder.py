@@ -41,6 +41,10 @@ _mezzanine_qr_data_re = re.compile(
 
 
 class MezzanineDecodedQr(DecodedQr):
+    """A decoded QR code from Mezzanine content
+    ID;HH:MM:SS.MMM;<frame #>;<frame-rate>
+    """
+
     data: str
     """qr code string"""
     location: list
@@ -48,9 +52,6 @@ class MezzanineDecodedQr(DecodedQr):
     detection_count: int
     """qr code detection count"""
 
-    """A decoded QR code from Mezzanine content
-    ID;HH:MM:SS.MMM;<frame #>;<frame-rate>
-    """
     content_id: str
     """The content id encoded in this QR code"""
     media_time: float
@@ -89,14 +90,15 @@ class MezzanineDecodedQr(DecodedQr):
 
 
 class TestStatusDecodedQr(DecodedQr):
+    """A decoded QR code for Test Runner status
+    QR code in json format contain following info
+    """
+
     data: str
     """ qr code string"""
     location: list
     """qr code location"""
 
-    """A decoded QR code for Test Runner status
-    QR code in json format contain following info
-    """
     status: str
     last_action: str
     current_time: float
@@ -126,14 +128,15 @@ class TestStatusDecodedQr(DecodedQr):
 
 
 class PreTestDecodedQr(DecodedQr):
+    """A decoded QR code for pre test
+    QR code in json format contain following info
+    """
+
     data: str
     """ qr code string"""
     location: list
     """qr code location"""
 
-    """A decoded QR code for pre test
-    QR code in json format contain following info
-    """
     session_token: str
     """session token encoded in the test runner QR code.
     """
@@ -141,8 +144,10 @@ class PreTestDecodedQr(DecodedQr):
     """test id encoded in the test runner QR code.
     """
 
-    camera_frame_num: int
+    first_camera_frame_num: int
     """recorded camera frame number that the QR code is detected on"""
+    last_camera_frame_num: int
+    """recorded camera frame number that the QR code last appears on"""
 
     def __init__(
         self,
@@ -157,10 +162,13 @@ class PreTestDecodedQr(DecodedQr):
         self.location = location
         self.session_token = session_token
         self.test_id = test_id
-        self.camera_frame_num = camera_frame_num
+        self.first_camera_frame_num = camera_frame_num
+        self.last_camera_frame_num = camera_frame_num
 
 
 class DPCTFQrDecoder(QrDecoder):
+    """DPCTF QR code Decoder"""
+
     @staticmethod
     def translate_qr_test_runner(
         data: str, location: list, json_data, camera_frame_num: int
@@ -178,7 +186,7 @@ class DPCTFQrDecoder(QrDecoder):
                 int(json_data["d"]),
                 camera_frame_num,
             )
-        except Exception:
+        except KeyError:
             try:
                 code = TestStatusDecodedQr(
                     data,
@@ -189,7 +197,7 @@ class DPCTFQrDecoder(QrDecoder):
                     int(json_data["d"]),
                     camera_frame_num,
                 )
-            except Exception:
+            except KeyError:
                 try:
                     code = TestStatusDecodedQr(
                         data,
@@ -200,7 +208,7 @@ class DPCTFQrDecoder(QrDecoder):
                         0,
                         camera_frame_num,
                     )
-                except Exception:
+                except KeyError:
                     try:
                         code = PreTestDecodedQr(
                             data,
@@ -209,8 +217,10 @@ class DPCTFQrDecoder(QrDecoder):
                             json_data["test_id"],
                             camera_frame_num,
                         )
-                    except Exception:
-                        logger.debug(f"Unrecognized QR code detected: {data} is ignored.")
+                    except KeyError:
+                        logger.debug(
+                            f"Unrecognized QR code detected: {data} is ignored."
+                        )
 
         return code
 
@@ -234,12 +244,12 @@ class DPCTFQrDecoder(QrDecoder):
         """Convert string frame rate to float
         fractional frame rate fund match from map to get accurate number"""
         frame_rate_map = {}
-        with open("frame_rate_map.json") as f:
+        with open("frame_rate_map.json", encoding="utf-8") as f:
             frame_rate_map = json.load(f)
         try:
             res = frame_rate_map[frame_rate_str].split("/")
             frame_rate = Fraction(int(res[0]), int(res[1]))
-        except Exception:
+        except KeyError:
             frame_rate = Fraction(float(frame_rate_str))
         return frame_rate
 
@@ -276,7 +286,7 @@ class DPCTFQrDecoder(QrDecoder):
                 code = DPCTFQrDecoder.translate_qr_test_runner(
                     data, location, json_data, camera_frame_num
                 )
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError:
                 logger.debug(
                     f"QR code '{data}' is not recognized by the system, ignored."
                 )
