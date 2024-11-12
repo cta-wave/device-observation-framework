@@ -53,21 +53,18 @@ class ObservationResultHandler:
     """list of OF configuration dictionary"""
 
     def __init__(self, global_configurations: GlobalConfigurations):
-        self.result_url = (
-            global_configurations.get_test_runner_url() + "/_wave/api/results/"
-        )
+        self.result_url = global_configurations.get_test_runner_url() + "api/results/"
         self.global_configurations = global_configurations
         self.observation_config = global_configurations.get_tolerances()
 
     def _download_result(self, url: str, filename: str) -> None:
         """Get session result from the Test Runner
-
         Args:
             url: GET URL.
             filename: Results filename.
-
         Raises:
-            ObsFrameError: if cannot open Results file or if error occurred while handling the request.
+            ObsFrameError: if cannot open Results file or
+            if error occurred while handling the request.
         """
         try:
             r = requests.request("GET", url)
@@ -90,7 +87,7 @@ class ObservationResultHandler:
     def _write_json(self, data, filename: str) -> None:
         """write json data to the file"""
         try:
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         except IOError as e:
             raise ObsFrameError(
@@ -119,7 +116,7 @@ class ObservationResultHandler:
     ) -> None:
         """save observation result to a result file"""
         try:
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 data = {}
                 data.update({"meta": {}})
                 data["meta"].update({"datetime_observation": observation_time})
@@ -141,7 +138,7 @@ class ObservationResultHandler:
         """Update result json file to add observation result to subtest section"""
         try:
             matching_test_found = False
-            with open(filename) as json_file:
+            with open(filename, encoding="utf-8") as json_file:
                 data = json.load(json_file)
 
                 # add meta when it is not defined
@@ -161,8 +158,8 @@ class ObservationResultHandler:
 
             if not matching_test_found:
                 raise ConfigError(
-                    f"Failed to find matching test from test result file, observation results cannot be updated. "
-                    f"Test path from tests.json is /{test_path}."
+                    f"Failed to find matching test from test result file, observation results "
+                    f"cannot be updated. Test path from tests.json is /{test_path}."
                 )
         except IOError as e:
             raise ObsFrameError(
@@ -177,13 +174,12 @@ class ObservationResultHandler:
 
     def _import_result(self, url: str, filename: str) -> None:
         """Post session result to the Test Runner
-
         Args:
             url: POST URL.
             filename: Results filename.
-
         Raises:
-            ObsFrameError: if cannot open Results file or  if error occurred while handling the request.
+            ObsFrameError: if cannot open Results file or
+            if error occurred while handling the request.
         """
         try:
             contents = open(filename, "rb").read()

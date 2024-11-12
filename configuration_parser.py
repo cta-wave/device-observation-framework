@@ -30,6 +30,7 @@ import logging
 import math
 from fractions import Fraction
 from typing import Dict, List, Tuple
+from urllib.parse import urlparse
 
 import isodate
 import requests
@@ -56,7 +57,8 @@ class ConfigurationParser:
     """audio configuration part extracted from test.json file"""
 
     def __init__(self, global_configurations: GlobalConfigurations):
-        self.server_url = global_configurations.get_test_runner_url()
+        test_runner_url = urlparse(global_configurations.get_test_runner_url())
+        self.server_url = test_runner_url.scheme + "://" + test_runner_url.netloc
 
         # if debug mode is set then read test configuration settings from
         # a local file (used for development), instead of retrieving from Test Runner.
@@ -76,15 +78,15 @@ class ConfigurationParser:
             test_path = self.tests_json["tests"][test_id]["path"]
             test_code = self.tests_json["tests"][test_id]["code"]
             # set video and audio configuration
-            switchingSets_config = self.tests_json["tests"][test_id]["switchingSets"]
-            self.video_config = switchingSets_config["video"]
-            self.audio_config = switchingSets_config["audio"]
+            switching_sets_config = self.tests_json["tests"][test_id]["switchingSets"]
+            self.video_config = switching_sets_config["video"]
+            self.audio_config = switching_sets_config["audio"]
             return test_path, test_code
-        except KeyError:
+        except KeyError as exc:
             raise ConfigError(
                 f"Unrecognized test id is detected. "
                 f'Detected test id({test_id}) is not defined in "tests.json". '
-            )
+            ) from exc
 
     def get_switchingset_config(self, content_type: str) -> list:
         """Return the list of switchingset configuration"""
@@ -113,11 +115,11 @@ class ConfigurationParser:
         track_duration = 0.0
         try:
             switchingset_config = self.get_switchingset_config(content_type)[0]
-        except IndexError:
+        except IndexError as exc:
             raise ConfigError(
                 f"Failed to get {content_type} switching set configuration "
                 f"for the test '{test_path}'"
-            )
+            ) from exc
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
 
@@ -153,7 +155,7 @@ class ConfigurationParser:
         timeline = []
         try:
             timeline = switchingset_config["segmentTimeline"]
-        except KeyError as e:
+        except KeyError:
             return timeline
         return timeline
 
@@ -162,7 +164,7 @@ class ConfigurationParser:
         timescale = 0
         try:
             timescale = switchingset_config["timescale"]
-        except KeyError as e:
+        except KeyError:
             return timescale
         return timescale
 
@@ -197,11 +199,11 @@ class ConfigurationParser:
         # audio switching not in scope only extract for the 1st representations
         for i in range(len(self.audio_config)):
             rep_id = next(iter(self.audio_config[i]["representations"]))
-            audioSamplingRate = self.audio_config[i]["representations"][rep_id][
+            audio_sampling_rate = self.audio_config[i]["representations"][rep_id][
                 "audioSamplingRate"
             ]
             # sample rate is in kHZ
-            sample_rate_list.append(int(audioSamplingRate / 1000))
+            sample_rate_list.append(int(audio_sampling_rate / 1000))
         # assume audio sample rate are same for splicing test main and ad
         sample_rate = sample_rate_list[0]
         return {"sample_rate": sample_rate}
@@ -219,11 +221,11 @@ class ConfigurationParser:
         result = 0
         try:
             switchingset_config = self.get_switchingset_config(content_type)[0]
-        except IndexError:
+        except IndexError as exc:
             raise ConfigError(
                 f"Failed to get {content_type} switching set configuration "
                 f"for the test '{test_path}'"
-            )
+            ) from exc
         try:
             if (
                 switchingset_config != []
@@ -235,10 +237,10 @@ class ConfigurationParser:
                 ms = video_config_value.microseconds / 1000
                 s_to_ms = video_config_value.seconds * 1000
                 result = ms + s_to_ms
-        except KeyError as e:
+        except KeyError as exc:
             raise ConfigError(
-                f"Failed to get a parameter:{e} for the test '{test_path}'"
-            )
+                f"Failed to get a parameter:{exc} for the test '{test_path}'"
+            ) from exc
         return result
 
     def get_frame_rates(self, content_type: str) -> Tuple[dict, bool, bool]:
@@ -293,11 +295,11 @@ class ConfigurationParser:
         fragment_durations = []
         try:
             switchingset_config = self.get_switchingset_config(content_type)[0]
-        except IndexError:
+        except IndexError as exc:
             raise ConfigError(
                 f"Failed to get {content_type} switching set configuration "
                 f"for the test '{test_path}'"
-            )
+            ) from exc
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
         parameter = content_type + "_fragment_durations"
@@ -327,7 +329,7 @@ class ConfigurationParser:
                     repeat += segment["r"]
                 except KeyError:
                     repeat = 1
-                for r in range(repeat):
+                for _r in range(repeat):
                     fragment_durations.append(Fraction(segment["d"], timescale) * 1000)
         return fragment_durations
 
@@ -361,12 +363,12 @@ class ConfigurationParser:
                 Fraction(str(representation["fragment_duration"])) * 1000
             )
             repeat = math.ceil(representation["duration"] / fragment_duration)
-            for r in range(repeat):
+            for _r in range(repeat):
                 fragment_duration_list.append(fragment_duration)
-        except (TypeError, KeyError) as e:
+        except (TypeError, KeyError) as exc:
             raise ConfigError(
-                f"Failed to get a parameter:{e} for the test '{test_path}'"
-            )
+                f"Failed to get a parameter:{exc} for the test '{test_path}'"
+            ) from exc
         return fragment_duration_list
 
     def _get_fragment_duration_from_mpd(
@@ -378,11 +380,11 @@ class ConfigurationParser:
         fragment_duration_list = []
         try:
             switchingset_config = self.get_switchingset_config(content_type)[0]
-        except IndexError:
+        except IndexError as exc:
             raise ConfigError(
                 f"Failed to get {content_type} switching set configuration "
                 f"for the test '{test_path}'"
-            )
+            ) from exc
         # we are interested just about the first video representations fragment duration
         for representation in switchingset_config["representations"].values():
             if representation["type"] == content_type:
@@ -404,11 +406,11 @@ class ConfigurationParser:
         results[parameter] = {}
         try:
             switchingset_config = self.get_switchingset_config(content_type)[0]
-        except IndexError:
+        except IndexError as exc:
             raise ConfigError(
                 f"Failed to get {content_type} switching set configuration "
                 f"for the test '{test_path}'"
-            )
+            ) from exc
         segment_timeline = self._get_segment_timeline(switchingset_config)
         timescale = self._get_timescale(switchingset_config)
 
@@ -517,15 +519,15 @@ class ConfigurationParser:
                     try:
                         value = self.test_config_json["all"][parameter]
                         parameters_dict[parameter] = value
-                    except KeyError as e:
+                    except KeyError as exc:
                         # gap_duration by default is fragment_duration
                         # when undefined seek fragment_duration
                         if parameter == "gap_duration":
                             continue
                         else:
                             raise ConfigError(
-                                f"Failed to get a parameter:{e} for the test '{test_path}'"
-                            )
+                                f"Failed to get a parameter:{exc} for the test '{test_path}'"
+                            ) from exc
         return parameters_dict
 
     def _get_json_from_tr(self, json_name: str) -> Dict[str, Dict[str, Dict[str, str]]]:
@@ -539,10 +541,10 @@ class ConfigurationParser:
                 raise ObsFrameTerminate(
                     f"Failed to get configuration file from test runner {r.status_code}"
                 )
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException as exc:
             raise ObsFrameTerminate(
-                f"Failed to get configuration file from test runner. {e}"
-            )
+                f"Failed to get configuration file from test runner. {exc}"
+            ) from exc
 
     def _get_json_from_local(
         self, json_name: str
@@ -552,13 +554,13 @@ class ConfigurationParser:
         """
         try:
             filename = "configuration/" + json_name
-            with open(filename) as json_file:
+            with open(filename, encoding="utf-8") as json_file:
                 config_data = json.load(json_file)
                 return config_data
-        except FileNotFoundError as e:
+        except FileNotFoundError as exc:
             raise ObsFrameTerminate(
-                f"Failed to get configuration file from local directory. {e}"
-            )
+                f"Failed to get configuration file from local directory. {exc}"
+            ) from exc
 
 
 class PlayoutParser:

@@ -37,8 +37,8 @@ class GlobalConfigurations:
 
     config: configparser.RawConfigParser
     ignore_corrupted: str
-    """special condition to ignore
-    used to ignore corrupted frames for gopro9"""
+    """special condition to ignore,
+    used to ignore corrupted frames for some camera (e.g.: GoPro9)"""
     system_mode: str
     """system mode for debugging purpose only"""
     qr_search_range: List[int]
@@ -50,6 +50,7 @@ class GlobalConfigurations:
         self.ignore = ""
         self.system_mode = ""
         self.qr_search_range = []
+        self.ignore_corrupted = ""
 
     def set_qr_search_range(self, qr_search_range: str):
         """Set range"""
@@ -70,7 +71,7 @@ class GlobalConfigurations:
         """Get range"""
         return self.qr_search_range
 
-    def set_ignore_corrupted(self, ignore_corrupted: str) -> str:
+    def set_ignore_corrupted(self, ignore_corrupted: str):
         """Set ignore"""
         self.ignore_corrupted = ignore_corrupted
 
@@ -78,7 +79,7 @@ class GlobalConfigurations:
         """Get ignore"""
         return self.ignore_corrupted
 
-    def set_system_mode(self, mode: str) -> str:
+    def set_system_mode(self, mode: str):
         """Set system_mode"""
         self.system_mode = mode
 
@@ -129,12 +130,18 @@ class GlobalConfigurations:
             session_log_threshold = 100
         return session_log_threshold
 
+    def set_test_runner_url(self, test_runner_url: str):
+        """Set test_runner_url"""
+        self.config["GENERAL"]["test_runner_url"] = test_runner_url
+
     def get_test_runner_url(self) -> str:
         """Get test_runner_url"""
         try:
             test_runner_url = self.config["GENERAL"]["test_runner_url"]
+            if not test_runner_url.endswith("/"):
+                test_runner_url += "/"
         except KeyError:
-            test_runner_url = "http://web-platform.test:8000"
+            test_runner_url = "http://web-platform.test:8000/_wave/"
         return test_runner_url
 
     def get_missing_frame_threshold(self) -> int:
@@ -200,6 +207,16 @@ class GlobalConfigurations:
         except KeyError:
             duplicated_qr_check_count = 3
         return duplicated_qr_check_count
+
+    def get_audio_alignment_tolerance(self) -> int:
+        """Get audio_alignment_tolerance"""
+        try:
+            audio_alignment_tolerance = int(
+                self.config["GENERAL"]["audio_alignment_tolerance"]
+            )
+        except KeyError:
+            audio_alignment_tolerance = 5
+        return audio_alignment_tolerance
 
     def get_audio_observation_neighborhood(self) -> int:
         """Get audio_observation_neighborhood"""

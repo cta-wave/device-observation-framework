@@ -36,7 +36,7 @@ class LogManager:
     _logger_handler: FileHandler
     """log file handler"""
 
-    def __init__(self, log_file: str, loglevel: str):
+    def __init__(self, log_file: str, loglevel: str, console_loglevel: str):
         """Create logger handlers for the log files and the console output
 
         Args:
@@ -48,7 +48,10 @@ class LogManager:
         """
         numeric_level = getattr(logging, loglevel.upper(), None)
         if not isinstance(numeric_level, int):
-            raise ValueError("Invalid log level: %s" % loglevel)
+            raise ValueError(f"Invalid log level: {loglevel}")
+        numeric_level_console = getattr(logging, console_loglevel.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError(f"Invalid log level: {console_loglevel}")
 
         self._logger_handler = RotatingFileHandler(
             log_file, maxBytes=MAX_LOGFILE_BYTES, backupCount=BAK_LOG_FILE_NUM
@@ -64,6 +67,7 @@ class LogManager:
 
         # define a Handler which writes INFO messages and higher to sys.stderr
         console = logging.StreamHandler()
+        console.setLevel(numeric_level_console)
         formatter = logging.Formatter("%(levelname)-8s %(message)s")
         console.setFormatter(formatter)
         logging.getLogger("").addHandler(console)

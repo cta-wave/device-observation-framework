@@ -51,7 +51,7 @@ from qr_recognition.qr_recognition import FrameAnalysis
 
 MAJOR = 2
 MINOR = 0
-PATCH = 1
+PATCH = 2
 BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
@@ -322,10 +322,9 @@ def get_qr_code_area(
     else:
         vid_cap.release()
 
-    """check qr_code_area
-    if not defined we just crop left half for mezzanine
-    right half for the test runner status
-    """
+    # check qr_code_area
+    # if not defined we just crop left half for mezzanine
+    # right half for the test runner status
     qr_area_margin = global_configurations.get_qr_area_margin()
     for i in range(0, len(qr_code_areas)):
         if qr_code_areas[i]:
@@ -421,10 +420,6 @@ def run(
         fps: float = vid_cap.get(cv2.CAP_PROP_FPS)
         width: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        if input_video_files.index(input_video_path_str) == 0:
-            vid_cap.set(cv2.CAP_PROP_POS_MSEC, first_pre_test_qr_time)
-            starting_camera_frame_number = int(first_pre_test_qr_time / 1000 * fps)
 
         if fps < 1 or width <= 0 or height <= 0:
             vid_cap.release()
@@ -555,7 +550,7 @@ def main() -> None:
     log_file_path = global_configurations.get_log_file_path()
 
     log_file = log_file_path + "/events.log"
-    log_manager = LogManager(log_file, args.log)
+    log_manager = LogManager(log_file, args.log, args.log)
 
     if not check_python_version():
         sys.exit(1)

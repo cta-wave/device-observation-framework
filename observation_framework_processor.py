@@ -29,7 +29,6 @@ Contributor: Resillion UK Limited
 import importlib
 import json
 import logging
-import math
 import os
 from typing import List, Tuple
 
@@ -50,11 +49,12 @@ from observation_result_handler import ObservationResultHandler
 from output_file_handler import extract_qr_data_to_csv, write_header_to_csv_file
 from qr_recognition.qr_decoder import DecodedQr
 from qr_recognition.qr_recognition import FrameAnalysis
+from observations.observation import Observation
 
 logger = logging.getLogger(__name__)
 
 # test finish delay in ms after 1st status "finished" status
-TEST_FINISH_DELAY = 5000
+TEST_FINISH_DELAY = 1000
 
 
 class ObservationFrameworkProcessor:
@@ -122,7 +122,7 @@ class ObservationFrameworkProcessor:
     session_log_path: str
     """session log folder path"""
     qr_list_file: str
-    """decodec qr code csv file path"""
+    """decoded qr code csv file path"""
     observation_data_export_file: str
     """time difference csv file path"""
 
@@ -150,12 +150,12 @@ class ObservationFrameworkProcessor:
         do_adaptive_threshold_scan: bool,
     ):
         """dict {test_code : (module_name, class_name)}
-        test_code: test code from test runner configuration, this mapped from test ID from pre-test QR code
-            with the tests.config file
+        test_code: test code from test runner configuration, this mapped from test ID
+             from pre-test QR code with the tests.config file
         module_name: file name where the test handler is defined
         class_name: class name to handle each test code
         """
-        with open("of_testname_map.json") as f:
+        with open("of_testname_map.json", encoding="utf-8") as f:
             self.tests = json.load(f)
 
         self.log_manager = log_manager
@@ -289,7 +289,7 @@ class ObservationFrameworkProcessor:
 
                         logger.debug(
                             f"Frame Number={self.mezzanine_qr_codes[index].frame_number} "
-                            f"updating Last appear Frame={self.mezzanine_qr_codes[index].last_camera_frame_num}"
+                            f"Last Frame={self.mezzanine_qr_codes[index].last_camera_frame_num}"
                             f" and location sum={self.mezzanine_qr_codes[index].location},"
                             f" detection count={self.mezzanine_qr_codes[index].detection_count}."
                         )
@@ -306,6 +306,11 @@ class ObservationFrameworkProcessor:
             elif isinstance(detected_code, PreTestDecodedQr):
                 if self.pre_test_qr_code != detected_code:
                     new_pre_test_qr_code = detected_code
+                else:
+                    # update last appear frame number
+                    self.pre_test_qr_code.last_camera_frame_num = (
+                        detected_code.first_camera_frame_num
+                    )
                 # discard all QR codes that are detected at the same time with PreTestDecodedQr
                 for log_code in detected_codes:
                     if not isinstance(log_code, PreTestDecodedQr):
@@ -355,11 +360,11 @@ class ObservationFrameworkProcessor:
                 self.camera_frame_rate,
                 self.camera_frame_duration_ms,
             )
-        except KeyError:
-            raise Exception(f"Test '{test_code}' not supported!")
+        except KeyError as exc:
+            raise ConfigError(f"Test '{test_code}' not supported!") from exc
 
         if self.test_class:
-            content_type = self.test_class._get_content_type()
+            content_type = self.test_class.get_content_type()
             if content_type == "audio":
                 self.max_qr_code_num_in_frame = 1
             else:
@@ -374,20 +379,33 @@ class ObservationFrameworkProcessor:
 
         try:
             current_audio_path_str = self.input_audio_path_list[-1][0]
-            starting_camera_frame_number = self.input_audio_path_list[-1][1]
+            time_current_recording_starts = (
+                self.input_audio_path_list[-1][1] * self.camera_frame_duration_ms
+            )
 
-            if starting_camera_frame_number <= self.pre_test_qr_code.camera_frame_num:
+            # Get time when test status = play
+            event_found, event_ct = Observation.find_event(
+                "play", self.test_status_qr_codes, self.camera_frame_duration_ms
+            )
+
+            if (
+                time_current_recording_starts
+                <= self.pre_test_qr_code.last_camera_frame_num
+                * self.camera_frame_duration_ms
+            ):
                 # audio data can be read from single file
-                test_start_time = (
-                    self.pre_test_qr_code.camera_frame_num
-                    - starting_camera_frame_number
-                ) * self.camera_frame_duration_ms
-                test_finish_time = (
-                    (
-                        self.last_end_of_test_camera_frame_num
-                        - starting_camera_frame_number
+                if event_found:
+                    test_start_time = event_ct - time_current_recording_starts
+                else:
+                    test_start_time = (
+                        self.pre_test_qr_code.last_camera_frame_num
+                        * self.camera_frame_duration_ms
+                        - time_current_recording_starts
                     )
+                test_finish_time = (
+                    self.last_end_of_test_camera_frame_num
                     * self.camera_frame_duration_ms
+                    - time_current_recording_starts
                 ) + TEST_FINISH_DELAY
                 audio_subject_data = read_audio_recording(
                     current_audio_path_str, test_start_time, test_finish_time
@@ -395,22 +413,24 @@ class ObservationFrameworkProcessor:
             else:
                 # audio data separated into two files
                 previous_audio_path_str = self.input_audio_path_list[-2][0]
-                previous_starting_camera_frame_number = self.input_audio_path_list[-2][
-                    1
-                ]
-                test_start_time = (
-                    self.pre_test_qr_code.camera_frame_num
-                    - previous_starting_camera_frame_number
-                ) * self.camera_frame_duration_ms
+                time_previous_recording_starts = (
+                    self.input_audio_path_list[-2][1] * self.camera_frame_duration_ms
+                )
+                if event_found:
+                    test_start_time = event_ct - time_previous_recording_starts
+                else:
+                    test_start_time = (
+                        self.pre_test_qr_code.last_camera_frame_num
+                        * self.camera_frame_duration_ms
+                        - time_previous_recording_starts
+                    )
                 audio_subject_data = read_audio_recording(
                     previous_audio_path_str, test_start_time, None
                 )
                 test_finish_time = (
-                    (
-                        self.last_end_of_test_camera_frame_num
-                        - starting_camera_frame_number
-                    )
+                    self.last_end_of_test_camera_frame_num
                     * self.camera_frame_duration_ms
+                    - time_current_recording_starts
                 ) + TEST_FINISH_DELAY
                 audio_subject_data.extend(
                     read_audio_recording(current_audio_path_str, 0, test_finish_time)
@@ -418,9 +438,13 @@ class ObservationFrameworkProcessor:
 
             # audio recording time is relative time to audio_test_start_time
             # and also adjust audio and video sync on camera
-            audio_test_start_time = (
-                self.pre_test_qr_code.camera_frame_num * self.camera_frame_duration_ms
-            )
+            if event_found:
+                audio_test_start_time = event_ct
+            else:
+                audio_test_start_time = (
+                    self.pre_test_qr_code.last_camera_frame_num
+                    * self.camera_frame_duration_ms
+                )
             return audio_test_start_time, audio_subject_data
         except:
             return 0.0, []
@@ -432,7 +456,7 @@ class ObservationFrameworkProcessor:
         observations being made
         """
         if self.test_class:
-            content_type = self.test_class._get_content_type()
+            content_type = self.test_class.get_content_type()
             audio_test_start_time, audio_subject_data = self.process_audio_data(
                 content_type
             )
@@ -447,18 +471,18 @@ class ObservationFrameworkProcessor:
                 )
                 self._save_results(results)
 
-            except ObsFrameTerminate as e:
+            except ObsFrameTerminate as exc:
                 results = []
                 result = {
                     "status": "NOT_RUN",
-                    "message": f"{e}",
+                    "message": f"{exc}",
                     "name": "[OF] Observations are not run.",
                 }
                 results.append(result)
                 self.observation_result_handler.post_result(
                     self.pre_test_qr_code.session_token, self.test_path, results
                 )
-                raise ObsFrameTerminate(result["message"])
+                raise ObsFrameTerminate(result["message"]) from exc
         else:
             logger.warning(
                 "Unable to identify current test. Observation will not be made."
@@ -481,7 +505,7 @@ class ObservationFrameworkProcessor:
                             new_result["status"] == "PASS"
                             and result["status"] == "PASS"
                         ):
-                            result["status"] == "PASS"
+                            result["status"] = "PASS"
                         else:
                             result["status"] = new_result["status"]
                     else:
@@ -536,7 +560,7 @@ class ObservationFrameworkProcessor:
             and self.pre_test_qr_code.session_token
             != new_pre_test_qr_code.session_token
         ):
-            raise Exception(
+            raise ConfigError(
                 f"session_token does not match, recording should contain only one test session! "
                 f"previous session={self.pre_test_qr_code.session_token}, "
                 f"current session={new_pre_test_qr_code.session_token}"
@@ -654,7 +678,8 @@ class ObservationFrameworkProcessor:
                 f"At camera frame {camera_frame_number} "
                 f"there were {self.consecutive_no_qr_count} consecutive camera frames "
                 f"where no mezzanine qr codes were detected. "
-                f"Device Observation Framework is exiting, and the remaining tests are not observed."
+                f"Device Observation Framework is exiting, "
+                f"and the remaining tests are not observed."
             )
 
     def iter_qr_codes_in_video(
@@ -686,7 +711,8 @@ class ObservationFrameworkProcessor:
                     logger.warning(
                         f"Recording frame {capture_frame_num} is corrupted. "
                         f"Total recording frame number is {len_frames}. "
-                        f"If this is not close to the end of recording, observation process will be terminating early."
+                        f"If this is not close to the end of recording, "
+                        f"observation process will be terminating early."
                     )
                     break
 
@@ -740,16 +766,16 @@ class ObservationFrameworkProcessor:
             if new_mezzanine_qr_codes:
                 if not self.test_class:
                     logger.warning(
-                        f"Mezzanine QR code is detected before identifying the test. "
-                        f"observations won't be made, stop process if you want."
+                        "Mezzanine QR code is detected before identifying the test. "
+                        "observations won't be made, stop process if you want."
                     )
                 self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
 
             if new_test_status_qr_code:
                 if not self.test_class:
                     logger.warning(
-                        f"Test status QR code is detected before identifying the test. "
-                        f"observations won't be made, stop process if you want."
+                        "Test status QR code is detected before identifying the test. "
+                        "observations won't be made, stop process if you want."
                     )
                 self._process_test_status_qr_code(new_test_status_qr_code)
 

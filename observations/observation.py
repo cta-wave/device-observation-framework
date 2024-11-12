@@ -72,7 +72,7 @@ class Observation:
             )
 
     @staticmethod
-    def _find_event(
+    def find_event(
         event: str,
         test_status_qr_codes: List[TestStatusDecodedQr],
         camera_frame_duration_ms: float,
