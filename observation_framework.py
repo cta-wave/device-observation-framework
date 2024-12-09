@@ -48,6 +48,7 @@ from global_configurations import GlobalConfigurations
 from log_handler import LogManager
 from observation_framework_processor import ObservationFrameworkProcessor
 from qr_recognition.qr_recognition import FrameAnalysis
+from camera_calibration_helper import calibrate_camera
 
 MAJOR = 2
 MINOR = 0
@@ -89,7 +90,7 @@ def rename_input_file(
                     input_video_path.parent, new_audio_file_name + audio_file_extension
                 )
                 os.rename(input_audio_path_str, new_audio_file_path)
-            logger.info(f"Recorded file renamed to '{new_file_path}'.")
+            logger.info("Recorded file renamed to '%s'.", new_file_path)
 
 
 def iter_to_get_qr_area(
@@ -131,12 +132,12 @@ def iter_to_get_qr_area(
         got_frame, image = vid_cap.read()
         if not got_frame:
             if "video" in global_configurations.get_ignore_corrupted():
-                # work around for gopro
+                # work around for camera has corrupted frame e.g.:GoPro
                 corrupted_frame_num += 1
                 capture_frame_num += 1
                 continue
             else:
-                logger.warning(f"Recording frame {capture_frame_num} is corrupted.")
+                logger.warning("Recording frame %d is corrupted.", capture_frame_num)
                 break
 
         # print out where the processing is currently
@@ -165,11 +166,14 @@ def iter_to_get_qr_area(
                 first_pre_test_qr_time = capture_frame_num / camera_frame_rate * 1000
                 first_pre_test_found = True
                 logger.debug(
-                    f"First pre-test QR code is detected at time {first_pre_test_qr_time}."
+                    "First pre-test QR code is detected at time %f.",
+                    first_pre_test_qr_time,
                 )
             elif isinstance(detected_code, MezzanineDecodedQr) and not mezzanine_found:
                 logger.debug(
-                    f"Frame Number={detected_code.frame_number} Location={detected_code.location}"
+                    "Frame Number=%d Location=%s",
+                    detected_code.frame_number,
+                    detected_code.location,
                 )
                 new_qr_code_area = [
                     detected_code.location[0],
@@ -198,15 +202,17 @@ def iter_to_get_qr_area(
                 ):
                     mezzanine_found = True
                     logger.debug(
-                        f"Mezzanine QR code area is detected successfully at: "
-                        f"{qr_code_areas[0]}."
+                        "Mezzanine QR code area is detected successfully at: %s.",
+                        qr_code_areas[0],
                     )
 
             elif (
                 isinstance(detected_code, TestStatusDecodedQr) and not test_status_found
             ):
                 logger.debug(
-                    f"Status={detected_code.status} Location={detected_code.location}"
+                    "Status=%s Location=%s",
+                    detected_code.status,
+                    detected_code.location,
                 )
                 qr_code_areas[1] = [
                     detected_code.location[0],
@@ -216,8 +222,8 @@ def iter_to_get_qr_area(
                 ]
                 test_status_found = True
                 logger.debug(
-                    f"Test status QR code area is detected successfully at: "
-                    f"{qr_code_areas[1]}."
+                    "Test status QR code area is detected successfully at: %s.",
+                    qr_code_areas[1],
                 )
             else:
                 continue
@@ -231,25 +237,25 @@ def iter_to_get_qr_area(
         # finish when end_iter_frame_num reached
         if capture_frame_num > end_iter_frame_num:
             logger.debug(
-                f"End of configured search is reached, "
-                f"search until frame number {end_iter_frame_num}."
+                "End of configured search is reached, search until frame number %d.",
+                end_iter_frame_num,
             )
             # if not full area found set to unknown
             if not mezzanine_found:
                 qr_code_areas[0] = []
-                logger.info(f"Mezzanine QR code areas not detected successfully.")
+                logger.info("Mezzanine QR code areas not detected successfully.")
             if not test_status_found:
-                logger.info(f"Test Runner QR code areas not detected successfully.")
+                logger.info("Test Runner QR code areas not detected successfully.")
             return first_pre_test_qr_time, qr_code_areas
 
     # if not full area found set to unknown
-    logger.debug(f"End of recording is reached.")
+    logger.debug("End of recording is reached.")
 
     if not mezzanine_found:
         qr_code_areas[0] = []
-        logger.debug(f"Mezzanine QR code areas not detected successfully.")
+        logger.debug("Mezzanine QR code areas not detected successfully.")
     if not test_status_found:
-        logger.debug(f"Test Runner QR code areas not detected successfully.")
+        logger.debug("Test Runner QR code areas not detected successfully.")
     return first_pre_test_qr_time, qr_code_areas
 
 
@@ -270,7 +276,7 @@ def get_qr_code_area(
         qr_code_areas: qr_code_areas to crop when detecting qr code
         pre_test_qr_code_area: qr_code_area to crop for pre test qr code
     """
-    logger.info(f"Search '{input_video_path_str}' to get QR code location...")
+    logger.info("Search '%s' to get QR code location...", input_video_path_str)
 
     qr_code_areas = [[], []]
     first_pre_test_qr_time = 0
@@ -346,15 +352,15 @@ def get_qr_code_area(
                 # left half for mezzanine
                 qr_code_areas[i] = [0, 0, int(width / 2), height]
                 logger.info(
-                    f"QR code area for full scan is set to "
-                    f"left half of image for mezzanine QR code."
+                    "QR code area for full scan is set to "
+                    "left half of image for mezzanine QR code."
                 )
             else:
                 # right half for test status
                 qr_code_areas[i] = [int(width / 2), 0, width, height]
                 logger.info(
-                    f"QR code area for full scan is set to "
-                    f"right half of image for test status QR code."
+                    "QR code area for full scan is set to "
+                    "right half of image for test status QR code."
                 )
 
     pre_test_qr_code_area = [int(width / 4), 0, int((width / 4) * 3), height]
@@ -368,37 +374,52 @@ def run(
     global_configurations: GlobalConfigurations,
     do_adaptive_threshold_scan: bool,
 ):
-    """Runs the observation framework, loads configuration from Test Runner
-    and reads the recorded video file
     """
-    observation_framework = None
+    Calibrate camera and set camera calibration offset when calibration_file_path is given.
+    Runs the observation framework process.
+    """
+    logger.info("Device Observation Framework (V%s) analysis started!", VERSION)
+    calibration_offset = 0
+    calibration_file_path = global_configurations.get_calibration_file_path()
+    if calibration_file_path:
+        logger.info("Camera calibration started, please wait.")
+        calibration_offset = calibrate_camera(
+            calibration_file_path, global_configurations
+        )
+        logger.info(
+            "Camera calibration offset %.2fms is applied to the observations.",
+            calibration_offset,
+        )
 
+    observation_framework = None
     file_index = 0
     qr_search_range = global_configurations.get_qr_search_range()
     if qr_search_range:
         file_index = qr_search_range[0]
     starting_camera_frame_number = 0
 
-    logger.info(f"Device Observation Framework (V{VERSION}) analysis started!")
     if (global_configurations.get_system_mode()) == "debug":
         logger.info(
-            f"Device Observation Framework is running in debug mode, "
-            f'reads local configuration file from "configuration" folder '
-            f"and will not post results back to the Test Runner."
+            "Device Observation Framework is running in 'debug' mode, "
+            "it reads local configuration file from the 'configuration' folder "
+            "and will not post results back to the Test Runner. "
+            "The results will be saved locally. "
         )
     if do_adaptive_threshold_scan:
-        logger.info(f"Intensive QR code scanning with additional adaptiveThreshold.")
+        logger.info("Intensive QR code scanning with an additional adaptiveThreshold.")
 
     (
-        first_pre_test_qr_time,
+        _first_pre_test_qr_time,
         qr_code_areas,
         pre_test_qr_code_area,
     ) = get_qr_code_area(
         input_video_files[file_index], global_configurations, do_adaptive_threshold_scan
     )
     logger.info(
-        f"QR code area for full scan is set to {qr_code_areas[0]} for mezzanine QR code, "
-        f"and {qr_code_areas[1]} for test status QR code."
+        "QR code area for full scan is set to %s for mezzanine QR code, and %s "
+        "for test status QR code.",
+        qr_code_areas[0],
+        qr_code_areas[1],
     )
 
     # add pre-test qr code area
@@ -406,11 +427,13 @@ def run(
     if global_configurations.get_enable_cropped_scan_for_pre_test_qr():
         qr_code_areas.append(pre_test_qr_code_area)
         logger.info(
-            f"Additional QR code scan with roughly cropped area {qr_code_areas[2]} for pre-test QR code is enabled."
+            "Additional QR code scan with roughly cropped area "
+            "%s for pre-test QR code is enabled.",
+            qr_code_areas[2],
         )
     for i in range(0, len(input_video_files)):
         input_video_path_str = input_video_files[i]
-        logger.info(f"Analysing '{input_video_path_str}'...")
+        logger.info("Analysing recording '%s'.", input_video_path_str)
 
         input_video_path = Path(input_video_path_str).resolve()
         if not input_video_path.is_file():
@@ -430,7 +453,11 @@ def run(
         try:
             if observation_framework is None:
                 observation_framework = ObservationFrameworkProcessor(
-                    log_manager, global_configurations, fps, do_adaptive_threshold_scan
+                    calibration_offset,
+                    log_manager,
+                    global_configurations,
+                    fps,
+                    do_adaptive_threshold_scan,
                 )
 
             observation_framework.extract_audio(
@@ -452,7 +479,7 @@ def run(
                 observation_framework.pre_test_qr_code.session_token,
             )
 
-    logger.info(f"Device Observation Framework analysis ended.")
+    logger.info("The Device Observation Framework analysis has ended.")
 
 
 def clear_path(file_path: str, session_log_threshold: int) -> None:
@@ -473,7 +500,7 @@ def clear_path(file_path: str, session_log_threshold: int) -> None:
         if num_of_session_to_delete > 0:
             oldest = sorted(full_path, key=os.path.getctime)[0:num_of_session_to_delete]
             logger.info(
-                f"Removing oldest {num_of_session_to_delete} file(s): {oldest}!"
+                "Removing oldest %d file(s): %s!", num_of_session_to_delete, oldest
             )
             for oldest_session in oldest:
                 shutil.rmtree(oldest_session)
@@ -496,13 +523,91 @@ def check_python_version() -> bool:
     Returns:
         True if version is OK.
     """
-    if sys.version_info.major == 3 and sys.version_info.minor >= 6:
+    if sys.version_info.major == 3 and sys.version_info.minor >= 10:
         return True
-    logger.error(
-        "Aborting... Python version 3.6 or greater is required.\n"
-        f"Current Python version is {sys.version_info.major}.{sys.version_info.minor}."
+    logger.critical(
+        "Aborting! Python version 3.10 or greater is required.\nCurrent Python version is %d.%d.",
+        sys.version_info.major,
+        sys.version_info.minor,
     )
     return False
+
+
+def process_input_video_files(
+    input_str: str, global_configurations: GlobalConfigurations
+) -> list:
+    """
+    process input video files from input file string
+    and return input video file path in a list
+    """
+    input_video_files = []
+    input_video_path = Path(input_str).resolve()
+
+    if not os.path.isabs(input_video_path):
+        input_video_path = os.path.abspath(input_video_path)
+
+    if input_video_path.is_dir():
+        input_files = os.listdir(input_video_path)
+        for input_file in input_files:
+            # skip audio files
+            if ".wav" in input_file:
+                continue
+            full_path = os.path.join(input_video_path, input_file)
+            if Path(full_path).resolve().is_file():
+                input_video_files.append(full_path)
+            else:
+                logger.warning("%s is not a file, skipped!", full_path)
+    else:
+        input_video_files.append(str(input_video_path))
+
+    # sort input files based on the configuration
+    sort_input_files_by = global_configurations.get_sort_input_files_by()
+    if sort_input_files_by == "filename":
+        sorted(input_video_files)
+    else:
+        input_video_files.sort(key=os.path.getmtime)
+    return input_video_files
+
+
+def process_run(
+    input_str: str,
+    log_manager: LogManager,
+    global_configurations: GlobalConfigurations,
+    do_adaptive_threshold_scan: bool,
+):
+    """process run and handel exceptions"""
+    input_video_files = process_input_video_files(input_str, global_configurations)
+    try:
+        run(
+            input_video_files,
+            log_manager,
+            global_configurations,
+            do_adaptive_threshold_scan,
+        )
+    except ObsFrameTerminate as e:
+        logger.exception(
+            "Serious error is detected!\n%s\nSystem is terminating!", e, exc_info=False
+        )
+        clear_up(global_configurations)
+        sys.exit(1)
+    except ConfigError as e:
+        logger.exception("Serious error detected!\n%s", e, exc_info=False)
+        clear_up(global_configurations)
+        sys.exit(1)
+    except ObsFrameError as e:
+        logger.exception("Serious error detected!\n%s", e, exc_info=False)
+        clear_up(global_configurations)
+        sys.exit(1)
+    except Exception as e:
+        logger.exception("Serious error is detected!\n%s: %s", e, traceback.format_exc())
+        clear_up(global_configurations)
+        sys.exit(1)
+
+    logger.info(
+        "The Device Observation Framework has completed the analysis of all selected recordings, "
+        "The Device Observation Framework is exiting."
+    )
+    clear_up(global_configurations)
 
 
 def main() -> None:
@@ -510,12 +615,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"DPCTF Device Observation Framework (v{VERSION})"
     )
-    parser.add_argument("--input", help="Input Video Path")
     parser.add_argument(
-        "--log",
-        help="Logging level to write to log file.",
-        default="info",
-        choices=["debug", "info"],
+        "--input", required=True, help="Input recording file / path to analyse."
+    )
+    parser.add_argument(
+        "--log", nargs='+',  # Allow 1 or 2 values
+        help="Logging levels for log file writing and console output.",
+        default=["debug", "info"], # default to info console log and debug file writing
+        choices=["info", "debug"],
     )
     parser.add_argument(
         "--scan",
@@ -534,10 +641,15 @@ def main() -> None:
     )
     parser.add_argument(
         "--range",
-        help="Search QR codes to crop the QR code area for better detection. QR codes area detection includes mezzanine QR codes and Test Status QR code.",
+        help="Search QR codes to crop the QR code area for better detection. "
+        "QR codes area detection includes mezzanine QR codes and Test Status QR code.",
         default="",
         metavar="id(file_index):start(s):duration(s)",
     )
+    parser.add_argument(
+        "--calibration", help="Camera calibration recording file path.", default=""
+    )
+
     args = parser.parse_args()
     do_adaptive_threshold_scan = False
     if args.scan == "intensive":
@@ -547,79 +659,23 @@ def main() -> None:
     global_configurations.set_ignore_corrupted(args.ignore_corrupted)
     global_configurations.set_system_mode(args.mode)
     global_configurations.set_qr_search_range(args.range)
-    log_file_path = global_configurations.get_log_file_path()
+    global_configurations.set_calibration_file_path(args.calibration)
 
+    log_file_path = global_configurations.get_log_file_path()
     log_file = log_file_path + "/events.log"
-    log_manager = LogManager(log_file, args.log, args.log)
+    if len(args.log) == 1:
+        args.log = [args.log[0], args.log[0]]
+    log_manager = LogManager(log_file, args.log[0], args.log[1])
 
     if not check_python_version():
         sys.exit(1)
 
-    input_video_files = []
-    input_video_path = Path(args.input).resolve()
-
-    if not os.path.isabs(input_video_path):
-        input_video_path = os.path.abspath(input_video_path)
-
-    if input_video_path.is_dir():
-        input_files = os.listdir(input_video_path)
-        for input_file in input_files:
-            # skip audio files
-            if ".wav" in input_file:
-                continue
-            full_path = os.path.join(input_video_path, input_file)
-            if Path(full_path).resolve().is_file():
-                input_video_files.append(full_path)
-            else:
-                logger.warning(f"{full_path} is not a file, skipped!")
-    else:
-        input_video_files.append(str(input_video_path))
-
-    # sort input files based on the configuration
-    sort_input_files_by = global_configurations.get_sort_input_files_by()
-    if sort_input_files_by == "filename":
-        sorted(input_video_files)
-    else:
-        input_video_files.sort(key=os.path.getmtime)
-
-    try:
-        run(
-            input_video_files,
-            log_manager,
-            global_configurations,
-            do_adaptive_threshold_scan,
-        )
-    except ObsFrameTerminate as e:
-        logger.exception(
-            f"Serious error is detected! {e} system is terminating!",
-            exc_info=False,
-        )
-        clear_up(global_configurations)
-        sys.exit(1)
-    except ConfigError as e:
-        logger.exception(
-            f"Serious error is detected! {e}",
-            exc_info=False,
-        )
-        clear_up(global_configurations)
-        sys.exit(1)
-    except ObsFrameError as e:
-        logger.exception(
-            f"Serious error is detected! {e}",
-            exc_info=False,
-        )
-        clear_up(global_configurations)
-        sys.exit(1)
-    except Exception as e:
-        logger.exception(f"Serious error is detected! {e}: {traceback.format_exc()}")
-        clear_up(global_configurations)
-        sys.exit(1)
-
-    logger.info(
-        f"Device Observation Framework has finished analysing all selected recordings, "
-        f"Device Observation Framework is exiting."
+    process_run(
+        args.input,
+        log_manager,
+        global_configurations,
+        do_adaptive_threshold_scan,
     )
-    clear_up(global_configurations)
 
 
 if __name__ == "__main__":

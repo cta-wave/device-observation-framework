@@ -31,7 +31,6 @@ from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr
 from global_configurations import GlobalConfigurations
-from output_file_handler import write_data_to_csv_file
 
 from .observation import Observation
 
@@ -207,15 +206,14 @@ class NoVisibleVideoShifts(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         switching_points = Observation.get_playback_change_position(mezzanine_qr_codes)
@@ -262,5 +260,5 @@ class NoVisibleVideoShifts(Observation):
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

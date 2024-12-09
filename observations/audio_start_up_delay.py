@@ -67,12 +67,12 @@ class AudioStartUpDelay(Observation):
         Returns:
             Result status and message.
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         # Get time when test status = play
@@ -90,7 +90,7 @@ class AudioStartUpDelay(Observation):
         else:
             # calculate first_audio_detected_time
             first_audio_detected_time = (
-                parameters_dict["test_start_time"]
+                parameters_dict["audio_test_start_time"]
                 + audio_segments[0].audio_segment_timing
             )
             start_up_delay = first_audio_detected_time - event_ct
@@ -104,5 +104,5 @@ class AudioStartUpDelay(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

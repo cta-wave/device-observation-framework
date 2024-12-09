@@ -67,7 +67,7 @@ class UnexpectedSampleNotRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info("Making observation %s...", self.result["name"])
+        logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "PASS"

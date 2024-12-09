@@ -67,7 +67,7 @@ class ObservationResultHandler:
             if error occurred while handling the request.
         """
         try:
-            r = requests.request("GET", url)
+            r = requests.request("GET", url, timeout=10)
         except requests.exceptions.RequestException as e:
             raise ObsFrameError(
                 "Error: Request for session result from Test Runner failed."
@@ -189,7 +189,7 @@ class ObservationResultHandler:
             ) from e
 
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url, headers=headers, data=contents)
+        response = requests.post(url, headers=headers, data=contents, timeout=10)
         if response.status_code != 200:
             raise ObsFrameError(
                 f"Error: Failed to post result to Test Runner. Status= {response.status_code}"
