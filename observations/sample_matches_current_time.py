@@ -91,7 +91,7 @@ class SampleMatchesCurrentTime(Observation):
             if mezzanine_qr_codes[i].first_camera_frame_num >= target_camera_frame_num:
                 mezzanine_frame_rate = min(
                     mezzanine_qr_codes[i].frame_rate,
-                    mezzanine_qr_codes[i - 1].frame_rate
+                    mezzanine_qr_codes[i - 1].frame_rate,
                 )
                 break
 
@@ -192,12 +192,12 @@ class SampleMatchesCurrentTime(Observation):
                         if mezzanine_qr_code.media_time == (ct_event.current_time +/- (sample_tolerance + tolerance))
                                 test is PASSED
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "NOT_RUN"
-            self.result["message"] = f"No QR mezzanine code detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            self.result["message"] = "No QR mezzanine code detected."
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
@@ -233,7 +233,7 @@ class SampleMatchesCurrentTime(Observation):
                     f"Test is configured to change {configured_change_num} times. "
                     f"Actual number of change is {actual_change_num}. "
                 )
-                logger.info(f"[{self.result['status']}] {self.result['message']}")
+                logger.info("[%s] %s", self.result["status"], self.result["message"])
                 return self.result, [], []
 
             period_index = 0
@@ -283,16 +283,13 @@ class SampleMatchesCurrentTime(Observation):
                         allowed_tolerance,
                         ct_frame_tolerance,
                     )
-                    result, time_diff = (
-                        self._check_video_diff_within_tolerance
-                        (
-                            mezzanine_qr_codes,
-                            current_status,
-                            first_possible,
-                            last_possible,
-                            allowed_tolerance,
-                            ct_frame_tolerance,
-                        )
+                    result, time_diff = self._check_video_diff_within_tolerance(
+                        mezzanine_qr_codes,
+                        current_status,
+                        first_possible,
+                        last_possible,
+                        allowed_tolerance,
+                        ct_frame_tolerance,
                     )
                     if time_diff == sys.float_info.max:
                         # when no rendered frame found for the current time report
@@ -319,19 +316,17 @@ class SampleMatchesCurrentTime(Observation):
                         failure_report_count += 1
 
         if failure_report_count >= REPORT_NUM_OF_FAILURE:
-            self.result["message"] += f"...too many failures, reporting truncated."
+            self.result["message"] += "...too many failures, reporting truncated."
 
         self.result["message"] += f" Total failure count is {failure_report_count}."
         self.result[
             "message"
-        ] += (
-            f" Tolerances: +/-({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
-        )
+        ] += f" Tolerances: +/-({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
 
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
 
         # Exporting time diff data to a CSV file
         if observation_data_export_file and time_differences:

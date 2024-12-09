@@ -89,7 +89,10 @@ def get_time_from_segment(subject_data: list, segment_data: list):
     result_complex = np.fft.ifft(result_data, n=length_result, norm="ortho")
     result_data = np.absolute(result_complex)
     result_tuple = np.where(result_data == np.amax(np.absolute(result_data)))
-    result = result_tuple[0][0]
+    if result_tuple[0].size > 0:
+        result = result_tuple[0][0]
+    else:
+        result = 0
 
     return result
 
@@ -104,7 +107,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
     audio_file_name = f"{file_name}.{output_ext}"
     if not os.path.exists(audio_file_name):
         logger.info(
-            f"Extracting audio from '{video_file}' and save it to a wav file..."
+            "Extracting audio from '%s' and save it to a wav file...", video_file
         )
         result = subprocess.call(
             ["ffmpeg", "-y", "-i", video_file, audio_file_name],
@@ -117,9 +120,9 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
             return audio_file_name
         else:
             logger.warning(
-                f"Unable to extract audio from '{video_file}'."
-                f"If the recording file contains audio testing, "
-                f"audio observation will not be made correctly."
+                "Unable to extract audio from '%s'. If the recording file contains audio testing, "
+                "audio observation will not be made correctly.",
+                video_file,
             )
             return ""
     else:
@@ -263,15 +266,17 @@ def _check_audio_recording(subject_file: str):
     p.terminate()
     if sample_rate != REQUIRED_SAMPLE_RATE * 1000:
         logger.warning(
-            f"The sample rate is {sample_rate}, should be {REQUIRED_SAMPLE_RATE}kHz."
-            f"If the recording file contains audio testing, "
-            f"audio observation will not be made correctly."
+            "The sample rate is %d, should be %dkHz. If the recording file contains audio testing, "
+            "audio observation will not be made correctly.",
+            sample_rate,
+            REQUIRED_SAMPLE_RATE,
         )
     if sample_format != REQUIRED_SAMPLE_FORMAT:
         logger.warning(
-            f"The file format is {sample_format*2}b; should be {REQUIRED_SAMPLE_FORMAT*2}b PCM."
-            f"If the recording file contains audio testing, "
-            f"audio observation will not be made correctly."
+            "The file format is %db; should be %db PCM. If the recording file contains audio "
+            "testing, audio observation will not be made correctly.",
+            sample_format * 2,
+            REQUIRED_SAMPLE_FORMAT * 2,
         )
 
 

@@ -29,6 +29,7 @@ import logging
 import math
 from fractions import Fraction
 
+from exceptions import ConfigError
 from .mse_append_window import MseAppendWindow
 from .test import TestType
 
@@ -72,4 +73,4 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf track duration"""
         # Audio observation not in scope
-        raise Exception("Not in scope.")
+        raise ConfigError("Not in scope.")
