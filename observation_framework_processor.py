@@ -54,11 +54,14 @@ from observations.observation import Observation
 logger = logging.getLogger(__name__)
 
 # test finish delay in ms after 1st status "finished" status
-TEST_FINISH_DELAY = 1000
+TEST_FINISH_DELAY = 2000
 
 
 class ObservationFrameworkProcessor:
     """Class to handle observation process"""
+
+    calibration_offset: float
+    """camera calibration audio/video offset"""
 
     do_adaptive_threshold_scan: bool
     """additional adaptiveThreshold in qr code scan"""
@@ -144,6 +147,7 @@ class ObservationFrameworkProcessor:
 
     def __init__(
         self,
+        calibration_offset: float,
         log_manager: LogManager,
         global_configurations: GlobalConfigurations,
         fps: float,
@@ -158,6 +162,7 @@ class ObservationFrameworkProcessor:
         with open("of_testname_map.json", encoding="utf-8") as f:
             self.tests = json.load(f)
 
+        self.calibration_offset = calibration_offset
         self.log_manager = log_manager
         self.last_end_of_test_camera_frame_num = 0
         self.no_qr_code_frame_num = 0
@@ -288,10 +293,11 @@ class ObservationFrameworkProcessor:
                         self.mezzanine_qr_codes[index].detection_count += 1
 
                         logger.debug(
-                            f"Frame Number={self.mezzanine_qr_codes[index].frame_number} "
-                            f"Last Frame={self.mezzanine_qr_codes[index].last_camera_frame_num}"
-                            f" and location sum={self.mezzanine_qr_codes[index].location},"
-                            f" detection count={self.mezzanine_qr_codes[index].detection_count}."
+                            "Frame Number=%d Last Frame=%d Location sum=%s Detection count=%d.",
+                            self.mezzanine_qr_codes[index].frame_number,
+                            self.mezzanine_qr_codes[index].last_camera_frame_num,
+                            self.mezzanine_qr_codes[index].location,
+                            self.mezzanine_qr_codes[index].detection_count,
                         )
                         break
                 if not duplicated:
@@ -315,8 +321,8 @@ class ObservationFrameworkProcessor:
                 for log_code in detected_codes:
                     if not isinstance(log_code, PreTestDecodedQr):
                         logger.debug(
-                            f"Discard QR code {log_code.data}, it is detected "
-                            f" at the same time with Pre Test QR code."
+                            "Discarded QR code %s detected simultaneously with Pre-Test QR code.",
+                            log_code.data,
                         )
                 return [], None, new_pre_test_qr_code
 
@@ -339,7 +345,7 @@ class ObservationFrameworkProcessor:
         )
         if self.test_path is None or test_code is None:
             raise ConfigError("Failed to get api name or test code!")
-        logger.info(f"Start a New test: {self.test_path}")
+        logger.info("Start a New test: %s", self.test_path)
 
         if self.session_log_path:
             self.observation_data_export_file = (
@@ -445,6 +451,8 @@ class ObservationFrameworkProcessor:
                     self.pre_test_qr_code.last_camera_frame_num
                     * self.camera_frame_duration_ms
                 )
+            # apply camera recording calibration offset
+            audio_test_start_time -= self.calibration_offset
             return audio_test_start_time, audio_subject_data
         except:
             return 0.0, []
@@ -525,11 +533,12 @@ class ObservationFrameworkProcessor:
         self.mezzanine_qr_codes.extend(new_mezzanine_qr_codes)
         for new_code in new_mezzanine_qr_codes:
             logger.debug(
-                f"Content ID={new_code.content_id} "
-                f"Media Time={new_code.media_time} "
-                f"Frame Number={new_code.frame_number} "
-                f"Frame Rate={new_code.frame_rate} "
-                f"Captured on Frame={new_code.first_camera_frame_num}"
+                "Content ID=%s Media Time=%f Frame Number=%d Frame Rate=%s Captured on Frame=%d",
+                new_code.content_id,
+                new_code.media_time,
+                new_code.frame_number,
+                str(new_code.frame_rate),
+                new_code.first_camera_frame_num,
             )
 
     def _process_test_status_qr_code(
@@ -537,11 +546,12 @@ class ObservationFrameworkProcessor:
     ) -> None:
         """Process newly detected Test Runner status QR code"""
         logger.debug(
-            f"Status={new_test_status_qr_code.status} "
-            f"Last Action={new_test_status_qr_code.last_action} "
-            f"Current Time={new_test_status_qr_code.current_time} "
-            f"Delay={new_test_status_qr_code.delay} "
-            f"Captured on Frame={new_test_status_qr_code.camera_frame_num}"
+            "Status=%s Last Action=%s Current Time=%f Delay=%d Captured on Frame=%d",
+            new_test_status_qr_code.status,
+            new_test_status_qr_code.last_action,
+            new_test_status_qr_code.current_time,
+            new_test_status_qr_code.delay,
+            new_test_status_qr_code.camera_frame_num,
         )
         self.test_status_qr_codes.append(new_test_status_qr_code)
         if new_test_status_qr_code.status == "finished":
@@ -579,7 +589,7 @@ class ObservationFrameworkProcessor:
                 os.makedirs(self.session_log_path)
 
             session_log_file = self.session_log_path + "/session.log"
-            logger.info(f"Entering log file: {session_log_file}")
+            logger.info("Entering log file: %s", session_log_file)
             self.log_manager.redirect_logfile(session_log_file)
 
             if logger.getEffectiveLevel() == logging.DEBUG:
@@ -633,9 +643,10 @@ class ObservationFrameworkProcessor:
             if time_diff > timeout:
                 result = True
                 logger.info(
-                    f"End of recorded session reached. "
-                    f"({int(time_diff)} seconds passed while waiting for the next test. "
-                    f"Timeout is set to {timeout} seconds)."
+                    "End of recorded session reached. (%d seconds passed while waiting for "
+                    "the next test. Timeout is set to %d seconds).",
+                    int(time_diff),
+                    timeout,
                 )
         return result
 
@@ -709,10 +720,11 @@ class ObservationFrameworkProcessor:
                     continue
                 else:
                     logger.warning(
-                        f"Recording frame {capture_frame_num} is corrupted. "
-                        f"Total recording frame number is {len_frames}. "
-                        f"If this is not close to the end of recording, "
-                        f"observation process will be terminating early."
+                        "Recording frame %d is corrupted. Total recording frame number is %d. "
+                        "If this is not close to the end of recording, observation process will be "
+                        "terminating early.",
+                        capture_frame_num,
+                        len_frames,
                     )
                     break
 

@@ -104,13 +104,13 @@ class RenderingDelayWithinThreshold(Observation):
         Returns:
             Result status and message.
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         render_threshold = parameters_dict["render_threshold"]
@@ -142,5 +142,5 @@ class RenderingDelayWithinThreshold(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}] {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

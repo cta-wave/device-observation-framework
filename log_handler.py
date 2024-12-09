@@ -30,6 +30,45 @@ MAX_LOGFILE_BYTES = 10 * 1024 * 1024
 BAK_LOG_FILE_NUM = 5
 
 
+class LogColors:
+    """ANSI escape codes for colors"""
+
+    RESET = "\033[0m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+
+
+class ColorFormatter(logging.Formatter):
+    """Custom formatter to add colors"""
+
+    LEVEL_COLORS = {
+        logging.DEBUG: LogColors.WHITE,
+        logging.INFO: LogColors.WHITE,
+        logging.WARNING: LogColors.YELLOW,
+        logging.ERROR: LogColors.RED,
+        logging.CRITICAL: LogColors.MAGENTA,
+    }
+
+    def format(self, record):
+        # Apply color to level name
+        level_color = self.LEVEL_COLORS.get(record.levelno, LogColors.WHITE)
+        record.levelname = f"{level_color}{record.levelname}{LogColors.RESET}"
+
+        # Apply color to the message
+        message_color = (
+            level_color  # Use the same color for the message as for the level
+        )
+        record.msg = f"{message_color}{record.msg}{LogColors.RESET}"
+
+        # Format the log entry
+        return super().format(record)
+
+
 class LogManager:
     """Log Manager class"""
 
@@ -68,7 +107,7 @@ class LogManager:
         # define a Handler which writes INFO messages and higher to sys.stderr
         console = logging.StreamHandler()
         console.setLevel(numeric_level_console)
-        formatter = logging.Formatter("%(levelname)-8s %(message)s")
+        formatter = ColorFormatter("%(levelname)-8s %(message)s")
         console.setFormatter(formatter)
         logging.getLogger("").addHandler(console)
 
@@ -78,7 +117,7 @@ class LogManager:
             session_log_name (str): path to the logfile to use.
         """
         file_handler = FileHandler(session_log_name)
-        formatter = logging.Formatter(
+        formatter = ColorFormatter(
             fmt="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
             datefmt="%Y-%m-%d %H:%M",
         )

@@ -48,21 +48,21 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
                 "every_sample_rendered",
                 "EverySampleRendered",
             ),
-            #(
+            # (
             #    "audio_every_sample_rendered",
             #    "AudioEverySampleRendered",
-            #),
+            # ),
             ("start_up_delay", "StartUpDelay"),
-            #("audio_start_up_delay", "AudioStartUpDelay"),
+            # ("audio_start_up_delay", "AudioStartUpDelay"),
             ("duration_matches_cmaf_track", "DurationMatchesCMAFTrack"),
-            #("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
+            # ("audio_duration_matches_cmaf_track", "AudioDurationMatchesCMAFTrack"),
             ("sample_matches_current_time", "SampleMatchesCurrentTime"),
-            #(
+            # (
             #    "earliest_sample_same_presentation_time",
             #    "EarliestSampleSamePresentationTime",
-            #),
-            #(
+            # ),
+            # (
             #    "audio_video_synchronization",
             #    "AudioVideoSynchronization",
-            #),
+            # ),
         ]

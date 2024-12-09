@@ -325,7 +325,7 @@ class SequentialTrackPlayback:
 
     def make_observations(
         self,
-        test_start_time: int,
+        audio_test_start_time: int,
         audio_subject_data: list,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         test_status_qr_codes: List[TestStatusDecodedQr],
@@ -334,8 +334,7 @@ class SequentialTrackPlayback:
         """Make observations for the Test 8.2
 
         Args:
-            test_start_time: test start time in msec
-              (1st detected pre-test qr code time in recording).
+            audio_test_start_time: test start time in msec.
             audio_subject_data: recorded audio data.
             mezzanine_qr_codes: Sorted list of detected mezzanine QR codes.
             test_status_qr_codes: Sorted list of detected Test Runner status QR codes.
@@ -364,15 +363,15 @@ class SequentialTrackPlayback:
 
         if "audio" in self.content_type:
             self._save_expected_audio_track_duration()
-            self.parameters_dict["test_start_time"] = test_start_time
+            self.parameters_dict["audio_test_start_time"] = audio_test_start_time
             try:
                 audio_segments = self._get_audio_segments(
                     self.parameters_dict["audio_content_ids"],
                     audio_subject_data,
                     observation_data_export_file,
                 )
-            except AudioAlignError as e:
-                logger.error(f"Unable to get audio segments: {e}")
+            except AudioAlignError as exc:
+                logger.error("Unable to get audio segments: %s", exc)
 
             # Exporting time diff data to a CSV file
             if logger.getEffectiveLevel() == logging.DEBUG:

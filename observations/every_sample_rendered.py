@@ -206,10 +206,9 @@ class EverySampleRendered(Observation):
             self.missing_frame_threshold != 0
             and self.missing_frame_count > self.missing_frame_threshold
         ):
-            """if the missing frame exceeded the threshold
-            send error to the test runner, display error on the console and
-            end the observation framework the following tests will not be observed.
-            """
+            # if the missing frame exceeded the threshold
+            # send error to the test runner, display error on the console and
+            # end the observation framework the following tests will not be observed.
             self.result["message"] += (
                 f"... too many missing frames, reporting truncated. "
                 f"Total of missing frames "
@@ -243,14 +242,14 @@ class EverySampleRendered(Observation):
                 mid_frame_result = mid_frame_result and self._check_every_frame(
                     mezzanine_qr_codes[change_index_list[-1] :],
                     playout_sequence[-1],
-                    presentation_id
+                    presentation_id,
                 )
             else:
                 last_index = change_index_list[i + 1] - 1
                 mid_frame_result = mid_frame_result and self._check_every_frame(
                     mezzanine_qr_codes[starting_index:last_index],
                     playout_sequence[i],
-                    presentation_id
+                    presentation_id,
                 )
 
         return mid_frame_result
@@ -537,7 +536,7 @@ class EverySampleRendered(Observation):
                 break
 
         # reverse search to get the start_index of gap_to_frame
-        for x in range(len(mezzanine_qr_codes) -1, 0, -1):
+        for x in range(len(mezzanine_qr_codes) - 1, 0, -1):
             if mezzanine_qr_codes[x].frame_number < gap_to_frame:
                 start_index = x + 1
                 break
@@ -910,14 +909,14 @@ class EverySampleRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         first_frame_result = self._check_first_frame(
@@ -966,5 +965,5 @@ class EverySampleRendered(Observation):
         else:
             self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], self.mid_missing_frame_duration

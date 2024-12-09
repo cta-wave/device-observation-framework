@@ -533,7 +533,7 @@ class ConfigurationParser:
     def _get_json_from_tr(self, json_name: str) -> Dict[str, Dict[str, Dict[str, str]]]:
         """Get configuration files from test runner"""
         try:
-            r = requests.get(self.server_url + "/" + json_name)
+            r = requests.get(self.server_url + "/" + json_name, timeout=10)
             if r.status_code == 200:
                 config_data = r.json()
                 return config_data

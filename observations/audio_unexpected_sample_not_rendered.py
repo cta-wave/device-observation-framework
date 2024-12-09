@@ -131,7 +131,7 @@ class AudioUnexpectedSampleNotRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"

@@ -26,6 +26,7 @@ import logging
 import math
 from fractions import Fraction
 
+from exceptions import ConfigError
 from .random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream import (
     RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream,
 )
@@ -71,4 +72,4 @@ class LowLatencyPlaybackOverGaps(
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf track duration"""
         # Audio observation not in scope
-        raise Exception("Not in scope.")
+        raise ConfigError("Not in scope.")

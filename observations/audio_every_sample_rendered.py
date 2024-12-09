@@ -194,9 +194,10 @@ class AudioEverySampleRendered(Observation):
     def _check_every_sample_rendered(
         self, audio_segments: List[AudioSegment], parameters_dict: dict
     ) -> Tuple[int, List[AudioSegment]]:
-        """checks every sample is rendered and in increasing order
-        returns error count and
-        a list of updated audio segment which only contains correct segments"""
+        """
+        checks every sample is rendered and in increasing order returns error count
+        and a list of updated audio segment which only contains correct segments
+        """
         updated_audio_segments = []
         starting_error_count = None
         ending_error_count = 0
@@ -255,12 +256,12 @@ class AudioEverySampleRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         start_segment_num_tolerance = self.tolerances["start_segment_num_tolerance"]
@@ -321,19 +322,20 @@ class AudioEverySampleRendered(Observation):
             or max_splice_ending_error_count > splice_end_segment_num_tolerance
         ):
             if starting_error_count > 0:
-                self.result[
-                    "message"
-                ] += (
-                    f"Start segment number tolerance is {start_segment_num_tolerance}. "
+                self.result["message"] += (
+                    f"{starting_error_count} start segment failed, "
+                    f"tolerance is {start_segment_num_tolerance}. "
                 )
             if ending_error_count > 0:
-                self.result[
-                    "message"
-                ] += f"End segment number tolerance is {end_segment_num_tolerance}. "
+                self.result["message"] += (
+                    f"{ending_error_count} end segment failed, "
+                    f"tolerance is {end_segment_num_tolerance}. "
+                )
             if mid_error_count > 0:
-                self.result[
-                    "message"
-                ] += f"Mid segment number tolerance is {mid_segment_num_tolerance}. "
+                self.result["message"] += (
+                    f"{mid_error_count} mid segment failed, "
+                    f"tolerance is {mid_segment_num_tolerance}. "
+                )
             if max_splice_starting_error_count > 0:
                 self.result["message"] += (
                     f"Splice start segment number tolerance is "
@@ -350,6 +352,6 @@ class AudioEverySampleRendered(Observation):
             ] += "Segments are rendered in order within the tolerance."
             self.result["status"] = "PASS"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
 
         return self.result, updated_audio_segments, []
