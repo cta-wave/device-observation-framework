@@ -24,7 +24,7 @@ Please follow the instructions in the main WAVE Streaming Media Test Suite [dpct
 
 * Or setting up **without Docker**
 
-  The Device Observation Framework can also be installed **without Docker**; instructions can be found here [deploy_without_docker](deploy_without_docker.md).
+  The Device Observation Framework can also be installed **without Docker**; instructions can be found here [Observation-Framework-without-Docker](https://github.com/cta-wave/device-observation-framework/wiki/Setting-up-the-Device-Observation-Framework-without-Docker).
 
 ## Running the Device Observation Framework
 
