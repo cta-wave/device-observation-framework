@@ -25,7 +25,6 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import logging
-import sys
 from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
@@ -57,17 +56,18 @@ class EarliestSampleSamePresentationTime(Observation):
         _parameters_dict: dict,
         _observation_data_export_file,
     ) -> Tuple[Dict[str, str], list, list]:
-        """Observation is derived from SampleMatchesCurrentTime and uses the same observations logic
-        But it checks for the 1st event only.
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        Check The WAVE presentation starts with the earliest video and audio sample that
+        corresponds to the same presentation time as the earliest video sample.
+        """
+        logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         # Compare video presentation time with HTML reported presentation time
@@ -83,8 +83,8 @@ class EarliestSampleSamePresentationTime(Observation):
 
         if starting_ct == None:
             self.result["status"] = "NOT_RUN"
-            self.result["message"] = f"HTML starting presentation time is not found."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            self.result["message"] = "HTML starting presentation time is not found."
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         video_result = False
@@ -107,7 +107,7 @@ class EarliestSampleSamePresentationTime(Observation):
             if not audio_segments:
                 self.result["status"] = "NOT_RUN"
                 self.result["message"] += " No audio segment is detected."
-                logger.info(f"[{self.result['status']}] {self.result['message']}")
+                logger.info("[%s] %s", self.result["status"], self.result["message"])
                 return self.result, [], []
 
             earliest_audio_media_time = audio_segments[0].media_time
@@ -120,5 +120,5 @@ class EarliestSampleSamePresentationTime(Observation):
                 "message"
             ] += f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

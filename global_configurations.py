@@ -25,6 +25,7 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
+import os
 import configparser
 import logging
 from typing import Dict, List
@@ -51,6 +52,7 @@ class GlobalConfigurations:
         self.system_mode = ""
         self.qr_search_range = []
         self.ignore_corrupted = ""
+        self.calibration_file_path = ""
 
     def set_qr_search_range(self, qr_search_range: str):
         """Set range"""
@@ -70,6 +72,17 @@ class GlobalConfigurations:
     def get_qr_search_range(self) -> List[int]:
         """Get range"""
         return self.qr_search_range
+
+    def set_calibration_file_path(self, file_path: str):
+        """Set calibration file path"""
+        if file_path:
+            if not os.path.isabs(file_path):
+                file_path = os.path.abspath(file_path)
+            self.calibration_file_path = file_path
+
+    def get_calibration_file_path(self) -> str:
+        """Get calibration file path"""
+        return self.calibration_file_path
 
     def set_ignore_corrupted(self, ignore_corrupted: str):
         """Set ignore"""
@@ -270,9 +283,10 @@ class GlobalConfigurations:
             "splice_end_frame_num_tolerance": 0,
             "start_segment_num_tolerance": 0,
             "end_segment_num_tolerance": 0,
-            "mid_segment_num_tolerance": 10,
+            "mid_segment_num_tolerance": 0,
             "splice_start_segment_num_tolerance": 0,
             "splice_end_segment_num_tolerance": 0,
+            "av_sync_pass_rate": 100,
         }
         try:
             tolerances["start_frame_num_tolerance"] = int(
@@ -305,6 +319,51 @@ class GlobalConfigurations:
             tolerances["splice_end_segment_num_tolerance"] = int(
                 self.config["TOLERANCES"]["splice_end_segment_num_tolerance"]
             )
+            tolerances["av_sync_pass_rate"] = int(
+                self.config["TOLERANCES"]["av_sync_pass_rate"]
+            )
         except KeyError:
             pass
         return tolerances
+
+    def get_calibration(self) -> Dict[str, float]:
+        """Get camera calibration configuration settings"""
+        calibration = {
+            "flash_and_beep_count": 60,
+            "max_allowed_offset": 200,
+            "allowed_offset": 40,
+            "flash_threshold": 150,
+            "x_ratio": 0.5,
+            "y_ratio": 0.25,
+            "window_size": 50,
+            "fade_out_frames": 5,
+            "beep_threshold": 0.3,
+            "min_silence_duration": 0.9,
+        }
+        try:
+            calibration["start_frame_num_tolerance"] = float(
+                self.config["CALIBRATION"]["flash_and_beep_count"]
+            )
+            calibration["max_allowed_offset"] = float(
+                self.config["CALIBRATION"]["max_allowed_offset"]
+            )
+            calibration["allowed_offset"] = float(
+                self.config["CALIBRATION"]["allowed_offset"]
+            )
+            calibration["flash_threshold"] = float(
+                self.config["CALIBRATION"]["flash_threshold"]
+            )
+            calibration["x_ratio"] = float(self.config["CALIBRATION"]["x_ratio"])
+            calibration["y_ratio"] = float(self.config["CALIBRATION"]["y_ratio"])
+            calibration["fade_out_frames"] = float(
+                self.config["CALIBRATION"]["fade_out_frames"]
+            )
+            calibration["beep_threshold"] = float(
+                self.config["CALIBRATION"]["beep_threshold"]
+            )
+            calibration["min_silence_duration"] = float(
+                self.config["CALIBRATION"]["min_silence_duration"]
+            )
+        except KeyError:
+            pass
+        return calibration
