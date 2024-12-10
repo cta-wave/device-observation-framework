@@ -137,7 +137,7 @@ class AudioSampleMatchesCurrentTime(Observation):
         allowed_tolerance = parameters_dict["audio_tolerance"]
         ct_sample_tolerance = parameters_dict["audio_sample_tolerance"]
         audio_sample_length = parameters_dict["audio_sample_length"]
-        test_start_time = parameters_dict["test_start_time"]
+        test_start_time = parameters_dict["audio_test_start_time"]
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
 
         failure_report_count = 0
@@ -199,12 +199,12 @@ class AudioSampleMatchesCurrentTime(Observation):
         observation_data_export_file: str,
     ) -> Tuple[Dict[str, str], list, list]:
         """make observation"""
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         (
@@ -215,7 +215,7 @@ class AudioSampleMatchesCurrentTime(Observation):
         )
 
         if failure_report_count >= REPORT_NUM_OF_FAILURE:
-            self.result["message"] += f"...too many failures, reporting truncated."
+            self.result["message"] += "...too many failures, reporting truncated."
 
         self.result["message"] += f" Total failure count is {failure_report_count}."
 
@@ -230,5 +230,5 @@ class AudioSampleMatchesCurrentTime(Observation):
                 time_differences,
             )
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

@@ -26,6 +26,7 @@ import logging
 import math
 from fractions import Fraction
 
+from exceptions import ConfigError
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
 
@@ -104,4 +105,4 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio cmaf duration"""
         # this test currently out of scope for audio
-        raise Exception("Not in scope.")
+        raise ConfigError("Not in scope.")

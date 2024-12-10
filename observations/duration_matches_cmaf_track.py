@@ -75,11 +75,11 @@ class DurationMatchesCMAFTrack(Observation):
         return missing_frames
 
     def _get_waiting_frame(
-            self,
-            test_status_qr_codes: List[TestStatusDecodedQr],
-            mezzanine_qr_codes: List[MezzanineDecodedQr],
-            camera_frame_duration_ms: float,
-        ) -> int:
+        self,
+        test_status_qr_codes: List[TestStatusDecodedQr],
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        camera_frame_duration_ms: float,
+    ) -> int:
         """
         detect the waiting in playback based on the test runner status qr code
         return frame number mezzanine index where the playback waiting is detected
@@ -113,17 +113,17 @@ class DurationMatchesCMAFTrack(Observation):
         return waiting_mezzanine_frame
 
     def _get_gap_frame(
-            self,
-            mezzanine_qr_codes: List[MezzanineDecodedQr],
-            frame_after_gap: int,
-        ) -> int:
+        self,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        frame_after_gap: int,
+    ) -> int:
         """
         detect the gap in playback
         return frame number where the playback gap is detected
         """
         detected_mezzanine_index_at_gap = 0
         # reverse search to get the index of the gap
-        for x in range(len(mezzanine_qr_codes) -1, 0, -1):
+        for x in range(len(mezzanine_qr_codes) - 1, 0, -1):
             if mezzanine_qr_codes[x].frame_number < frame_after_gap:
                 detected_mezzanine_index_at_gap = x
                 break
@@ -135,7 +135,7 @@ class DurationMatchesCMAFTrack(Observation):
         camera_frame_duration_ms: float,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         parameters_dict: dict,
-        mid_missing_frame_duration:float
+        mid_missing_frame_duration: float,
     ) -> bool:
         """duration check for truncated test presentation one"""
         result = False
@@ -157,9 +157,14 @@ class DurationMatchesCMAFTrack(Observation):
         # playback duration get measured from the 2nd detected frame
         # till the last detected frame
         playback_duration = (
-            mezzanine_qr_codes[-1].first_camera_frame_num
-            - mezzanine_qr_codes[1].first_camera_frame_num
-        ) * camera_frame_duration_ms + first_frame_duration + last_frame_duration
+            (
+                mezzanine_qr_codes[-1].first_camera_frame_num
+                - mezzanine_qr_codes[1].first_camera_frame_num
+            )
+            * camera_frame_duration_ms
+            + first_frame_duration
+            + last_frame_duration
+        )
 
         if playback_duration >= expected_track_duration:
             self.result["message"] += (
@@ -170,7 +175,10 @@ class DurationMatchesCMAFTrack(Observation):
             result = True
         else:
             if mid_missing_frame_duration > 0:
-                if playback_duration + mid_missing_frame_duration >= expected_track_duration:
+                if (
+                    playback_duration + mid_missing_frame_duration
+                    >= expected_track_duration
+                ):
                     self.result["message"] += (
                         f"Playback duration {round(playback_duration, 2)}ms is "
                         f"equal to or greater than the duration of the 'second_playout_switching_time'. "
@@ -242,21 +250,24 @@ class DurationMatchesCMAFTrack(Observation):
             ) * camera_frame_duration_ms + 2 * last_frame_duration
 
             # if there is a gap in frame number adjust expected duration
-            if (test_type == TestType.GAPSINPLAYBACK):
+            if test_type == TestType.GAPSINPLAYBACK:
                 frame_num_gap = (
-                    mezzanine_qr_codes[waiting_frame + 1].frame_number 
+                    mezzanine_qr_codes[waiting_frame + 1].frame_number
                     - mezzanine_qr_codes[waiting_frame].frame_number
                 )
-                expected_track_duration -= (
-                    frame_num_gap - 1
-                ) * first_frame_duration
+                expected_track_duration -= (frame_num_gap - 1) * first_frame_duration
         else:
             # playback duration is measured from the 2nd detected frame
             # till the last detected frame
             playback_duration = (
-                mezzanine_qr_codes[-1].first_camera_frame_num
-                - mezzanine_qr_codes[1].first_camera_frame_num
-            ) * camera_frame_duration_ms + first_frame_duration + last_frame_duration
+                (
+                    mezzanine_qr_codes[-1].first_camera_frame_num
+                    - mezzanine_qr_codes[1].first_camera_frame_num
+                )
+                * camera_frame_duration_ms
+                + first_frame_duration
+                + last_frame_duration
+            )
 
         total_tolerance_duration = (
             duration_tolerance
@@ -268,12 +279,10 @@ class DurationMatchesCMAFTrack(Observation):
         duration_diff = abs(expected_track_duration - playback_duration)
         if duration_diff > total_tolerance_duration:
             if (
-                mid_missing_frame_duration > 0 and
-                expected_track_duration > playback_duration
+                mid_missing_frame_duration > 0
+                and expected_track_duration > playback_duration
             ):
-                adjusted_duration_diff = abs(
-                    duration_diff - mid_missing_frame_duration
-                )
+                adjusted_duration_diff = abs(duration_diff - mid_missing_frame_duration)
                 if adjusted_duration_diff > total_tolerance_duration:
                     result = False
                     self.result["message"] += (
@@ -332,14 +341,14 @@ class DurationMatchesCMAFTrack(Observation):
         (QRn.last_camera_frame_num - QRa.first_camera_frame_num) * camera_frame_duration_ms
         == expected_track_duration +/- tolerance
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
-            self.result[
-                "message"
-            ] = f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            self.result["message"] = (
+                f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
+            )
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
@@ -347,12 +356,17 @@ class DurationMatchesCMAFTrack(Observation):
         first_mid_missing_frame_duration = 0
         second_mid_missing_frame_duration = 0
         if parameters_dict["mid_missing_frame_duration"]:
-            first_mid_missing_frame_duration = parameters_dict["mid_missing_frame_duration"][0]
-            second_mid_missing_frame_duration = parameters_dict["mid_missing_frame_duration"][1]
+            first_mid_missing_frame_duration = parameters_dict[
+                "mid_missing_frame_duration"
+            ][0]
+            second_mid_missing_frame_duration = parameters_dict[
+                "mid_missing_frame_duration"
+            ][1]
 
         mezzanine_index_at_gap = 0
         # find the mezzanine_index_at_gap to adjust duration check
-        # when waiting in playback (all frames rendered) or gap in playback (some frames not rendered)
+        # when waiting in playback (all frames rendered) or gap in playback
+        # (some frames not rendered)
         if test_type == TestType.WAITINGINPLAYBACK:
             mezzanine_index_at_gap = self._get_waiting_frame(
                 test_status_qr_codes, mezzanine_qr_codes, camera_frame_duration_ms
@@ -416,5 +430,5 @@ class DurationMatchesCMAFTrack(Observation):
         else:
             self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

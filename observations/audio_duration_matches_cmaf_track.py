@@ -73,12 +73,12 @@ class AudioDurationMatchesCMAFTrack(Observation):
         _observation_data_export_file,
     ) -> Tuple[Dict[str, str], list, list]:
         """make observations"""
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         detected_audio_duration = (
@@ -127,5 +127,5 @@ class AudioDurationMatchesCMAFTrack(Observation):
                 f"Detected duration is different by {round(time_difference, 2)}ms. "
                 f"Allowed tolerance is {tolerance}ms."
             )
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

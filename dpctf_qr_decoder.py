@@ -219,7 +219,7 @@ class DPCTFQrDecoder(QrDecoder):
                         )
                     except KeyError:
                         logger.debug(
-                            f"Unrecognized QR code detected: {data} is ignored."
+                            "Unrecognized QR code detected: %s is ignored.", data
                         )
 
         return code
@@ -288,7 +288,7 @@ class DPCTFQrDecoder(QrDecoder):
                 )
             except json.decoder.JSONDecodeError:
                 logger.debug(
-                    f"QR code '{data}' is not recognized by the system, ignored."
+                    "QR code '%s' is not recognized by the system, ignored.", data
                 )
 
         return code

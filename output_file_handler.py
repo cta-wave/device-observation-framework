@@ -45,7 +45,7 @@ def write_header_to_csv_file(file_name: str, header: List[str]):
     if os.path.exists(file_name):
         os.remove(file_name)
 
-    with open(file_name, "a") as file:
+    with open(file_name, "a", encoding="utf-8") as file:
         file_writer = csv.writer(file)
         file_writer.writerow(header)
         file.close()
@@ -57,7 +57,7 @@ def write_data_to_csv_file(file_name: str, header: List[str], data: List[Tuple])
     if os.path.exists(file_name):
         os.remove(file_name)
 
-    with open(file_name, "a") as csv_file:
+    with open(file_name, "a", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(header)
 
@@ -72,7 +72,7 @@ def extract_qr_data_to_csv(
     if not file_name:
         return
 
-    with open(file_name, "a") as file:
+    with open(file_name, "a", encoding="utf-8") as file:
         file_writer = csv.writer(file)
 
         for detected_code in detected_qr_codes:
@@ -146,7 +146,7 @@ def audio_data_to_csv(file_name: str, data: List[AudioSegment], parameters_dict:
         "Time in Recording",
         "Detected Time",
     ]
-    with open(file_name, "a") as csv_file:
+    with open(file_name, "a", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(header)
 
@@ -179,3 +179,4 @@ def audio_data_to_csv(file_name: str, data: List[AudioSegment], parameters_dict:
     file_name = file_name.replace(".csv", ".png")
     plt.plot(audio_segment_timings)
     plt.savefig(file_name)
+    plt.close()

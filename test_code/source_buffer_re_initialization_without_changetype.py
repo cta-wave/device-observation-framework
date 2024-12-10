@@ -28,6 +28,7 @@ import logging
 import math
 from fractions import Fraction
 
+from exceptions import ConfigError
 from .mse_append_window import MseAppendWindow
 from .test import TestType
 
@@ -85,4 +86,4 @@ class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
     def _save_expected_audio_track_duration(self) -> None:
         """save expected audio CMAF duration"""
         # this test is not in scope for audio
-        raise Exception("Not in scope.")
+        raise ConfigError("Not in scope.")

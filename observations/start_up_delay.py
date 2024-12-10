@@ -85,20 +85,20 @@ class StartUpDelay(Observation):
         Returns:
             Result status and message.
         """
+        logger.info("Making observation %s.", self.result["name"])
         if test_type == TestType.TRUNCATED:
             self.result["name"] = (
                 "[OF] Video start-up delay: "
                 "The delay between 'representation_change' and presenting "
                 "the first frame of the second presentation should be sufficiently low."
             )
-        logger.info(f"Making observation {self.result['name']}...")
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         max_permitted_startup_delay_ms = parameters_dict[
@@ -159,5 +159,5 @@ class StartUpDelay(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

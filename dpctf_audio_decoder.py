@@ -252,6 +252,7 @@ def trim_audio(
         plt.axvline(x=trim_from, color="b")
         plt.axvline(x=trim_to, color="g")
         plt.savefig(subject_data_file)
+        plt.close()
 
     return trimmed_data, trim_from
 

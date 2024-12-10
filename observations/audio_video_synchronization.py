@@ -28,16 +28,16 @@ Contributor: Resillion UK Limited
 import logging
 import sys
 from typing import Dict, List, Tuple
+import matplotlib.pyplot as plt
 
 from dpctf_audio_decoder import AudioSegment
+from global_configurations import GlobalConfigurations
 from dpctf_qr_decoder import MezzanineDecodedQr
 from output_file_handler import write_data_to_csv_file
 
 from .observation import Observation
 
 logger = logging.getLogger(__name__)
-
-REPORT_NUM_OF_FAILURE = 50
 
 
 class AudioVideoSynchronization(Observation):
@@ -46,8 +46,11 @@ class AudioVideoSynchronization(Observation):
     the video currentTime value within the tolerance.
     """
 
-    def __init__(self, _):
-        super().__init__("[OF] Audio-Video Synchronization.")
+    def __init__(self, global_configurations: GlobalConfigurations):
+        super().__init__(
+            "[OF] Audio-Video Synchronization.",
+            global_configurations,
+        )
 
     def _calculate_video_offsets(
         self,
@@ -70,11 +73,11 @@ class AudioVideoSynchronization(Observation):
             video_frame_duration = 1000 / mezzanine_qr_codes[j].frame_rate
 
             if j == 0:
-                # for 1st frame it might rendered before play so take the last detection time
+                # 1st frame might rendered before play so take the last detection time
                 mean_detection_time = last_detection_time
                 video_media_time = mezzanine_qr_codes[j].media_time
             elif j == len(mezzanine_qr_codes) - 1:
-                # for last frame it might rendered after play stopped so take the first detection time
+                # last frame might rendered after play stopped so take the first detection time
                 mean_detection_time = first_detection_time
                 video_media_time = (
                     mezzanine_qr_codes[j].media_time - video_frame_duration
@@ -135,7 +138,7 @@ class AudioVideoSynchronization(Observation):
         """calculate audio offsets"""
         audio_offsets = []
         audio_sample_length = parameters_dict["audio_sample_length"]
-        test_start_time = parameters_dict["test_start_time"]
+        test_start_time = parameters_dict["audio_test_start_time"]
 
         for i in range(0, len(audio_segments)):
             # audio mean time set to half position of each sample
@@ -184,18 +187,18 @@ class AudioVideoSynchronization(Observation):
         Returns:
             Result status and message.
         """
-        logger.info(f"Making observation {self.result['name']}...")
+        logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No mezzanine QR code is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         audio_offsets = []
@@ -207,7 +210,11 @@ class AudioVideoSynchronization(Observation):
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         audio_sample_length = parameters_dict["audio_sample_length"]
         av_sync_tolerance = parameters_dict["av_sync_tolerance"]
-        self.result["message"] += f" Allowed tolerance is {av_sync_tolerance}ms."
+        av_sync_pass_rate = self.tolerances["av_sync_pass_rate"]
+        self.result["message"] += (
+            f" The allowed tolerance range is {av_sync_tolerance}ms,"
+            f" and required pass rate is {av_sync_pass_rate}%."
+        )
 
         # calculate video offsets
         video_offsets = self._calculate_video_offsets(
@@ -228,47 +235,68 @@ class AudioVideoSynchronization(Observation):
                 # where the sync is not measurable
                 if abs(audio_offsets[i][2] - video_offsets[j][0]) < audio_sample_length:
                     time_diff = audio_offsets[i][3] - video_offsets[j][1]
+                    # check next video in case it is a better match
+                    if j < len(video_offsets) - 1 and abs(
+                        audio_offsets[i][3] - video_offsets[j + 1][1]
+                    ) < abs(time_diff):
+                        time_diff = audio_offsets[i][3] - video_offsets[j + 1][1]
                     break
 
             # ignore those failing audio and video matches
             if time_diff == sys.float_info.max:
                 continue
 
-            time_differences.append((audio_offsets[i][2], round(time_diff, 4)))
+            time_differences.append((audio_offsets[i][2], round(time_diff, 2)))
 
             if time_diff > av_sync_tolerance[0] or time_diff < av_sync_tolerance[1]:
-                self.result["status"] = "FAIL"
                 if failure_count == 0:
-                    self.result[
-                        "message"
-                    ] += " The Audio-Video Synchronization failed at following events:"
-                if failure_count < REPORT_NUM_OF_FAILURE:
-                    self.result["message"] += (
-                        f" audio media time={audio_offsets[i][0]}:{audio_offsets[i][1]}ms"
-                        f" AV Sync time diff={round(time_diff, 4)}ms; "
-                    )
-
+                    self.result["message"] += " The Audio-Video Synchronization failed."
                 failure_count += 1
             else:
                 pass_count += 1
 
-        if failure_count >= REPORT_NUM_OF_FAILURE:
-            self.result["message"] += f"...too many failures, reporting truncated. "
-
-        percent = (failure_count / (pass_count + failure_count)) * 100
+        pass_rate = (pass_count / (pass_count + failure_count)) * 100
         self.result["message"] += (
-            f"Total failure count is {failure_count}, " f"{round(percent, 2)}% failed. "
+            f" Total failure count is {failure_count}, "
+            f"{round(pass_rate, 2)}% is in Sync."
         )
 
-        if self.result["status"] != "FAIL":
-            self.result["status"] = "PASS"
+        if time_differences:
+            maximum_diff = max(time_differences, key=lambda x: x[1])
+            minimum_diff = min(time_differences, key=lambda x: x[1])
+            self.result["message"] += (
+                f" AV Sync time diff range=[{round(minimum_diff[1], 2)}, "
+                f"{round(maximum_diff[1], 2)}]."
+            )
+            if pass_rate >= av_sync_pass_rate:
+                self.result["status"] = "PASS"
+            else:
+                self.result["status"] = "FAIL"
+        else:
+            self.result["status"] = "FAIL"
+            self.result["message"] += " Unable to detect any audio and video matches."
 
-        # Exporting time diff data to a CSV file
-        write_data_to_csv_file(
-            observation_data_export_file + "_av_sync_diff.csv",
-            ["audio sample", "time diff"],
-            time_differences,
-        )
+        # Exporting time diff data to a CSV file and png file
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            file_name = observation_data_export_file + "_av_sync_diff.csv"
+            write_data_to_csv_file(
+                file_name,
+                ["audio sample", "time diff"],
+                time_differences,
+            )
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+            audio_sample, time_diff = zip(*time_differences)
+            plt.figure(0)
+            plt.figure(figsize=(20, 15))
+            plt.xlabel("Audio Segment Media Time")
+            plt.ylabel("Audio Video differences")
+            plt.title("Detected Audio Video Synchronization")
+            file_name = file_name.replace(".csv", ".png")
+            plt.plot(audio_sample, time_diff, color="b")
+            plt.axhline(y=av_sync_tolerance[0], color="g", linestyle="dashed")
+            plt.axhline(y=av_sync_tolerance[1], color="g", linestyle="dashed")
+            plt.savefig(file_name)
+            plt.close()
+
+        logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []
