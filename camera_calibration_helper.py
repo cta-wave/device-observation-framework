@@ -138,7 +138,9 @@ def detect_beeps(video_file: str, log_file_path: str, config: list) -> list:
                 "Recording must be captured in duo-channel. Channels: {n_channels}"
             )
         if frame_rate != 48000:
-            raise ObsFrameTerminate("Recording must be in 48kHz. Recording Rate: {frame_rate}")
+            raise ObsFrameTerminate(
+                "Recording must be in 48kHz. Recording Rate: {frame_rate}"
+            )
 
         raw_data = wav_file.readframes(n_frames)
         audio_data = np.frombuffer(raw_data, dtype=np.int16)
@@ -280,7 +282,7 @@ def calibrate_camera(
             "of the test has been captured. Ensure all instructions were followed carefully.\n"
             "If same issue persists, it may indicate that the camera is not suitable for WAVE test\n"
             "requirements and could produce inaccurate results. Use this camera at your discretion."
-        ) 
+        )
     if (
         len(detected_flashes) > config["flash_and_beep_count"]
         or len(detected_beeps) > config["flash_and_beep_count"]
@@ -303,9 +305,10 @@ def main() -> None:
         description="DPCTF Device Observation Framework Camera Calibration Helper."
     )
     parser.add_argument(
-        "--log", nargs='+',  # Allow 1 or 2 values
+        "--log",
+        nargs="+",  # Allow 1 or 2 values
         help="Logging levels for log file writing and console output.",
-        default=["debug", "info"], # default to info console log and debug file writing
+        default=["debug", "info"],  # default to info console log and debug file writing
         choices=["info", "debug"],
     )
     parser.add_argument(

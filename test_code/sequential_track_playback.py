@@ -377,7 +377,7 @@ class SequentialTrackPlayback:
             if logger.getEffectiveLevel() == logging.DEBUG:
                 if observation_data_export_file and audio_segments:
                     audio_data_to_csv(
-                        observation_data_export_file + "_audio_segment_data.csv",
+                        observation_data_export_file + "audio_segment_data.csv",
                         audio_segments,
                         self.parameters_dict,
                     )

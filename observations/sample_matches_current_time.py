@@ -331,7 +331,7 @@ class SampleMatchesCurrentTime(Observation):
         # Exporting time diff data to a CSV file
         if observation_data_export_file and time_differences:
             write_data_to_csv_file(
-                observation_data_export_file + "_video_ct_diff.csv",
+                observation_data_export_file + "video_ct_diff.csv",
                 ["Current Time", "Time Difference"],
                 time_differences,
             )
