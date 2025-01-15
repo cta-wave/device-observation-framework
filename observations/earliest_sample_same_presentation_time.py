@@ -29,6 +29,7 @@ from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
+from global_configurations import GlobalConfigurations
 
 from .observation import Observation
 
@@ -41,10 +42,11 @@ class EarliestSampleSamePresentationTime(Observation):
     corresponds to the same presentation time as the earliest video sample.
     """
 
-    def __init__(self, _):
+    def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
             "[OF] The WAVE presentation starts with the earliest video and audio sample that"
-            " corresponds to the same presentation time as the earliest video sample."
+            " corresponds to the same presentation time as the earliest video sample.",
+            global_configurations,
         )
 
     def make_observation(
@@ -52,9 +54,9 @@ class EarliestSampleSamePresentationTime(Observation):
         _test_type,
         mezzanine_qr_codes: List[MezzanineDecodedQr],
         audio_segments: List[AudioSegment],
-        test_status_qr_codes: List[TestStatusDecodedQr],
+        _test_status_qr_codes: List[TestStatusDecodedQr],
         _parameters_dict: dict,
-        _observation_data_export_file,
+        _observation_data_export_file: str,
     ) -> Tuple[Dict[str, str], list, list]:
         """
         Check The WAVE presentation starts with the earliest video and audio sample that
@@ -70,55 +72,37 @@ class EarliestSampleSamePresentationTime(Observation):
             logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
-        # Compare video presentation time with HTML reported presentation time
-        starting_ct = None
-        for i in range(0, len(test_status_qr_codes)):
-            current_status = test_status_qr_codes[i]
-            if current_status.status == "playing" and (
-                current_status.last_action == "play"
-                or current_status.last_action == "representation_change"
-            ):
-                starting_ct = current_status.current_time * 1000
-                break
-
-        if starting_ct == None:
+        # check audio when pass the video check
+        if not audio_segments:
             self.result["status"] = "NOT_RUN"
-            self.result["message"] = "HTML starting presentation time is not found."
+            self.result["message"] += " No audio segment is detected."
             logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
-        video_result = False
+        earliest_sample_alignment_tolerance = self.tolerances[
+            "earliest_sample_alignment_tolerance"
+        ]
+        self.result["message"] += (
+            f"The earliest video and audio sample alignment tolerance is "
+            f"{earliest_sample_alignment_tolerance} ms. "
+        )
+
         video_frame_duration = round(1000 / mezzanine_qr_codes[0].frame_rate)
         earliest_video_media_time = (
             mezzanine_qr_codes[0].media_time - video_frame_duration
         )
-        if earliest_video_media_time == starting_ct:
-            video_result = True
-        else:
+        earliest_audio_media_time = audio_segments[0].media_time
+        diff = abs(earliest_video_media_time - earliest_audio_media_time)
+
+        if diff > earliest_sample_alignment_tolerance:
             self.result["status"] = "FAIL"
-            video_result = False
+        else:
+            self.result["status"] = "PASS"
         self.result["message"] += (
-            f"Earliest video sample presentation time is {earliest_video_media_time} ms,"
-            f" expected starting presentation time is {starting_ct} ms."
+            f"The earliest video sample presentation time is {earliest_video_media_time} ms while "
+            f"the earliest audio sample presentation time is {earliest_audio_media_time} ms. There "
+            f"is a {diff} ms time difference between video and audio sample presentation times."
         )
-
-        if video_result:
-            # check audio when pass the video check
-            if not audio_segments:
-                self.result["status"] = "NOT_RUN"
-                self.result["message"] += " No audio segment is detected."
-                logger.info("[%s] %s", self.result["status"], self.result["message"])
-                return self.result, [], []
-
-            earliest_audio_media_time = audio_segments[0].media_time
-
-            if earliest_video_media_time == earliest_audio_media_time:
-                self.result["status"] = "PASS"
-            else:
-                self.result["status"] = "FAIL"
-            self.result[
-                "message"
-            ] += f" Earliest audio sample presentation time is {earliest_audio_media_time} ms."
 
         logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

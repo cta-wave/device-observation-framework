@@ -114,7 +114,7 @@ class AudioVideoSynchronization(Observation):
 
         if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
             write_data_to_csv_file(
-                observation_data_export_file + "_video_data.csv",
+                observation_data_export_file + "video_data.csv",
                 [
                     "frame_number",
                     "mean_media_time",
@@ -160,7 +160,7 @@ class AudioVideoSynchronization(Observation):
 
         if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
             write_data_to_csv_file(
-                observation_data_export_file + "_audio_data.csv",
+                observation_data_export_file + "audio_data.csv",
                 ["content id", "media time", "mean_time", "offsets"],
                 audio_offsets,
             )
@@ -204,17 +204,24 @@ class AudioVideoSynchronization(Observation):
         audio_offsets = []
         video_offsets = []
         time_differences = []
-        pass_count = 0
+        total_count = 0
         failure_count = 0
+        failure_within_tolerance = 0
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         audio_sample_length = parameters_dict["audio_sample_length"]
         av_sync_tolerance = parameters_dict["av_sync_tolerance"]
+        av_sync_start_tolerance = self.tolerances["av_sync_start_tolerance"]
+        av_sync_end_tolerance = self.tolerances["av_sync_end_tolerance"]
         av_sync_pass_rate = self.tolerances["av_sync_pass_rate"]
         self.result["message"] += (
-            f" The allowed tolerance range is {av_sync_tolerance}ms,"
-            f" and required pass rate is {av_sync_pass_rate}%."
+            f"The allowed AV sync tolerance is {av_sync_tolerance} ms. "
+            f"The starting tolerance is {av_sync_start_tolerance}ms and "
+            f"the ending tolerance is {av_sync_end_tolerance}ms. "
+            f"The required pass rate is {av_sync_pass_rate}%. "
         )
+        check_from = parameters_dict["audio_starting_time"] + av_sync_start_tolerance
+        check_to = parameters_dict["audio_ending_time"] - av_sync_end_tolerance
 
         # calculate video offsets
         video_offsets = self._calculate_video_offsets(
@@ -249,24 +256,30 @@ class AudioVideoSynchronization(Observation):
             time_differences.append((audio_offsets[i][2], round(time_diff, 2)))
 
             if time_diff > av_sync_tolerance[0] or time_diff < av_sync_tolerance[1]:
-                if failure_count == 0:
-                    self.result["message"] += " The Audio-Video Synchronization failed."
                 failure_count += 1
-            else:
-                pass_count += 1
+                if audio_offsets[i][2] < check_from or audio_offsets[i][2] > check_to:
+                    failure_within_tolerance += 1
+            total_count += 1
 
-        pass_rate = (pass_count / (pass_count + failure_count)) * 100
+        pass_rate = (
+            (total_count - failure_count + failure_within_tolerance) / total_count
+        ) * 100
         self.result["message"] += (
-            f" Total failure count is {failure_count}, "
-            f"{round(pass_rate, 2)}% is in Sync."
+            f"Total failure count is {failure_count}, with {failure_within_tolerance} failures "
+            f"within the start and end tolerance. AV Sync was checked from {check_from}ms to "
+            f"{check_to}ms, and {round(pass_rate, 2)}% was in sync. "
         )
 
-        if time_differences:
-            maximum_diff = max(time_differences, key=lambda x: x[1])
-            minimum_diff = min(time_differences, key=lambda x: x[1])
+        # get filtered time differences between check_from and check_to
+        filtered_time_differences = [
+            item for item in time_differences if check_from <= item[0] <= check_to
+        ]
+        if filtered_time_differences:
+            maximum_diff = max(filtered_time_differences, key=lambda x: x[1])
+            minimum_diff = min(filtered_time_differences, key=lambda x: x[1])
             self.result["message"] += (
-                f" AV Sync time diff range=[{round(minimum_diff[1], 2)}, "
-                f"{round(maximum_diff[1], 2)}]."
+                f"The AV Sync offset range is [{round(minimum_diff[1], 2)}, "
+                f"{round(maximum_diff[1], 2)}] ms."
             )
             if pass_rate >= av_sync_pass_rate:
                 self.result["status"] = "PASS"
@@ -278,7 +291,7 @@ class AudioVideoSynchronization(Observation):
 
         # Exporting time diff data to a CSV file and png file
         if logger.getEffectiveLevel() == logging.DEBUG:
-            file_name = observation_data_export_file + "_av_sync_diff.csv"
+            file_name = observation_data_export_file + "av_sync_diff.csv"
             write_data_to_csv_file(
                 file_name,
                 ["audio sample", "time diff"],

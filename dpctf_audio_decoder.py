@@ -245,7 +245,7 @@ def trim_audio(
         plt.xlabel("Time")
         plt.ylabel("Audio Wave")
         subject_data_file = (
-            observation_data_export_file + "_subject_data_" + str(index) + ".png"
+            observation_data_export_file + "subject_data_" + str(index) + ".png"
         )
         plt.title("subject_data")
         plt.plot(subject_data)

@@ -286,6 +286,9 @@ class GlobalConfigurations:
             "mid_segment_num_tolerance": 0,
             "splice_start_segment_num_tolerance": 0,
             "splice_end_segment_num_tolerance": 0,
+            "earliest_sample_alignment_tolerance": 0,
+            "av_sync_start_tolerance": 0,
+            "av_sync_end_tolerance": 0,
             "av_sync_pass_rate": 100,
         }
         try:
@@ -318,6 +321,15 @@ class GlobalConfigurations:
             )
             tolerances["splice_end_segment_num_tolerance"] = int(
                 self.config["TOLERANCES"]["splice_end_segment_num_tolerance"]
+            )
+            tolerances["earliest_sample_alignment_tolerance"] = int(
+                self.config["TOLERANCES"]["earliest_sample_alignment_tolerance"]
+            )
+            tolerances["av_sync_start_tolerance"] = int(
+                self.config["TOLERANCES"]["av_sync_start_tolerance"]
+            )
+            tolerances["av_sync_end_tolerance"] = int(
+                self.config["TOLERANCES"]["av_sync_end_tolerance"]
             )
             tolerances["av_sync_pass_rate"] = int(
                 self.config["TOLERANCES"]["av_sync_pass_rate"]
