@@ -523,10 +523,10 @@ def check_python_version() -> bool:
     Returns:
         True if version is OK.
     """
-    if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    if sys.version_info.major == 3 and sys.version_info.minor >= 9:
         return True
     logger.critical(
-        "Aborting! Python version 3.10 or greater is required.\nCurrent Python version is %d.%d.",
+        "Aborting! Python version 3.9 or greater is required.\nCurrent Python version is %d.%d.",
         sys.version_info.major,
         sys.version_info.minor,
     )
@@ -599,7 +599,9 @@ def process_run(
         clear_up(global_configurations)
         sys.exit(1)
     except Exception as e:
-        logger.exception("Serious error is detected!\n%s: %s", e, traceback.format_exc())
+        logger.exception(
+            "Serious error is detected!\n%s: %s", e, traceback.format_exc()
+        )
         clear_up(global_configurations)
         sys.exit(1)
 
@@ -619,9 +621,10 @@ def main() -> None:
         "--input", required=True, help="Input recording file / path to analyse."
     )
     parser.add_argument(
-        "--log", nargs='+',  # Allow 1 or 2 values
+        "--log",
+        nargs="+",  # Allow 1 or 2 values
         help="Logging levels for log file writing and console output.",
-        default=["debug", "info"], # default to info console log and debug file writing
+        default=["debug", "info"],  # default to info console log and debug file writing
         choices=["info", "debug"],
     )
     parser.add_argument(

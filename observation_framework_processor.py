@@ -348,11 +348,7 @@ class ObservationFrameworkProcessor:
         logger.info("Start a New test: %s", self.test_path)
 
         if self.session_log_path:
-            self.observation_data_export_file = (
-                self.session_log_path
-                + "/"
-                + self.test_path.replace("/", "-").replace(".html", "")
-            )
+            self.observation_data_export_file = self.session_log_path + "/"
 
         try:
             module_name = self.tests[test_code][0]

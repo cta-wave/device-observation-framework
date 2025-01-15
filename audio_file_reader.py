@@ -29,17 +29,20 @@ import json
 import logging
 import math
 import os
+import platform
 import struct
 import subprocess
 import wave
 from wave import Wave_read
-
 import numpy as np
 import pyaudio
-import sounddevice
 
 from exceptions import ObsFrameTerminate
 from global_configurations import GlobalConfigurations
+
+# to fix ALSA lib error on console output
+if platform.system() == 'Linux':
+    import sounddevice  # pylint: disable=unused-import
 
 # audio file reader chunk size
 CHUNK_SIZE = 1024 * 1000
