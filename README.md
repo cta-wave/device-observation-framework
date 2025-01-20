@@ -6,7 +6,7 @@ The Observation Framework determines pass or fail results, based on observations
 The test suite implements the tests and observations as defined in the CTA WAVE Device Playback Capabilities specification. For more information:
 * [CTA WAVE project](https://CTA.tech/WAVE)
 * Latest published [Device Playback Capabilities specification](https://shop.cta.tech/collections/standards/products/web-application-video-ecosystem-device-playback-capabilities-cta-5003-b)
-* [Contact](standards@CTA.tech) the CTA
+* Contact the CTA: standards@CTA.tech
 
 ## First set up the Test Runner
 
