@@ -102,6 +102,7 @@ def iter_to_get_qr_area(
     do_adaptive_threshold_scan: bool,
     global_configurations: GlobalConfigurations,
     starting_point_s: int,
+    print_processed_frame: bool,
 ) -> Tuple:
     """Iterate video frame by frame and detect mezzanine QR codes area.
 
@@ -141,8 +142,9 @@ def iter_to_get_qr_area(
                 break
 
         # print out where the processing is currently
-        if capture_frame_num % 10 == 0:
-            print(f"Checking frame {capture_frame_num}...")
+        if print_processed_frame:
+            if capture_frame_num % 50 == 0:
+                print(f"Checking frame {capture_frame_num}...")
 
         analysis = FrameAnalysis(
             capture_frame_num, DPCTFQrDecoder(), max_qr_code_num_in_frame=3
@@ -263,6 +265,7 @@ def get_qr_code_area(
     input_video_path_str: str,
     global_configurations: GlobalConfigurations,
     do_adaptive_threshold_scan: bool,
+    print_processed_frame: bool,
 ) -> Tuple:
     """get mezzanine qr code area from recording
     this will used used for intensive scan to crop the QR code area
@@ -322,6 +325,7 @@ def get_qr_code_area(
                 do_adaptive_threshold_scan,
                 global_configurations,
                 starting_point_s,
+                print_processed_frame,
             )
         finally:
             vid_cap.release()
@@ -373,6 +377,7 @@ def run(
     log_manager: LogManager,
     global_configurations: GlobalConfigurations,
     do_adaptive_threshold_scan: bool,
+    print_processed_frame: bool,
 ):
     """
     Calibrate camera and set camera calibration offset when calibration_file_path is given.
@@ -384,7 +389,7 @@ def run(
     if calibration_file_path:
         logger.info("Camera calibration started, please wait.")
         calibration_offset = calibrate_camera(
-            calibration_file_path, global_configurations
+            calibration_file_path, global_configurations, print_processed_frame
         )
         logger.info(
             "Camera calibration offset %.2fms is applied to the observations.",
@@ -413,7 +418,10 @@ def run(
         qr_code_areas,
         pre_test_qr_code_area,
     ) = get_qr_code_area(
-        input_video_files[file_index], global_configurations, do_adaptive_threshold_scan
+        input_video_files[file_index],
+        global_configurations,
+        do_adaptive_threshold_scan,
+        print_processed_frame,
     )
     logger.info(
         "QR code area for full scan is set to %s for mezzanine QR code, and %s "
@@ -465,7 +473,10 @@ def run(
             )
 
             last_camera_frame_number = observation_framework.iter_qr_codes_in_video(
-                vid_cap, starting_camera_frame_number, qr_code_areas
+                vid_cap,
+                starting_camera_frame_number,
+                qr_code_areas,
+                print_processed_frame,
             )
             starting_camera_frame_number += last_camera_frame_number
         finally:
@@ -583,6 +594,7 @@ def process_run(
             log_manager,
             global_configurations,
             do_adaptive_threshold_scan,
+            True,  # print out processed frame
         )
     except ObsFrameTerminate as e:
         logger.exception(
@@ -624,7 +636,7 @@ def main() -> None:
         "--log",
         nargs="+",  # Allow 1 or 2 values
         help="Logging levels for log file writing and console output.",
-        default=["debug", "info"],  # default to info console log and debug file writing
+        default=["info", "info"],
         choices=["info", "debug"],
     )
     parser.add_argument(

@@ -690,7 +690,11 @@ class ObservationFrameworkProcessor:
             )
 
     def iter_qr_codes_in_video(
-        self, vid_cap, starting_camera_frame_number: int, qr_code_areas: list
+        self,
+        vid_cap,
+        starting_camera_frame_number: int,
+        qr_code_areas: list,
+        print_processed_frame: bool,
     ) -> int:
         """Iterate video frame by frame and detect QR codes.
 
@@ -751,8 +755,9 @@ class ObservationFrameworkProcessor:
                 self.no_qr_code_frame_num = camera_frame_number
 
             # print out where the processing is currently
-            if camera_frame_number % 10 == 0:
-                print(f"Processed to frame {camera_frame_number}...")
+            if print_processed_frame:
+                if camera_frame_number % 50 == 0:
+                    print(f"Processed to frame {camera_frame_number}...")
 
             # extract qr code data to a csv file
             extract_qr_data_to_csv(
