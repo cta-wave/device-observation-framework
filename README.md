@@ -5,8 +5,8 @@ The Observation Framework determines pass or fail results, based on observations
 
 The test suite implements the tests and observations as defined in the CTA WAVE Device Playback Capabilities specification. For more information:
 * [CTA WAVE project](https://CTA.tech/WAVE)
-* Latest published [Device Playback Capabilities specification](https://shop.cta.tech/collections/standards/products/web-application-video-ecosystem-device-playback-capabilities)
-* [Contact](standards@CTA.tech) the CTA
+* Latest published [Device Playback Capabilities specification](https://shop.cta.tech/collections/standards/products/web-application-video-ecosystem-device-playback-capabilities-cta-5003-b)
+* Contact the CTA: standards@CTA.tech
 
 ## First set up the Test Runner
 
@@ -24,7 +24,7 @@ Please follow the instructions in the main WAVE Streaming Media Test Suite [dpct
 
 * Or setting up **without Docker**
 
-  The Device Observation Framework can also be installed **without Docker**; instructions can be found here [Observation-Framework-without-Docker](https://github.com/cta-wave/device-observation-framework/wiki/Setting-up-the-Device-Observation-Framework-without-Docker).
+  The Device Observation Framework can also be installed **without Docker**; instructions can be found [here.](https://github.com/cta-wave/device-observation-framework/wiki/Installing-the-Device-Observation-Framework-without-Docker)
 
 ## Running the Device Observation Framework
 

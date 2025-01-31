@@ -20,7 +20,9 @@ plt.set_loglevel("WARNING")  # Disable Matplotlib's debug messages
 logger = logging.getLogger(__name__)
 
 
-def detect_flash_first_appearance(file_path: str, config: list):
+def detect_flash_first_appearance(
+    file_path: str, config: list, print_processed_frame: bool
+):
     """detected 1st flash appear frames from a video capture"""
     cap = cv2.VideoCapture(file_path)
     if not cap.isOpened():
@@ -61,8 +63,9 @@ def detect_flash_first_appearance(file_path: str, config: list):
             break
 
         # print out where the processing is currently
-        if frame_number % 500 == 0:
-            print(f"Processed to frame {frame_number}...")
+        if print_processed_frame:
+            if frame_number % 500 == 0:
+                print(f"Processed to frame {frame_number}...")
 
         # Convert to grayscale
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -256,7 +259,9 @@ def _get_offset(beeps: list, flashes: list, config: list) -> float:
 
 
 def calibrate_camera(
-    recording_file: str, global_configurations: GlobalConfigurations
+    recording_file: str,
+    global_configurations: GlobalConfigurations,
+    print_processed_frame: bool,
 ) -> float:
     """
     process camera calibration based on input recording file
@@ -272,7 +277,9 @@ def calibrate_camera(
 
     config = global_configurations.get_calibration()
     offset = 0
-    detected_flashes = detect_flash_first_appearance(recording_file, config)
+    detected_flashes = detect_flash_first_appearance(
+        recording_file, config, print_processed_frame
+    )
     detected_beeps = detect_beeps(recording_file, log_file_path, config)
     # tolerate for starting flash or beep is missing
     if abs(len(detected_beeps) - len(detected_flashes)) > 1:
@@ -323,7 +330,9 @@ def main() -> None:
         args.log = [args.log[0], args.log[0]]
     LogManager(log_file, args.log[0], args.log[1])
     try:
-        calibrate_camera(args.calibration, global_configurations)
+        calibrate_camera(
+            args.calibration, global_configurations, True  # print out processed frame
+        )
     except ObsFrameTerminate as e:
         logger.exception(
             "Serious error is detected!\n%s\nSystem is terminating!", e, exc_info=False
