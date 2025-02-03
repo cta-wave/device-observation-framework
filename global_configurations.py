@@ -100,6 +100,10 @@ class GlobalConfigurations:
         """Get system_mode"""
         return self.system_mode
 
+    def set_sort_input_files_by(self, sort_input_files_by: str):
+        """Set sort_input_files_by"""
+        self.config["GENERAL"]["sort_input_files_by"] = sort_input_files_by
+
     def get_sort_input_files_by(self) -> str:
         """Get sort_input_files_by"""
         try:
@@ -109,6 +113,10 @@ class GlobalConfigurations:
 
         return sort_input_files_by
 
+    def set_log_file_path(self, log_file_path: str):
+        """Set log_file_path"""
+        self.config["GENERAL"]["log_file_path"] = log_file_path
+
     def get_log_file_path(self) -> str:
         """Get log_file_path"""
         try:
@@ -117,6 +125,10 @@ class GlobalConfigurations:
             log_file_path = "logs"
         return log_file_path
 
+    def set_result_file_path(self, result_file_path: str):
+        """Set result_file_path"""
+        self.config["GENERAL"]["result_file_path"] = result_file_path
+
     def get_result_file_path(self) -> str:
         """Get result_file_path"""
         try:
@@ -124,6 +136,10 @@ class GlobalConfigurations:
         except KeyError:
             result_file_path = "results"
         return result_file_path
+
+    def set_audio_mezzanine_file_path(self, audio_mezzanine_file_path: str):
+        """Set audio_mezzanine_file_path"""
+        self.config["GENERAL"]["audio_mezzanine_file_path"] = audio_mezzanine_file_path
 
     def get_audio_mezzanine_file_path(self) -> str:
         """Get audio_mezzanine_file_path"""
@@ -134,6 +150,10 @@ class GlobalConfigurations:
         except KeyError:
             audio_mezzanine_file_path = "audio_mezzanine"
         return audio_mezzanine_file_path
+
+    def set_session_log_threshold(self, session_log_threshold: str):
+        """Set session_log_threshold"""
+        self.config["GENERAL"]["session_log_threshold"] = session_log_threshold
 
     def get_session_log_threshold(self) -> int:
         """Get session_log_threshold"""
