@@ -61,9 +61,8 @@ At the end of the process the Observation Framework will rename the file recordi
 
 ### Additional Options
 
-Observation framework can be run with specific mode enabled by passing some optional arguments.
+THe Observation Framework can be run with specific modes enabled by passing some optional arguments as follows:
 
-optional arguments:
 ```
   --range {id(file_index):start(s):duration(s)}   Search QR codes to crop the QR code area for better detection.
                                                   QR codes area detection includes mezzanine QR codes and Test Status QR code.
