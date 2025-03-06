@@ -37,8 +37,6 @@ from output_file_handler import write_data_to_csv_file
 
 from .observation import Observation
 
-logger = logging.getLogger(__name__)
-
 
 class AudioVideoSynchronization(Observation):
     """AudioVideoSynchronization class
@@ -112,7 +110,10 @@ class AudioVideoSynchronization(Observation):
                 )
             )
 
-        if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
+        if (
+            self.logger.getEffectiveLevel() == logging.DEBUG
+            and observation_data_export_file
+        ):
             write_data_to_csv_file(
                 observation_data_export_file + "video_data.csv",
                 [
@@ -158,7 +159,10 @@ class AudioVideoSynchronization(Observation):
                 )
             )
 
-        if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
+        if (
+            self.logger.getEffectiveLevel() == logging.DEBUG
+            and observation_data_export_file
+        ):
             write_data_to_csv_file(
                 observation_data_export_file + "audio_data.csv",
                 ["content id", "media time", "mean_time", "offsets"],
@@ -187,18 +191,18 @@ class AudioVideoSynchronization(Observation):
         Returns:
             Result status and message.
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No mezzanine QR code is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         audio_offsets = []
@@ -290,7 +294,7 @@ class AudioVideoSynchronization(Observation):
             self.result["message"] += " Unable to detect any audio and video matches."
 
         # Exporting time diff data to a CSV file and png file
-        if logger.getEffectiveLevel() == logging.DEBUG:
+        if self.logger.getEffectiveLevel() == logging.DEBUG:
             file_name = observation_data_export_file + "av_sync_diff.csv"
             write_data_to_csv_file(
                 file_name,
@@ -311,5 +315,5 @@ class AudioVideoSynchronization(Observation):
             plt.savefig(file_name)
             plt.close()
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

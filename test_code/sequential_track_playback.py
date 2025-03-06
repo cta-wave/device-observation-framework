@@ -40,8 +40,6 @@ from output_file_handler import audio_data_to_csv
 
 from .test import TestContentType, TestType
 
-logger = logging.getLogger(__name__)
-
 # Capturing frame rate shall be close to twice the test frame rate
 # add warning if frame rate of recording is less than 1.5 of test content
 RECORDING_FRAME_RATE_RATIO = 1.5
@@ -65,6 +63,8 @@ class SequentialTrackPlayback:
     """test type SINGLE|COMBINED"""
     global_configurations: GlobalConfigurations
     """OF global configuration"""
+    logger: logging.Logger
+    """logger"""
     observations: list
     """observations required for the test"""
     parameters: list
@@ -96,6 +96,7 @@ class SequentialTrackPlayback:
             camera_frame_rate: Frames per second that the camera was recording at.
             camera_frame_duration_ms: Duration of a single camera frame in milliseconds.
         """
+        self.logger = global_configurations.get_logger()
         self.error_message = ""
 
         self._set_test_type()
@@ -139,7 +140,7 @@ class SequentialTrackPlayback:
                     f"is insufficient for test being run. "
                     f"Capturing frame rate shall be close to twice the test frame rate. "
                 )
-                logger.error(self.error_message)
+                self.logger.error(self.error_message)
                 break
 
     def _init_observations(self) -> None:
@@ -371,10 +372,10 @@ class SequentialTrackPlayback:
                     observation_data_export_file,
                 )
             except AudioAlignError as exc:
-                logger.error("Unable to get audio segments: %s", exc)
+                self.logger.error("Unable to get audio segments: %s", exc)
 
             # Exporting time diff data to a CSV file
-            if logger.getEffectiveLevel() == logging.DEBUG:
+            if self.logger.getEffectiveLevel() == logging.DEBUG:
                 if observation_data_export_file and audio_segments:
                     audio_data_to_csv(
                         observation_data_export_file + "audio_segment_data.csv",

@@ -25,7 +25,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -36,8 +35,6 @@ from global_configurations import GlobalConfigurations
 from test_code.test import TestType
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 
 class EverySampleRendered(Observation):
@@ -909,14 +906,14 @@ class EverySampleRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         first_frame_result = self._check_first_frame(
@@ -965,5 +962,5 @@ class EverySampleRendered(Observation):
         else:
             self.result["status"] = "FAIL"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], self.mid_missing_frame_duration

@@ -22,7 +22,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from fractions import Fraction
 
@@ -30,8 +29,6 @@ from exceptions import ConfigError
 from .random_access_from_one_place_in_a_stream_to_a_different_place_in_the_same_stream import (
     RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class LowLatencyPlaybackOverGaps(

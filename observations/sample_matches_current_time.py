@@ -24,18 +24,16 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import sys
 from typing import Dict, List, Tuple
 
+from global_configurations import GlobalConfigurations
 from configuration_parser import PlayoutParser
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from output_file_handler import write_data_to_csv_file
 from test_code.test import TestType
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 REPORT_NUM_OF_FAILURE = 50
 CAMERA_FRAME_ADJUSTMENT = 0.5
@@ -49,13 +47,13 @@ class SampleMatchesCurrentTime(Observation):
     The presented sample matches the one reported by the currentTime value within the tolerance of the sample duration.
     """
 
-    def __init__(self, _, name: str = None):
+    def __init__(self, global_configurations: GlobalConfigurations, name: str = None):
         if name is None:
             name = (
                 "[OF] Video: The presented sample shall match the one reported by the currentTime value"
                 " within the tolerance."
             )
-        super().__init__(name)
+        super().__init__(name, global_configurations)
 
     @staticmethod
     def _get_target_camera_frame_num(
@@ -192,12 +190,12 @@ class SampleMatchesCurrentTime(Observation):
                         if mezzanine_qr_code.media_time == (ct_event.current_time +/- (sample_tolerance + tolerance))
                                 test is PASSED
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No QR mezzanine code detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         camera_frame_rate = parameters_dict["camera_frame_rate"]
@@ -233,7 +231,9 @@ class SampleMatchesCurrentTime(Observation):
                     f"Test is configured to change {configured_change_num} times. "
                     f"Actual number of change is {actual_change_num}. "
                 )
-                logger.info("[%s] %s", self.result["status"], self.result["message"])
+                self.logger.info(
+                    "[%s] %s", self.result["status"], self.result["message"]
+                )
                 return self.result, [], []
 
             period_index = 0
@@ -326,7 +326,7 @@ class SampleMatchesCurrentTime(Observation):
         if self.result["status"] != "FAIL":
             self.result["status"] = "PASS"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
 
         # Exporting time diff data to a CSV file
         if observation_data_export_file and time_differences:

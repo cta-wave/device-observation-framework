@@ -25,7 +25,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
@@ -33,8 +32,6 @@ from global_configurations import GlobalConfigurations
 from test_code.test import TestType
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 REPORT_NUM_OF_FAILURE = 20
 
@@ -256,12 +253,12 @@ class AudioEverySampleRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         start_segment_num_tolerance = self.tolerances["start_segment_num_tolerance"]
@@ -352,6 +349,6 @@ class AudioEverySampleRendered(Observation):
             ] += "Segments are rendered in order within the tolerance."
             self.result["status"] = "PASS"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
 
         return self.result, updated_audio_segments, []

@@ -24,7 +24,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from typing import Tuple
 
@@ -32,8 +31,6 @@ from audio_file_reader import read_audio_mezzanine
 
 from .random_access_to_fragment import RandomAccessToFragment
 from .test import TestContentType
-
-logger = logging.getLogger(__name__)
 
 
 class RandomAccessOfAWavePresentation(RandomAccessToFragment):

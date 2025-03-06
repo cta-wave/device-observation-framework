@@ -25,15 +25,13 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from test_code.test import TestType
+from global_configurations import GlobalConfigurations
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 
 class StartUpDelay(Observation):
@@ -41,9 +39,10 @@ class StartUpDelay(Observation):
     The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax..
     """
 
-    def __init__(self, _):
+    def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
-            "[OF] Video start-up delay: The start-up delay should be sufficiently low."
+            "[OF] Video start-up delay: The start-up delay should be sufficiently low.",
+            global_configurations,
         )
 
     def _get_additional_tolerance(self, parameters_dict: dict) -> float:
@@ -85,7 +84,7 @@ class StartUpDelay(Observation):
         Returns:
             Result status and message.
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
         if test_type == TestType.TRUNCATED:
             self.result["name"] = (
                 "[OF] Video start-up delay: "
@@ -98,7 +97,7 @@ class StartUpDelay(Observation):
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         max_permitted_startup_delay_ms = parameters_dict[
@@ -159,5 +158,5 @@ class StartUpDelay(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

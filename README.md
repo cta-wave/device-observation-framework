@@ -61,20 +61,16 @@ At the end of the process the Observation Framework will rename the file recordi
 
 ### Additional Options
 
-Observation framework can be run with specific mode enabled by passing some optional arguments.
+THe Observation Framework can be run with specific modes enabled by passing some optional arguments as follows:
 
-optional arguments:
 ```
-  --range {id(file_index):start(s):duration(s)}
-                        Search QR codes to crop the QR code area for better detection.
-                        QR codes area detection includes mezzanine QR codes and Test Status QR code.
-  --log debug           Logging level to write to log file.
-  --scan intensive      Scan depth for QR code detection.
-  --mode debug          System mode is for development purposes only.
-  --ignore_corrupted video
-                        Specific condition to ignore. To support recording devices that has corrupted video or audio.
-  --calibration
-                        Camera calibration recording file path.
+  --range {id(file_index):start(s):duration(s)}   Search QR codes to crop the QR code area for better detection.
+                                                  QR codes area detection includes mezzanine QR codes and Test Status QR code.
+  --log debug                                     Logging level to write to log file.
+  --scan intensive                                Scan depth for QR code detection.
+  --mode debug                                    System mode is for development purposes only.
+  --ignore_corrupted video                        Specific condition to ignore. To support recording devices that has corrupted video or audio.
+  --calibration                                   Camera calibration recording file path.
 ```
 
 * Where **range** this is optional argument for video only tests. However, when the 1st test is audio only test it is important to set scan range so that the process can find mezzanine QR code area correctly for mixed video and audio tests. Setting the range is also useful to speed up the processing time when observing audio only tests. The range argument requires three digit variables separated by ":", ```{id(file_index):start(s):duration(s)}```.

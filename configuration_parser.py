@@ -26,7 +26,6 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import json
-import logging
 import math
 from fractions import Fraction
 from typing import Dict, List, Tuple
@@ -38,8 +37,6 @@ import requests
 from exceptions import ConfigError, ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 from test_code.test import TestContentType, TestType
-
-logger = logging.getLogger(__name__)
 
 
 class ConfigurationParser:

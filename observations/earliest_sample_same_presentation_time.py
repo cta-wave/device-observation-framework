@@ -24,7 +24,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
@@ -32,8 +31,6 @@ from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 
 class EarliestSampleSamePresentationTime(Observation):
@@ -62,21 +59,21 @@ class EarliestSampleSamePresentationTime(Observation):
         Check The WAVE presentation starts with the earliest video and audio sample that
         corresponds to the same presentation time as the earliest video sample.
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         # check audio when pass the video check
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] += " No audio segment is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         earliest_sample_alignment_tolerance = self.tolerances[
@@ -104,5 +101,5 @@ class EarliestSampleSamePresentationTime(Observation):
             f"is a {diff} ms time difference between video and audio sample presentation times."
         )
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

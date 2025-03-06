@@ -25,7 +25,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from typing import Dict, List, Tuple
 
@@ -38,7 +37,6 @@ from global_configurations import GlobalConfigurations
 from .observation import Observation
 
 REPORT_NUM_OF_FAILURE = 50
-logger = logging.getLogger(__name__)
 
 
 class AudioUnexpectedSampleNotRendered(Observation):
@@ -131,12 +129,12 @@ class AudioUnexpectedSampleNotRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            self.logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, [], []
 
         sample_length = parameters_dict["audio_sample_length"]
@@ -199,6 +197,6 @@ class AudioUnexpectedSampleNotRendered(Observation):
             ] += f". Total unexpected audio samples detected: {error_count}"
             self.result["status"] = "FAIL"
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        self.logger.debug(f"[{self.result['status']}]: {self.result['message']}")
 
         return self.result, [], []
