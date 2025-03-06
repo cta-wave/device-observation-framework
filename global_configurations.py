@@ -26,17 +26,17 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import os
-import configparser
 import logging
+import configparser
 from typing import Dict, List
-
-logger = logging.getLogger(__name__)
 
 
 class GlobalConfigurations:
     """Global Configurations class"""
 
     config: configparser.RawConfigParser
+    logger: logging.Logger
+    """logger"""
     ignore_corrupted: str
     """special condition to ignore,
     used to ignore corrupted frames for some camera (e.g.: GoPro9)"""
@@ -48,11 +48,22 @@ class GlobalConfigurations:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read("config.ini", "UTF-8")
+        # Initialize the logger with the label 'event'. 
+        # When the session is unknown, log the information to the 'event.log' file.
+        self.logger = logging.getLogger("event")
         self.ignore = ""
         self.system_mode = ""
         self.qr_search_range = []
         self.ignore_corrupted = ""
         self.calibration_file_path = ""
+
+    def set_logger(self, logger: logging.Logger):
+        """Set global logger"""
+        self.logger = logger
+
+    def get_logger(self) -> logging.Logger:
+        """Get global logger"""
+        return self.logger
 
     def set_qr_search_range(self, qr_search_range: str):
         """Set range"""

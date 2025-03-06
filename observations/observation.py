@@ -30,8 +30,6 @@ from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
 from global_configurations import GlobalConfigurations
 
-logger = logging.getLogger(__name__)
-
 
 class Observation:
     """Observation base class"""
@@ -54,7 +52,11 @@ class Observation:
     global_configurations: GlobalConfigurations
     """global configuration object to get some OF configuration from"""
 
-    def __init__(self, name: str, global_configurations: GlobalConfigurations = None):
+    logger: logging.Logger
+    """logger"""
+
+    def __init__(self, name: str, global_configurations: GlobalConfigurations):
+        self.logger = global_configurations.get_logger()
         self.result = {
             "status": "NOT_RUN",
             "message": "",

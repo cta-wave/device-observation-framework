@@ -34,7 +34,6 @@ from audio_file_reader import get_time_from_segment
 from exceptions import AudioAlignError
 from global_configurations import GlobalConfigurations
 
-logger = logging.getLogger(__name__)
 logging.getLogger("matplotlib.font_manager").disabled = True
 
 
@@ -239,6 +238,7 @@ def trim_audio(
     )
     trimmed_data = subject_data[trim_from:trim_to].copy()
 
+    logger = global_configurations.get_logger()
     if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
         plt.figure(index)
         plt.figure(figsize=(30, 6))

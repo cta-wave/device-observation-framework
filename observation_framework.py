@@ -56,8 +56,6 @@ PATCH = 2
 BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
-logger = logging.getLogger(__name__)
-
 QR_CODE_AREA_RATIO_TO_SIZE = 1.9
 """To detect whether full QR code area is found.
 There are 4 mezzanine QR codes, left-top, right-top, left-down, right-down
@@ -67,7 +65,10 @@ this ratio set to slightly lower than 2"""
 
 
 def rename_input_file(
-    input_video_path_str: str, input_video_path: Path, session_token: str
+    logger: logging.Logger,
+    input_video_path_str: str,
+    input_video_path: Path,
+    session_token: str,
 ) -> None:
     """Rename the input file to session token
     <filename>_dpctf_<sessionID>
@@ -118,6 +119,7 @@ def iter_to_get_qr_area(
         first_pre_test_qr_time: first pre test qr code detection time in ms
         qr_code_areas: qr_code_areas to crop when detecting qr code
     """
+    logger = global_configurations.get_logger()
     test_status_found = False
     mezzanine_found = False
     first_pre_test_found = False
@@ -279,6 +281,7 @@ def get_qr_code_area(
         qr_code_areas: qr_code_areas to crop when detecting qr code
         pre_test_qr_code_area: qr_code_area to crop for pre test qr code
     """
+    logger = global_configurations.get_logger()
     logger.info("Search '%s' to get QR code location...", input_video_path_str)
 
     qr_code_areas = [[], []]
@@ -374,15 +377,16 @@ def get_qr_code_area(
 
 def run(
     input_video_files: List[str],
-    log_manager: LogManager,
     global_configurations: GlobalConfigurations,
     do_adaptive_threshold_scan: bool,
     print_processed_frame: bool,
+    log_manager: LogManager,
 ):
     """
     Calibrate camera and set camera calibration offset when calibration_file_path is given.
     Runs the observation framework process.
     """
+    logger = global_configurations.get_logger()
     logger.info("Device Observation Framework (V%s) analysis started!", VERSION)
     calibration_offset = 0
     calibration_file_path = global_configurations.get_calibration_file_path()
@@ -463,6 +467,7 @@ def run(
                 observation_framework = ObservationFrameworkProcessor(
                     calibration_offset,
                     log_manager,
+                    logger,
                     global_configurations,
                     fps,
                     do_adaptive_threshold_scan,
@@ -485,6 +490,7 @@ def run(
     if observation_framework:
         for input_video_path_str in input_video_files:
             rename_input_file(
+                logger,
                 input_video_path_str,
                 input_video_path,
                 observation_framework.pre_test_qr_code.session_token,
@@ -493,7 +499,9 @@ def run(
     logger.info("The Device Observation Framework analysis has ended.")
 
 
-def clear_path(file_path: str, session_log_threshold: int) -> None:
+def clear_path(
+    logger: logging.Logger, file_path: str, session_log_threshold: int
+) -> None:
     """log path: list of session log files and event files
     result path: list of session folders contain result file
     if number of logs or results exceeded configured threshold
@@ -525,11 +533,12 @@ def clear_up(global_configurations: GlobalConfigurations) -> None:
     result_file_path = global_configurations.get_result_file_path()
     session_log_threshold = global_configurations.get_session_log_threshold()
 
-    clear_path(log_file_path, session_log_threshold)
-    clear_path(result_file_path, session_log_threshold)
+    logger = global_configurations.get_logger()
+    clear_path(logger, log_file_path, session_log_threshold)
+    clear_path(logger, result_file_path, session_log_threshold)
 
 
-def check_python_version() -> bool:
+def check_python_version(logger: logging.Logger) -> bool:
     """Check minimum Python version is being used.
     Returns:
         True if version is OK.
@@ -567,7 +576,9 @@ def process_input_video_files(
             if Path(full_path).resolve().is_file():
                 input_video_files.append(full_path)
             else:
-                logger.warning("%s is not a file, skipped!", full_path)
+                global_configurations.get_logger().warning(
+                    "%s is not a file, skipped!", full_path
+                )
     else:
         input_video_files.append(str(input_video_path))
 
@@ -587,14 +598,15 @@ def process_run(
     do_adaptive_threshold_scan: bool,
 ):
     """process run and handel exceptions"""
+    logger = global_configurations.get_logger()
     input_video_files = process_input_video_files(input_str, global_configurations)
     try:
         run(
             input_video_files,
-            log_manager,
             global_configurations,
             do_adaptive_threshold_scan,
             True,  # print out processed frame
+            log_manager,
         )
     except ObsFrameTerminate as e:
         logger.exception(
@@ -682,7 +694,7 @@ def main() -> None:
         args.log = [args.log[0], args.log[0]]
     log_manager = LogManager(log_file, args.log[0], args.log[1])
 
-    if not check_python_version():
+    if not check_python_version(global_configurations.get_logger()):
         sys.exit(1)
 
     process_run(

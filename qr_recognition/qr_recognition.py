@@ -24,7 +24,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Any, List
 
 import cv2
@@ -32,8 +31,6 @@ import numpy as np
 from pyzbar.pyzbar import ZBarSymbol, decode
 
 from .qr_decoder import DecodedQr, QrDecoder
-
-logger = logging.getLogger(__name__)
 
 
 OpenCvImageHint = Any

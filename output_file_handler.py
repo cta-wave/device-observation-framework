@@ -35,7 +35,6 @@ from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import MezzanineDecodedQr, PreTestDecodedQr, TestStatusDecodedQr
 from qr_recognition.qr_decoder import DecodedQr
 
-logger = logging.getLogger(__name__)
 logging.getLogger("matplotlib.font_manager").disabled = True
 
 

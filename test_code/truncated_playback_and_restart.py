@@ -22,15 +22,12 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from fractions import Fraction
 
 from exceptions import ConfigError
 from .sequential_track_playback import SequentialTrackPlayback
 from .test import TestType
-
-logger = logging.getLogger(__name__)
 
 
 class TruncatedPlaybackAndRestart(SequentialTrackPlayback):

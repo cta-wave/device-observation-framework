@@ -28,7 +28,6 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import json
-import logging
 import os
 from datetime import datetime
 from json.decoder import JSONDecodeError
@@ -39,7 +38,6 @@ import requests
 from exceptions import ConfigError, ObsFrameError
 from global_configurations import GlobalConfigurations
 
-logger = logging.getLogger(__name__)
 OF_RESULT_PREFIX = "[OF]"
 
 
