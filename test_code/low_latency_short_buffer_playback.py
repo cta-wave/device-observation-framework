@@ -22,11 +22,7 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
-
 from .mse_append_window import MseAppendWindow
-
-logger = logging.getLogger(__name__)
 
 
 class LowLatencyShortBufferPlayback(MseAppendWindow):

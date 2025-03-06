@@ -17,11 +17,9 @@ from exceptions import ObsFrameTerminate
 matplotlib.use("Agg")  # Non-interactive backend
 plt.set_loglevel("WARNING")  # Disable Matplotlib's debug messages
 
-logger = logging.getLogger(__name__)
-
 
 def detect_flash_first_appearance(
-    file_path: str, config: list, print_processed_frame: bool
+    logger: logging.Logger, file_path: str, config: list, print_processed_frame: bool
 ):
     """detected 1st flash appear frames from a video capture"""
     cap = cv2.VideoCapture(file_path)
@@ -119,7 +117,9 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
         return audio_file_name
 
 
-def detect_beeps(video_file: str, log_file_path: str, config: list) -> list:
+def detect_beeps(
+    logger: logging.Logger, video_file: str, log_file_path: str, config: list
+) -> list:
     """Detects beeps in an audio file based on amplitude spikes."""
     audio_file = extract_audio_to_wav_file(video_file)
     if not audio_file:
@@ -214,7 +214,9 @@ def detect_beeps(video_file: str, log_file_path: str, config: list) -> list:
     return beep_intervals
 
 
-def _get_offset(beeps: list, flashes: list, config: list) -> float:
+def _get_offset(
+    logger: logging.Logger, beeps: list, flashes: list, config: list
+) -> float:
     """loop detected beeps and flashes to get mean offset"""
     offsets = []
     beep, flash = 0.0, 0.0
@@ -266,6 +268,7 @@ def calibrate_camera(
     """
     process camera calibration based on input recording file
     """
+    logger = global_configurations.get_logger()
     log_file_path = global_configurations.get_log_file_path()
     if os.path.isfile(recording_file):
         if not os.path.isabs(recording_file):
@@ -278,9 +281,9 @@ def calibrate_camera(
     config = global_configurations.get_calibration()
     offset = 0
     detected_flashes = detect_flash_first_appearance(
-        recording_file, config, print_processed_frame
+        logger, recording_file, config, print_processed_frame
     )
-    detected_beeps = detect_beeps(recording_file, log_file_path, config)
+    detected_beeps = detect_beeps(logger, recording_file, log_file_path, config)
     # tolerate for starting flash or beep is missing
     if abs(len(detected_beeps) - len(detected_flashes)) > 1:
         logger.warning(
@@ -302,7 +305,7 @@ def calibrate_camera(
             "meet WAVE test requirements and it cannot be used."
         )
     else:
-        offset = _get_offset(detected_beeps, detected_flashes, config)
+        offset = _get_offset(logger, detected_beeps, detected_flashes, config)
     return offset
 
 
@@ -329,9 +332,12 @@ def main() -> None:
     if len(args.log) == 1:
         args.log = [args.log[0], args.log[0]]
     LogManager(log_file, args.log[0], args.log[1])
+    logger = global_configurations.get_logger()
     try:
         calibrate_camera(
-            args.calibration, global_configurations, True  # print out processed frame
+            args.calibration,
+            global_configurations,
+            True,  # print out processed frame
         )
     except ObsFrameTerminate as e:
         logger.exception(

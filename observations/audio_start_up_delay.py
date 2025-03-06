@@ -25,15 +25,13 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
+from global_configurations import GlobalConfigurations
 from dpctf_audio_decoder import AudioSegment
 from dpctf_qr_decoder import TestStatusDecodedQr
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 
 class AudioStartUpDelay(Observation):
@@ -41,9 +39,10 @@ class AudioStartUpDelay(Observation):
     The start-up delay should be sufficiently low, i.e., TR [k, 1] - Ti < TSMax..
     """
 
-    def __init__(self, _):
+    def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
-            "[OF] Audio start-up-delay: The start-up delay shall be sufficiently low."
+            "[OF] Audio start-up-delay: The start-up delay shall be sufficiently low.",
+            global_configurations,
         )
 
     def make_observation(
@@ -67,12 +66,12 @@ class AudioStartUpDelay(Observation):
         Returns:
             Result status and message.
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         # Get time when test status = play
@@ -104,5 +103,5 @@ class AudioStartUpDelay(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

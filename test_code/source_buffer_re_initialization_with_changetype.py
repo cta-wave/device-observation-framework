@@ -24,19 +24,17 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-
-import logging
-
 from .source_buffer_re_initialization_without_changetype import (
     SourceBufferReInitializationWithoutChangetype,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class SourceBufferReInitializationWithChangetype(
     SourceBufferReInitializationWithoutChangetype
 ):
+    """SourceBufferReInitializationWithChangetype to handle test
+    source-Buffer-re-initialization-with-changetype.html"""
+
     def _init_parameters(self) -> None:
         """initialise the test_config_parameters required for the test"""
         self.parameters = [

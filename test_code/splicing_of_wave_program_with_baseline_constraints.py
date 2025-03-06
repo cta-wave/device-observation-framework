@@ -25,7 +25,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 import math
 from typing import Tuple
 
@@ -36,15 +35,14 @@ from .playback_over_wave_baseline_splice_constraints import (
 )
 from .test import TestContentType
 
-logger = logging.getLogger(__name__)
-
 
 class SplicingOfWaveProgramWithBaselineConstraints(
     PlaybackOverWaveBaselineSpliceConstraints
 ):
     """SplicingOfWaveProgramWithBaselineConstraints to handle test
     splicing-of-wave-program-with-baseline-constraints.html.
-    This class is derived from PlaybackOverWaveBaselineSpliceConstraints and uses the same observations logic.
+    This class is derived from PlaybackOverWaveBaselineSpliceConstraints
+    and uses the same observations logic.
     """
 
     def _init_parameters(self) -> None:

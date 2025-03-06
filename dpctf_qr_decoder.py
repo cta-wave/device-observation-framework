@@ -26,14 +26,11 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import json
-import logging
 import re
 from datetime import datetime
 from fractions import Fraction
 
 from qr_recognition.qr_decoder import DecodedQr, QrDecoder
-
-logger = logging.getLogger(__name__)
 
 _mezzanine_qr_data_re = re.compile(
     r"(.+);(\d{2}:[0-6][0-9]:[0-6][0-9].\d{3});(\d{7});([0-9.]+)"
@@ -218,9 +215,7 @@ class DPCTFQrDecoder(QrDecoder):
                             camera_frame_num,
                         )
                     except KeyError:
-                        logger.debug(
-                            "Unrecognized QR code detected: %s is ignored.", data
-                        )
+                        pass  # Do nothing if a KeyError occurs
 
         return code
 
@@ -287,8 +282,6 @@ class DPCTFQrDecoder(QrDecoder):
                     data, location, json_data, camera_frame_num
                 )
             except json.decoder.JSONDecodeError:
-                logger.debug(
-                    "QR code '%s' is not recognized by the system, ignored.", data
-                )
+                pass  # Do nothing if a JSONDecodeError occurs
 
         return code

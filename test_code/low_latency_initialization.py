@@ -22,11 +22,7 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 
-import logging
-
 from .mse_append_window import MseAppendWindow
-
-logger = logging.getLogger(__name__)
 
 
 class LowLatencyInitialization(MseAppendWindow):

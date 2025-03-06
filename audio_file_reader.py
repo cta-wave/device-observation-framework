@@ -24,9 +24,9 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
+import logging
 import hashlib
 import json
-import logging
 import math
 import os
 import platform
@@ -41,7 +41,7 @@ from exceptions import ObsFrameTerminate
 from global_configurations import GlobalConfigurations
 
 # to fix ALSA lib error on console output
-if platform.system() == 'Linux':
+if platform.system() == "Linux":
     import sounddevice  # pylint: disable=unused-import
 
 # audio file reader chunk size
@@ -50,8 +50,6 @@ CHUNK_SIZE = 1024 * 1000
 REQUIRED_SAMPLE_RATE = 48
 # only accept 16b (8 bytes) required for dpctf WAVE
 REQUIRED_SAMPLE_FORMAT = 8
-
-logger = logging.getLogger(__name__)
 
 
 def _next_power_of_2(value):
@@ -100,7 +98,9 @@ def get_time_from_segment(subject_data: list, segment_data: list):
     return result
 
 
-def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
+def extract_audio_to_wav_file(
+    logger: logging.Logger, video_file: str, output_ext="wav"
+) -> str:
     """
     Converts video to audio directly using ffmpeg command
     with the help of subprocess module.
@@ -119,7 +119,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
         )
 
         if result == 0:
-            _check_audio_recording(audio_file_name)
+            _check_audio_recording(logger, audio_file_name)
             return audio_file_name
         else:
             logger.warning(
@@ -129,7 +129,7 @@ def extract_audio_to_wav_file(video_file: str, output_ext="wav") -> str:
             )
             return ""
     else:
-        _check_audio_recording(audio_file_name)
+        _check_audio_recording(logger, audio_file_name)
         return audio_file_name
 
 
@@ -256,7 +256,7 @@ def read_audio_mezzanine(
     return segment_data
 
 
-def _check_audio_recording(subject_file: str):
+def _check_audio_recording(logger: logging.Logger, subject_file: str):
     """
     Check recorded audio file.
     Get information about the recording

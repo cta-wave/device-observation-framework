@@ -23,8 +23,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-
-import logging
 import math
 from fractions import Fraction
 
@@ -32,10 +30,11 @@ from exceptions import ConfigError
 from .mse_append_window import MseAppendWindow
 from .test import TestType
 
-logger = logging.getLogger(__name__)
-
 
 class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
+    """SourceBufferReInitializationWithoutChangetype to handle test
+    source-buffer-re-initialization-without-changetype.html"""
+
     def _set_test_type(self) -> None:
         """set test type SEQUENTIAL|SWITCHING|SPLICING"""
         self.test_type = TestType.SPLICING

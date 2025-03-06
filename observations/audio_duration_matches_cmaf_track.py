@@ -24,15 +24,12 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
 from dpctf_audio_decoder import AudioSegment
 from global_configurations import GlobalConfigurations
 
 from .observation import Observation
-
-logger = logging.getLogger(__name__)
 
 
 class AudioDurationMatchesCMAFTrack(Observation):
@@ -73,12 +70,12 @@ class AudioDurationMatchesCMAFTrack(Observation):
         _observation_data_export_file,
     ) -> Tuple[Dict[str, str], list, list]:
         """make observations"""
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not audio_segments:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = "No audio segment is detected."
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         detected_audio_duration = (
@@ -127,5 +124,5 @@ class AudioDurationMatchesCMAFTrack(Observation):
                 f"Detected duration is different by {round(time_difference, 2)}ms. "
                 f"Allowed tolerance is {tolerance}ms."
             )
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

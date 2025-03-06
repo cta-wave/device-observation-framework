@@ -25,7 +25,6 @@ License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.txt
 Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
-import logging
 from typing import Dict, List, Tuple
 
 from dpctf_qr_decoder import MezzanineDecodedQr
@@ -33,7 +32,6 @@ from global_configurations import GlobalConfigurations
 
 from .observation import Observation
 
-logger = logging.getLogger(__name__)
 REPORT_NUM_OF_FAILURE = 10
 
 
@@ -67,12 +65,12 @@ class UnexpectedSampleNotRendered(Observation):
         Returns:
             Dict[str, str]: observation result
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
 
         if not mezzanine_qr_codes:
             self.result["status"] = "PASS"
             self.result["message"] += "No unexpected frames were rendered."
-            logger.info(f"[{self.result['status']}] {self.result['message']}")
+            self.logger.info(f"[{self.result['status']}] {self.result['message']}")
             return self.result, [], []
 
         first_frame_num = parameters_dict["first_frame_num"]
@@ -97,5 +95,5 @@ class UnexpectedSampleNotRendered(Observation):
                 "message"
             ] += f"Total unexpected frames rendered: {unexpected_frame_counter}."
 
-        logger.debug(f"[{self.result['status']}]: {self.result['message']}")
+        self.logger.debug(f"[{self.result['status']}]: {self.result['message']}")
         return self.result, [], []

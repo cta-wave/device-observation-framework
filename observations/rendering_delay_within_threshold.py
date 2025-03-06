@@ -24,16 +24,12 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 
-import logging
 from typing import Dict, List, Tuple
-
 from dpctf_qr_decoder import MezzanineDecodedQr, TestStatusDecodedQr
-
+from global_configurations import GlobalConfigurations
 from .observation import Observation
 
 FIRST_FRAME_APPLIED_EVENT = "appended"
-
-logger = logging.getLogger(__name__)
 
 
 class RenderingDelayWithinThreshold(Observation):
@@ -42,11 +38,12 @@ class RenderingDelayWithinThreshold(Observation):
     CMAF fragment and the first media sample is visible or audible .
     """
 
-    def __init__(self, _):
+    def __init__(self, global_configurations: GlobalConfigurations):
         super().__init__(
             "[OF] Measure the time between the successful appending of the first CMAF chunk that exceeded "
             "min_buffer_duration and the first media sample being visible or audible. "
-            "This value shall be compared against render_threshold."
+            "This value shall be compared against render_threshold.",
+            global_configurations,
         )
 
     @staticmethod
@@ -104,13 +101,13 @@ class RenderingDelayWithinThreshold(Observation):
         Returns:
             Result status and message.
         """
-        logger.info("Making observation %s.", self.result["name"])
+        self.logger.info("Making observation %s.", self.result["name"])
         if len(mezzanine_qr_codes) < 2:
             self.result["status"] = "NOT_RUN"
             self.result["message"] = (
                 f"Too few mezzanine QR codes detected ({len(mezzanine_qr_codes)})."
             )
-            logger.info("[%s] %s", self.result["status"], self.result["message"])
+            self.logger.info("[%s] %s", self.result["status"], self.result["message"])
             return self.result, [], []
 
         render_threshold = parameters_dict["render_threshold"]
@@ -142,5 +139,5 @@ class RenderingDelayWithinThreshold(Observation):
             else:
                 self.result["status"] = "FAIL"
 
-        logger.debug("[%s] %s", self.result["status"], self.result["message"])
+        self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []
