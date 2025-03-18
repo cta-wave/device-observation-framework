@@ -497,45 +497,49 @@ def run(
             )
 
     logger.info("The Device Observation Framework analysis has ended.")
+    clear_up(global_configurations)
 
 
 def clear_path(
-    logger: logging.Logger, file_path: str, session_log_threshold: int
+    logger: logging.Logger, file_path: str, threshold: int, is_file_path: bool
 ) -> None:
-    """log path: list of session log files and event files
-    result path: list of session folders contain result file
+    """
+    file_path is either log, result path to clear
+        log path: list of session log files and event files
+        result path: list of session folders contain result file
     if number of logs or results exceeded configured threshold
     delete some file to release the disk space
     """
     if os.path.isdir(file_path):
+        # Choose the function based on whether we want folders or files
+        check_func = os.path.isfile if is_file_path else os.path.isdir
         full_path = [
             os.path.join(file_path, f)
             for f in os.listdir(file_path)
-            if os.path.isdir(os.path.join(file_path, f))
+            if check_func(os.path.join(file_path, f))
         ]
         num_session = len(full_path)
 
-        num_of_session_to_delete = num_session - session_log_threshold
+        num_of_session_to_delete = num_session - threshold
         if num_of_session_to_delete > 0:
+            remove_func = os.remove if is_file_path else shutil.rmtree
             oldest = sorted(full_path, key=os.path.getctime)[0:num_of_session_to_delete]
             logger.info(
                 "Removing oldest %d file(s): %s!", num_of_session_to_delete, oldest
             )
             for oldest_session in oldest:
-                shutil.rmtree(oldest_session)
+                remove_func(oldest_session)
 
 
 def clear_up(global_configurations: GlobalConfigurations) -> None:
     """check log and result path to release the disk space
     global_configurations: to get threshold and path to clear
     """
-    log_file_path = global_configurations.get_log_file_path()
-    result_file_path = global_configurations.get_result_file_path()
-    session_log_threshold = global_configurations.get_session_log_threshold()
-
+    threshold = global_configurations.get_session_log_threshold()
     logger = global_configurations.get_logger()
-    clear_path(logger, log_file_path, session_log_threshold)
-    clear_path(logger, result_file_path, session_log_threshold)
+    # both log and result path contain folders
+    clear_path(logger, global_configurations.get_log_file_path(), threshold, False)
+    clear_path(logger, global_configurations.get_result_file_path(), threshold, False)
 
 
 def check_python_version(logger: logging.Logger) -> bool:
@@ -633,7 +637,6 @@ def process_run(
         "The Device Observation Framework has completed the analysis of all selected recordings, "
         "The Device Observation Framework is exiting."
     )
-    clear_up(global_configurations)
 
 
 def main() -> None:
