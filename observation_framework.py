@@ -51,8 +51,8 @@ from qr_recognition.qr_recognition import FrameAnalysis
 from camera_calibration_helper import calibrate_camera
 
 MAJOR = 2
-MINOR = 0
-PATCH = 2
+MINOR = 1
+PATCH = 0
 BETA = ""
 VERSION = f"{MAJOR}.{MINOR}.{PATCH}{BETA}"
 
