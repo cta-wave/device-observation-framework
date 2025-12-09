@@ -55,6 +55,9 @@ class RandomAccessFromOnePlaceInAStreamToADifferentPlaceInTheSameStream(
             "random_access_from_tolerance",
             "duration_tolerance",
             "duration_frame_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:

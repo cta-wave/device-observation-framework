@@ -41,4 +41,7 @@ class BufferUnderrunAndRecovery(MseAppendWindow):
             "frame_tolerance",
             "duration_tolerance",
             "duration_frame_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]

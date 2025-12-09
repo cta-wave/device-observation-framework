@@ -38,6 +38,9 @@ class LowLatencyInitialization(MseAppendWindow):
             "duration_tolerance",
             "duration_frame_tolerance",
             "render_threshold",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _init_observations(self) -> None:

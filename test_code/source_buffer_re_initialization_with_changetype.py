@@ -43,4 +43,7 @@ class SourceBufferReInitializationWithChangetype(
             "duration_tolerance",
             "duration_frame_tolerance",
             "playout",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]

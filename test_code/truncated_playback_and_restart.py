@@ -49,6 +49,9 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
             "playout",
             "second_playout",
             "second_playout_switching_time",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _init_observations(self) -> None:
