@@ -231,7 +231,7 @@ class SequentialTrackPlayback:
         """return first frame number"""
         return 1
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number"""
         half_frame_duration = (1000 / frame_rate) / 2
         return math.floor(
@@ -358,7 +358,7 @@ class SequentialTrackPlayback:
                 self.parameters_dict["first_frame_num"] = self._get_first_frame_num(
                     frame_rate
                 )
-                self.parameters_dict["last_frame_num"] = self._get_last_frame_num(
+                self.parameters_dict["last_frame_num"] = self.get_last_frame_num(
                     frame_rate
                 )
                 self.parameters_dict["gap_from_and_to_frames"] = (

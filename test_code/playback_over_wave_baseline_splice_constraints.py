@@ -64,7 +64,7 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             "adjacent_pass_count",
         ]
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """

@@ -34,6 +34,7 @@ from typing import List, Tuple
 
 import cv2
 
+import utils
 from audio_file_reader import extract_audio_to_wav_file, read_audio_recording
 from configuration_parser import ConfigurationParser
 from dpctf_qr_decoder import (
@@ -50,6 +51,10 @@ from output_file_handler import extract_qr_data_to_csv, write_header_to_csv_file
 from qr_recognition.qr_decoder import DecodedQr
 from qr_recognition.qr_recognition import FrameAnalysis
 from observations.observation import Observation
+from test_code.long_duration_playback import (
+    LongDurationPlayback,
+    LongDurationPlaybackData,
+)
 
 # test finish delay in ms after 1st status "finished" status
 TEST_FINISH_DELAY = 2000
@@ -145,6 +150,9 @@ class ObservationFrameworkProcessor:
     input_audio_path_list: list
     """list of input audio file path"""
 
+    ld_playback_data: LongDurationPlaybackData
+    """Long duration playback data"""
+
     def __init__(
         self,
         calibration_offset: float,
@@ -204,6 +212,8 @@ class ObservationFrameworkProcessor:
         self.results = []
 
         self.input_audio_path_list = []
+
+        self.ld_playback_data = LongDurationPlaybackData()
 
     def extract_audio(
         self, input_video_path_str: str, starting_camera_frame_number: int
@@ -380,6 +390,11 @@ class ObservationFrameworkProcessor:
                 self.max_qr_code_num_in_frame = 1
             else:
                 self.max_qr_code_num_in_frame = 3
+
+            # Detect long-duration playback test and set flag to optimize QR detection
+            self.ld_playback_data.is_reduced_detection = isinstance(
+                self.test_class, LongDurationPlayback
+            )
 
     def process_audio_data(self, content_type: str) -> Tuple[float, list]:
         """Process audio data for audio observation
@@ -699,6 +714,221 @@ class ObservationFrameworkProcessor:
                 f"and the remaining tests are not observed."
             )
 
+    def process_ld_test_optimizations(
+        self, last_mezzanine_qr_code, vid_cap, capture_frame_num
+    ) -> int:
+        """
+        Process Long Duration Playback test optimizations by skipping frames
+        between detection intervals to reduce processing time.
+
+        The logic for handling the end of the observation window when jumping frames
+        ensures that the frame jump does not exceed the bounds of the observation window.
+        Specifically, before performing a jump, the method predicts whether the
+        next jump would move past the last valid frame for the observation window.
+        If so, it adjusts the jump to land exactly at the start of the ending check window,
+        ensuring all required frames are processed.
+        At this point, reduced detection is disabled to allow for full scanning
+        of the final segment of the observation window, guaranteeing that no relevant QR codes
+        are missed near the end of the observation window.
+        This may cause more frames to be processed than the last observation window
+        duration, but it ensures the integrity of the observation observations.
+
+        Args:
+            last_mezzanine_qr_code: The last detected Mezzanine QR code.
+            vid_cap: VideoCapture instance for the current file.
+            capture_frame_num: Current capture frame number.
+
+        Returns:
+            Updated capture frame number after processing optimizations.
+            If no optimization (frame jump) is applied, the returned value may be
+            unchanged from the input.
+        """
+        long_duration_configs = self.global_configurations.get_long_duration_config()
+        starting_check_duration = long_duration_configs["starting_check_duration"]
+        mid_check_duration = long_duration_configs["mid_check_duration"]
+        ending_check_duration = long_duration_configs["ending_check_duration"]
+        check_interval_seconds = long_duration_configs["check_interval_seconds"]
+
+        # If check_interval_seconds is 0, disable PeriodicQrDetection.
+        if check_interval_seconds == 0:
+            return capture_frame_num
+
+        mezzanine_frame_rate = last_mezzanine_qr_code.frame_rate
+        starting_check_duration_in_frame = utils.seconds_to_frame_num(
+            starting_check_duration, mezzanine_frame_rate
+        )
+        mid_check_duration_in_frame = utils.seconds_to_frame_num(
+            mid_check_duration, mezzanine_frame_rate
+        )
+        ending_check_duration_in_frame = utils.seconds_to_frame_num(
+            ending_check_duration, mezzanine_frame_rate
+        )
+
+        if self.ld_playback_data.is_initial_detection:
+            detection_window_frames = starting_check_duration_in_frame
+        else:
+            detection_window_frames = mid_check_duration_in_frame
+
+        # next interval in recording based on camera frame rate that we skip the detection
+        # we can not jump based on mezzanine frame rate because mezzanine qr code detection
+        # is not available in every frame as we skip frames
+        next_interval_in_recording = utils.seconds_to_frame_num(
+            (
+                check_interval_seconds
+                - utils.frame_num_to_seconds(
+                    detection_window_frames, mezzanine_frame_rate
+                )
+            ),
+            self.camera_frame_rate,
+        )
+
+        # Set the starting detection interval
+        if self.ld_playback_data.ready_for_next_interval:
+            self.ld_playback_data.ld_last_qr_detection_start_at = (
+                last_mezzanine_qr_code.frame_number
+            )
+            self.test_class.set_observation_window(
+                self.ld_playback_data.ld_last_qr_detection_start_at, is_start=True
+            )
+            self.ld_playback_data.ready_for_next_interval = False
+
+        # Check if current detection window is completed
+        if last_mezzanine_qr_code.frame_number >= (
+            self.ld_playback_data.ld_last_qr_detection_start_at
+            + detection_window_frames
+        ):
+            jump_frames = capture_frame_num + next_interval_in_recording
+
+            # End of observation window handling to ensure we do not skip past the observation end
+            last_test_win_start_frame_num = (
+                self.test_class.get_last_frame_num(mezzanine_frame_rate)
+                - ending_check_duration_in_frame
+            )
+            # Predict if the next jump will exceed the observation window
+            predicted_jump_to_mezzanine_frame_num = (
+                last_mezzanine_qr_code.frame_number
+                + utils.seconds_to_frame_num(
+                    check_interval_seconds, mezzanine_frame_rate
+                )
+                - detection_window_frames
+            )
+            # If exceeding, adjust jump to end of observation window
+            if predicted_jump_to_mezzanine_frame_num > last_test_win_start_frame_num:
+                remaining_window_seconds = utils.frame_num_to_seconds(
+                    last_test_win_start_frame_num - last_mezzanine_qr_code.frame_number,
+                    mezzanine_frame_rate,
+                )
+                jump_frames = capture_frame_num + utils.seconds_to_frame_num(
+                    remaining_window_seconds, self.camera_frame_rate
+                )
+                # End of observation window reached, disable reduced detection
+                # to allow full scanning of final segment
+                self.ld_playback_data.is_reduced_detection = False
+                self.ld_playback_data.is_last_detection = True
+
+            # handle the case when jump_frames exceed total frame count of the video
+            last_frame = int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            jump_frames = min(jump_frames, last_frame)
+            self.logger.debug(
+                f"Jumping to frame {jump_frames} as time "
+                f"{utils.frame_num_to_seconds(jump_frames, self.camera_frame_rate)} seconds"
+            )
+            vid_cap.set(cv2.CAP_PROP_POS_FRAMES, jump_frames)
+            capture_frame_num = jump_frames
+            self.test_class.set_observation_window(
+                last_mezzanine_qr_code.frame_number,
+                is_start=False,
+            )
+            self.ld_playback_data.ready_for_next_interval = True
+            self.ld_playback_data.is_initial_detection = False
+        return capture_frame_num
+
+    def analysis_frame(
+        self, camera_frame_number: int, image, qr_code_areas: list
+    ) -> list:
+        """analyze a single frame for qr code detection
+        Args:
+            camera_frame_number: current camera frame number
+            image: current frame image
+            qr_code_areas: list of qr code cropping areas
+        Returns:
+            detected_qr_codes: list of detected qr codes in this frame
+        """
+        analysis = FrameAnalysis(
+            camera_frame_number, self.decoder, self.max_qr_code_num_in_frame
+        )
+        analysis.full_scan(image, qr_code_areas, self.do_adaptive_threshold_scan)
+        detected_qr_codes = analysis.all_codes()
+
+        if detected_qr_codes:
+            self.no_qr_code_frame_num = 0
+        else:
+            self.no_qr_code_frame_num = camera_frame_number
+
+        # extract qr code data to a csv file
+        extract_qr_data_to_csv(
+            self.qr_list_file, camera_frame_number, detected_qr_codes
+        )
+        # check consecutive no qr code detection and
+        # terminates the system when exceed the threshold
+        self.check_consecutive_no_qr_code(camera_frame_number, detected_qr_codes)
+
+        return detected_qr_codes
+
+    def process_detected_qr_codes(
+        self, detected_qr_codes, vid_cap, capture_frame_num
+    ) -> int:
+        """process detected qr codes in the current frame
+        Args:
+            detected_qr_codes: list of detected qr codes in this frame
+            vid_cap: VideoCapture instance for the current file.
+            capture_frame_num: Current capture frame number
+        Returns:
+            Updated capture frame number after processing detected QR codes
+        """
+        (
+            new_mezzanine_qr_codes,
+            new_test_status_qr_code,
+            new_pre_test_qr_code,
+        ) = self._discard_duplicated_qr_code(detected_qr_codes)
+
+        if new_pre_test_qr_code:
+            self._process_pre_test_qr_code(new_pre_test_qr_code)
+
+        if new_mezzanine_qr_codes:
+            if not self.test_class:
+                self.logger.warning(
+                    "Mezzanine QR code is detected before identifying the test. "
+                    "observations won't be made, stop process if you want."
+                )
+            self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
+
+            # Long Duration Playback test optimizations
+            if self.ld_playback_data.is_last_detection:
+                self.test_class.set_observation_window(
+                    new_mezzanine_qr_codes[-1].frame_number, is_start=True
+                )
+                self.test_class.set_observation_window(
+                    self.test_class.get_last_frame_num(
+                        new_mezzanine_qr_codes[-1].frame_rate
+                    ),
+                    is_start=False,
+                )
+                self.ld_playback_data.is_last_detection = False
+            if self.ld_playback_data.is_reduced_detection:
+                capture_frame_num = self.process_ld_test_optimizations(
+                    new_mezzanine_qr_codes[-1], vid_cap, capture_frame_num
+                )
+
+        if new_test_status_qr_code:
+            if not self.test_class:
+                self.logger.warning(
+                    "Test status QR code is detected before identifying the test. "
+                    "observations won't be made, stop process if you want."
+                )
+            self._process_test_status_qr_code(new_test_status_qr_code)
+        return capture_frame_num
+
     def iter_qr_codes_in_video(
         self,
         vid_cap,
@@ -724,7 +954,7 @@ class ObservationFrameworkProcessor:
             got_frame, image = vid_cap.read()
             if not got_frame:
                 if "video" in self.global_configurations.get_ignore_corrupted():
-                    # work around for gopro
+                    # work around for GoPro corrupted frames
                     corrupted_frame_num += 1
                     capture_frame_num += 1
                     continue
@@ -754,54 +984,18 @@ class ObservationFrameworkProcessor:
             ):
                 break
 
-            analysis = FrameAnalysis(
-                camera_frame_number, self.decoder, self.max_qr_code_num_in_frame
-            )
-            analysis.full_scan(image, qr_code_areas, self.do_adaptive_threshold_scan)
-            detected_qr_codes = analysis.all_codes()
-            if detected_qr_codes:
-                self.no_qr_code_frame_num = 0
-            else:
-                self.no_qr_code_frame_num = camera_frame_number
-
             # print out where the processing is currently
             if print_processed_frame:
                 if camera_frame_number % 50 == 0:
                     print(f"Processed to frame {camera_frame_number}...")
 
-            # extract qr code data to a csv file
-            extract_qr_data_to_csv(
-                self.qr_list_file, camera_frame_number, detected_qr_codes
-            )
-            # check consecutive no qr code detection and
-            # terminates the system when exceed the threshold
-            self.check_consecutive_no_qr_code(camera_frame_number, detected_qr_codes)
-
-            (
-                new_mezzanine_qr_codes,
-                new_test_status_qr_code,
-                new_pre_test_qr_code,
-            ) = self._discard_duplicated_qr_code(detected_qr_codes)
-
-            if new_pre_test_qr_code:
-                self._process_pre_test_qr_code(new_pre_test_qr_code)
-
-            if new_mezzanine_qr_codes:
-                if not self.test_class:
-                    self.logger.warning(
-                        "Mezzanine QR code is detected before identifying the test. "
-                        "observations won't be made, stop process if you want."
-                    )
-                self._process_mezzanine_qr_codes(new_mezzanine_qr_codes)
-
-            if new_test_status_qr_code:
-                if not self.test_class:
-                    self.logger.warning(
-                        "Test status QR code is detected before identifying the test. "
-                        "observations won't be made, stop process if you want."
-                    )
-                self._process_test_status_qr_code(new_test_status_qr_code)
-
             capture_frame_num += 1
+
+            detected_qr_codes = self.analysis_frame(
+                camera_frame_number, image, qr_code_areas
+            )
+            capture_frame_num = self.process_detected_qr_codes(
+                detected_qr_codes, vid_cap, capture_frame_num
+            )
 
         return capture_frame_num

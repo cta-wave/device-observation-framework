@@ -496,7 +496,6 @@ class EverySampleRendered(Observation):
         check for any frames within gap_from_frame to gap_to_frame are not rendered
         """
         mid_frame_result = False
-        message = ""
         start_index = 0
         end_index = 0
 
@@ -504,7 +503,7 @@ class EverySampleRendered(Observation):
         gap_to_frame = parameters_dict["gap_from_and_to_frames"][1]
 
         if gap_to_frame < gap_from_frame:
-            message += (
+            self.result["message"] += (
                 "Test configuration error: frame at the beginning of gap "
                 "cannot be smaller than the ending of gap."
             )
@@ -564,13 +563,13 @@ class EverySampleRendered(Observation):
                     > stall_tolerance_frame
                 ):
                     mid_frame_result = False
-                    message += (
+                    self.result["message"] += (
                         f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number}"
                         f" exceeded 'stall_tolerance_margin'={stall_tolerance_frame} frames"
                         f" of expected frame {gap_from_frame}."
                     )
                 else:
-                    message += (
+                    self.result["message"] += (
                         f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number}"
                         f" is within the tolerance of 'stall_tolerance_margin'={stall_tolerance_frame}"
                         f" frames of expected frame {gap_from_frame}."
@@ -589,32 +588,32 @@ class EverySampleRendered(Observation):
                     > random_access_from_tolerance_frame
                 ):
                     mid_frame_result = False
-                    message += (
+                    self.result["message"] += (
                         f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number} exceeded"
                         f" 'random_access_from_tolerance':{random_access_from_tolerance_frame} frame"
                         f" of expected frame {gap_from_frame}."
                     )
                 else:
-                    message += (
+                    self.result["message"] += (
                         f" Last frame detected before gap {mezzanine_qr_codes[start_index - 1].frame_number} is within the tolerance of"
                         f" 'random_access_from_tolerance':{random_access_from_tolerance_frame} frame"
                         f" of expected frame {gap_from_frame}."
                     )
             else:
                 mid_frame_result = False
-                message += (
+                self.result["message"] += (
                     f" Last frame detected before gap {gap_from_frame} doesn't matches"
                     f" expected frame {mezzanine_qr_codes[start_index - 1].frame_number}."
                 )
 
         if mezzanine_qr_codes[start_index].frame_number != gap_to_frame:
             mid_frame_result = False
-            message += (
+            self.result["message"] += (
                 f" First frame detected after gap {gap_to_frame} doesn't matches"
                 f" expected frame {mezzanine_qr_codes[start_index].frame_number}."
             )
 
-        return mid_frame_result, message
+        return mid_frame_result
 
     def observe_truncated_mid_frame(
         self,
@@ -878,6 +877,110 @@ class EverySampleRendered(Observation):
         )
         return mid_frame_result
 
+    def _within_observation_window(
+        self, frame_number: int, observation_window: List[Tuple[int, int]]
+    ) -> bool:
+        """Check if the frame number is within the observation window."""
+        for window in observation_window:
+            if window[0] <= frame_number <= window[1]:
+                return True
+        return False
+
+    def observe_long_duration_playback_mid_frame(
+        self,
+        mezzanine_qr_codes: List[MezzanineDecodedQr],
+        observation_window: List[Tuple[int, int]],
+    ) -> bool:
+        """
+        observe long duration playback mid-frames
+        check that the samples shall be rendered in increasing order
+        """
+        check = True
+        mid_frame_num_tolerance = self.tolerances["mid_frame_num_tolerance"]
+        missing_frames = []
+        out_of_order_frames = []
+
+        self.result[
+            "message"
+        ] += f" Long duration playback observation window is {observation_window}."
+
+        # add tolerance to result message only once
+        if "Mid frame number tolerance" not in self.result["message"]:
+            self.result[
+                "message"
+            ] += f" Mid frame number tolerance is {mid_frame_num_tolerance}."
+
+        for i in range(1, len(mezzanine_qr_codes)):
+            if (
+                mezzanine_qr_codes[i - 1].frame_number + 1
+                != mezzanine_qr_codes[i].frame_number
+            ):
+                check = False
+                previous_frame = mezzanine_qr_codes[i - 1].frame_number
+                current_frame = mezzanine_qr_codes[i].frame_number
+
+                if (
+                    self.missing_frame_threshold == 0
+                    or self.missing_frame_count <= self.missing_frame_threshold
+                ):
+                    if previous_frame > current_frame:
+                        self.result[
+                            "message"
+                        ] += f" Frames out of order {previous_frame}, {current_frame}"
+                        out_of_order_frames.append(previous_frame)
+                        out_of_order_frames.append(current_frame)
+                    else:
+                        for frame in range(previous_frame, current_frame - 1):
+                            # check if the missing frame is within the observation window
+                            if self._within_observation_window(
+                                frame + 1, observation_window
+                            ):
+                                missing_frames.append(frame + 1)
+
+        for out_of_order_frame in out_of_order_frames:
+            if out_of_order_frame in missing_frames:
+                missing_frames.remove(out_of_order_frame)
+
+        self.mid_missing_frame_count += len(missing_frames)
+        if missing_frames and len(mezzanine_qr_codes) > 0:
+            missing_frame_duration = (
+                len(missing_frames) * 1000 / mezzanine_qr_codes[0].frame_rate
+            )
+            self.mid_missing_frame_duration[0] += missing_frame_duration
+        self.missing_frame_count += len(missing_frames)
+
+        if missing_frames:
+            self.result["message"] += " Following frames are missing:"
+            print_range = len(missing_frames)
+            if (
+                self.missing_frame_threshold != 0
+                and print_range > self.missing_frame_threshold
+            ):
+                print_range = self.missing_frame_threshold
+            for i in range(print_range):
+                self.result["message"] += f" {missing_frames[i]}"
+
+        if (
+            self.missing_frame_threshold != 0
+            and self.missing_frame_count > self.missing_frame_threshold
+        ):
+            # if the missing frame exceeded the threshold
+            # send error to the test runner, display error on the console and
+            # end the observation framework the following tests will not be observed.
+            self.result["message"] += (
+                f"... too many missing frames, reporting truncated. "
+                f"Total number of missing frames {self.missing_frame_count}. "
+                f"Device Observation Framework is exiting, "
+                f"and the following tests are not observed."
+            )
+            raise ObsFrameTerminate(self.result["message"])
+
+        # missing frame within the tolerance
+        if self.mid_missing_frame_count <= mid_frame_num_tolerance:
+            check = True
+
+        return check
+
     def make_observation(
         self,
         test_type,
@@ -923,39 +1026,59 @@ class EverySampleRendered(Observation):
             parameters_dict["last_frame_num"], mezzanine_qr_codes[-1]
         )
 
-        message = ""
-        if test_type == TestType.SWITCHING:
-            mid_frame_result = self.observe_switching_mid_frame(
+        def handle_switching():
+            return self.observe_switching_mid_frame(
                 mezzanine_qr_codes,
                 parameters_dict["playout"],
                 parameters_dict["video_fragment_duration_multi_reps"],
             )
-        elif test_type == TestType.SPLICING:
-            mid_frame_result = self.observe_splicing_mid_frame(
+
+        def handle_splicing():
+            return self.observe_splicing_mid_frame(
                 mezzanine_qr_codes,
                 parameters_dict["playout"],
                 parameters_dict["video_fragment_duration_multi_mpd"],
             )
-        elif test_type == TestType.GAPSINPLAYBACK:
-            mid_frame_result, message = self.observe_gap_in_playback_mid_frame(
+
+        def handle_gapsinplayback():
+            return self.observe_gap_in_playback_mid_frame(
                 mezzanine_qr_codes, parameters_dict
             )
-        elif test_type == TestType.TRUNCATED:
-            mid_frame_result = self.observe_truncated_mid_frame(
+
+        def handle_truncated():
+            return self.observe_truncated_mid_frame(
                 mezzanine_qr_codes,
                 parameters_dict["playout"],
                 parameters_dict["second_playout"],
                 parameters_dict["second_playout_switching_time"],
                 parameters_dict["video_fragment_duration_multi_mpd"],
             )
-        else:
-            # check that the samples shall be rendered in increasing order:
-            # for QRb to QRn: QR[i-1].mezzanine_frame_num + 1 == QR[i].mezzanine_frame_num
-            mid_frame_result = self._check_every_frame(mezzanine_qr_codes)
 
-        self.result["message"] += (
-            f" Total of missing frame count is {self.missing_frame_count}." f"{message}"
-        )
+        def handle_longdurationplayback():
+            if "observation_window" in parameters_dict:
+                return self.observe_long_duration_playback_mid_frame(
+                    mezzanine_qr_codes, parameters_dict["observation_window"]
+                )
+            else:
+                return self._check_every_frame(mezzanine_qr_codes)
+
+        def handle_default():
+            return self._check_every_frame(mezzanine_qr_codes)
+
+        test_type_handlers = {
+            TestType.SWITCHING: handle_switching,
+            TestType.SPLICING: handle_splicing,
+            TestType.GAPSINPLAYBACK: handle_gapsinplayback,
+            TestType.TRUNCATED: handle_truncated,
+            TestType.LONGDURATIONPLAYBACK: handle_longdurationplayback,
+        }
+        # Handler dispatch: maps test_type to its corresponding handler function.
+        # If test_type is not found, defaults to handle_default.
+        mid_frame_result = test_type_handlers.get(test_type, handle_default)()
+
+        self.result[
+            "message"
+        ] += f" Total of missing frame count is {self.missing_frame_count}."
 
         if first_frame_result and last_frame_result and mid_frame_result:
             self.result["status"] = "PASS"
