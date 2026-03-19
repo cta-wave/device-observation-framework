@@ -307,6 +307,8 @@ class SequentialTrackPlayback:
         ) = self._get_audio_segment_data(audio_content_ids)
 
         offset, audio_segments = decode_audio_segments(
+            self.__class__.__name__ == "LongDurationPlayback",
+            self.parameters_dict["audio_content_duration"],
             start_media_time,
             expected_audio_segment_data_list,
             audio_subject_data,

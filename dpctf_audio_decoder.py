@@ -27,6 +27,7 @@ Contributor: Resillion UK Limited
 import logging
 import math
 from typing import Tuple
+import numpy as np
 
 import matplotlib.pyplot as plt
 
@@ -68,6 +69,7 @@ def get_trim_from(
     sample_rate: int,
     audio_sample_length: int,
     global_configurations: GlobalConfigurations,
+    is_long_duration_playback: bool,
     exact: bool = False,
 ) -> int:
     """
@@ -89,6 +91,14 @@ def get_trim_from(
     alignment_count = 0
     check_count = global_configurations.get_audio_alignment_check_count()
 
+    if is_long_duration_playback:
+        long_duration_configs = global_configurations.get_long_duration_config()
+        starting_check_duration = long_duration_configs["starting_check_duration"]
+        end_index = min(len(subject_data), sample_rate * 1000 * starting_check_duration)
+        alignment_window = subject_data[:end_index]
+    else:
+        alignment_window = subject_data
+
     for count in range(0, check_count):
         alignment_count = 0
         # Checking if last 3 segments are aligned within the tolerance of segment duration.
@@ -102,8 +112,8 @@ def get_trim_from(
             segment_data_2_end = observation_period * (i + 2)
             segment_data_2 = segment_data[segment_data_2_start:segment_data_2_end]
 
-            offset1 = get_time_from_segment(subject_data, segment_data_1)
-            offset2 = get_time_from_segment(subject_data, segment_data_2)
+            offset1 = get_time_from_segment(alignment_window, segment_data_1)
+            offset2 = get_time_from_segment(alignment_window, segment_data_2)
 
             if i == count:
                 if exact:
@@ -139,6 +149,7 @@ def get_trim_to(
     sample_rate: int,
     audio_sample_length: int,
     global_configurations: GlobalConfigurations,
+    is_long_duration_playback: bool,
 ) -> int:
     """
     Accepts
@@ -157,6 +168,17 @@ def get_trim_to(
     tolerance = sample_rate * global_configurations.get_audio_alignment_tolerance()
     segment_len = len(segment_data)
 
+    start_index = 0
+    if is_long_duration_playback:
+        long_duration_configs = global_configurations.get_long_duration_config()
+        ending_check_duration = long_duration_configs["ending_check_duration"]
+        start_index = max(
+            len(subject_data) - int(sample_rate * 1000 * ending_check_duration), 0
+        )
+        alignment_window = subject_data[start_index:]
+    else:
+        alignment_window = subject_data
+
     alignment_count = 0
     check_count = global_configurations.get_audio_alignment_check_count() + 1
 
@@ -173,8 +195,12 @@ def get_trim_to(
             segment_data_2_end = segment_len - (observation_period * i)
             segment_data_2 = segment_data[segment_data_2_start:segment_data_2_end]
 
-            offset1 = get_time_from_segment(subject_data, segment_data_1)
-            offset2 = get_time_from_segment(subject_data, segment_data_2)
+            offset1 = (
+                get_time_from_segment(alignment_window, segment_data_1) + start_index
+            )
+            offset2 = (
+                get_time_from_segment(alignment_window, segment_data_2) + start_index
+            )
 
             if i == count:
                 offset = offset1 + observation_period * count
@@ -210,6 +236,7 @@ def trim_audio(
     audio_sample_length: int,
     global_configurations: GlobalConfigurations,
     observation_data_export_file: str,
+    is_long_duration_playback: bool,
 ) -> Tuple[list, int]:
     """
     Accepts
@@ -228,6 +255,7 @@ def trim_audio(
         sample_rate,
         audio_sample_length,
         global_configurations,
+        is_long_duration_playback,
     )
     trim_to = get_trim_to(
         subject_data,
@@ -235,6 +263,7 @@ def trim_audio(
         sample_rate,
         audio_sample_length,
         global_configurations,
+        is_long_duration_playback,
     )
     trimmed_data = subject_data[trim_from:trim_to].copy()
 
@@ -258,6 +287,8 @@ def trim_audio(
 
 
 def decode_audio_segments(
+    is_long_duration_playback: bool,
+    audio_content_duration: float,
     start_media_time: float,
     audio_segment_data_list: list,
     audio_subject_data: list,
@@ -267,7 +298,7 @@ def decode_audio_segments(
     observation_data_export_file: str,
 ) -> list:
     """Decode audio segment and return starting offset and audio segment data"""
-    audio_segments = []
+    audio_segments_list = []
     observation_period = sample_rate * audio_sample_length
     neighborhood = (
         sample_rate * global_configurations.get_audio_observation_neighborhood()
@@ -285,59 +316,138 @@ def decode_audio_segments(
             audio_sample_length,
             global_configurations,
             observation_data_export_file,
+            is_long_duration_playback,
         )
         if not first_offset:
             first_offset = offset
 
-        trimmed_data_len = len(trimmed_data)
-        duration = math.floor((len(audio_segment_data)) / sample_rate)
-        max_segments = math.floor(duration * sample_rate / observation_period)
-        # To speed things up, only check in the expected neighborhood of the segment
-        # (e.g., +/- 500mS).
-        for i in range(0, max_segments):
-            if trimmed_data_len < neighborhood:
-                # when too little data in recording raise exception
-                raise AudioAlignError(
-                    "Too little valid data in recording the recorded audio (subject_data)"
-                )
-            else:
-                neighbor_start = (i * observation_period) - (neighborhood // 2)
-                neighbor_end = (i * observation_period) + (neighborhood // 2)
-                if neighbor_start < 0:
-                    neighbor_start = 0
-                    neighbor_end = neighborhood
-                if neighbor_end > trimmed_data_len:
-                    neighbor_start = trimmed_data_len - neighborhood
-                    neighbor_end = trimmed_data_len
-
-                subject_data = trimmed_data[neighbor_start:neighbor_end]
-                if i == max_segments - 1:
-                    # if the last segment
-                    this_segment = audio_segment_data[(i * observation_period) :]
-                    segment_duration = len(this_segment) / sample_rate
-                    media_time = start_media_time + i * audio_sample_length
-                    start_media_time += segment_duration - audio_sample_length
-                else:
-                    this_segment = audio_segment_data[
-                        (i * observation_period) : ((i + 1) * observation_period)
-                    ]
-                    segment_duration = len(this_segment) / sample_rate
-                    media_time = start_media_time + i * audio_sample_length
-                segment_time = (
-                    get_time_from_segment(subject_data, this_segment) + neighbor_start
-                )
-                segment_time_in_ms = (segment_time + offset) / sample_rate
-
-            # content ID is index of splicing points starts from 0
-            audio_content_id = str(index)
-            audio_segment = AudioSegment(
-                audio_content_id,
-                segment_duration,
-                media_time,
-                segment_time_in_ms,
+        if is_long_duration_playback:
+            # For long duration playback, the audio segment data is repeated
+            # for the duration of the content
+            duration = math.floor((len(audio_segment_data)) / sample_rate)
+            audio_segment_data = np.tile(
+                audio_segment_data, int(audio_content_duration / duration)
             )
-            audio_segments.append(audio_segment)
-        index += 1
-        start_media_time = start_media_time + max_segments * audio_sample_length
 
-    return first_offset, audio_segments
+        audio_segments, start_media_time = get_audio_segments(
+            trimmed_data,
+            audio_segment_data,
+            sample_rate,
+            audio_sample_length,
+            audio_content_duration,
+            start_media_time,
+            offset,
+            index,
+            observation_period,
+            neighborhood,
+            (
+                global_configurations.get_long_duration_config()
+                if is_long_duration_playback
+                else None
+            ),
+        )
+        audio_segments_list.extend(audio_segments)
+        index += 1
+
+    return first_offset, audio_segments_list
+
+
+def outside_observation_window(
+    long_duration_configs: dict, segment_time_ms: int, audio_content_duration: float
+) -> bool:
+    """For long duration test only observe segments within the observation window.
+    Return True if segment_time_ms is outside the observation window"""
+    interval_ms = long_duration_configs["check_interval_seconds"] * 1000
+    start_window_ms = long_duration_configs["starting_check_duration"] * 1000
+    mid_window_ms = long_duration_configs["mid_check_duration"] * 1000
+    end_window_ms = long_duration_configs["ending_check_duration"] * 1000
+
+    if segment_time_ms <= start_window_ms:
+        return False
+    if segment_time_ms >= audio_content_duration - end_window_ms:
+        return False
+    interval_number = segment_time_ms // interval_ms
+    mid_window_start = interval_number * interval_ms
+    mid_window_end = mid_window_start + mid_window_ms
+    if mid_window_start <= segment_time_ms < mid_window_end:
+        return False
+    return True
+
+
+def get_audio_segments(
+    trimmed_data: list,
+    audio_segment_data: list,
+    sample_rate: int,
+    audio_sample_length: int,
+    audio_content_duration: float,
+    start_media_time: float,
+    offset: int,
+    index: int,
+    observation_period: int,
+    neighborhood: int,
+    long_duration_configs: dict = None,
+) -> Tuple[list, float]:
+    """Get audio segments from trimmed data and audio segment data.
+    Only check in the expected neighborhood of the segment (e.g., +/- 500mS)
+    For long duration playback, skip segments outside the observation window.
+    """
+    audio_segments = []
+    trimmed_data_len = len(trimmed_data)
+    duration = math.floor((len(audio_segment_data)) / sample_rate)
+    max_segments = math.floor(duration * sample_rate / observation_period)
+
+    for i in range(0, max_segments):
+        if trimmed_data_len < neighborhood:
+            # when too little data in recording raise exception
+            raise AudioAlignError(
+                "Too little valid data in recording the recorded audio (subject_data)"
+            )
+
+        if long_duration_configs and outside_observation_window(
+            long_duration_configs, i * audio_sample_length, audio_content_duration
+        ):
+            continue
+
+        neighbor_start = (i * observation_period) - (neighborhood // 2)
+        neighbor_end = (i * observation_period) + (neighborhood // 2)
+        if neighbor_start < 0:
+            neighbor_start = 0
+            neighbor_end = neighborhood
+        if neighbor_end > trimmed_data_len:
+            neighbor_start = trimmed_data_len - neighborhood
+            neighbor_end = trimmed_data_len
+
+        subject_data = trimmed_data[neighbor_start:neighbor_end]
+        if i == max_segments - 1:
+            # if the last segment
+            this_segment = audio_segment_data[(i * observation_period) :]
+            segment_duration = len(this_segment) / sample_rate
+            media_time = start_media_time + i * audio_sample_length
+            start_media_time += segment_duration - audio_sample_length
+        else:
+            this_segment = audio_segment_data[
+                (i * observation_period) : ((i + 1) * observation_period)
+            ]
+            segment_duration = len(this_segment) / sample_rate
+            media_time = start_media_time + i * audio_sample_length
+        segment_time = (
+            get_time_from_segment(subject_data, this_segment) + neighbor_start
+        )
+        segment_time_in_ms = (segment_time + offset) / sample_rate
+
+        if i % 1500 == 0:
+            print(f"Processed to audio segment {i}...")
+
+        # content ID is index of splicing points starts from 0
+        audio_content_id = str(index)
+        audio_segment = AudioSegment(
+            audio_content_id,
+            segment_duration,
+            media_time,
+            segment_time_in_ms,
+        )
+        audio_segments.append(audio_segment)
+
+    start_media_time = start_media_time + max_segments * audio_sample_length
+
+    return audio_segments, start_media_time

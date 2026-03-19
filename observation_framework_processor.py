@@ -396,6 +396,74 @@ class ObservationFrameworkProcessor:
                 self.test_class, LongDurationPlayback
             )
 
+    def _read_audio_data_from_single_file(
+        self,
+        current_audio_path_str: str,
+        time_current_recording_starts: float,
+        play_found: bool,
+        play_ct: float,
+    ) -> list:
+        if play_found:
+            test_start_time = play_ct - time_current_recording_starts
+        else:
+            test_start_time = (
+                self.pre_test_qr_code.last_camera_frame_num
+                * self.camera_frame_duration_ms
+                - time_current_recording_starts
+            )
+        test_finish_time = (
+            self.last_end_of_test_camera_frame_num * self.camera_frame_duration_ms
+            - time_current_recording_starts
+        ) + TEST_FINISH_DELAY
+        audio_subject_data = read_audio_recording(
+            current_audio_path_str, test_start_time, test_finish_time
+        )
+        return audio_subject_data
+
+    def _read_audio_data_from_multiple_files(
+        self,
+        current_audio_path_str: str,
+        time_current_recording_starts: float,
+        play_found: bool,
+        play_ct: float,
+    ) -> list:
+        audio_subject_data = []
+        pre_test_time_ms = (
+            self.pre_test_qr_code.last_camera_frame_num * self.camera_frame_duration_ms
+        )
+
+        mid_audio_path_str_list = []
+        for audio_path, start_frame_index in reversed(self.input_audio_path_list[:-1]):
+            audio_start_time = start_frame_index * self.camera_frame_duration_ms
+            if audio_start_time <= pre_test_time_ms:
+                beginning_audio_path_str = audio_path
+                break
+            else:
+                mid_audio_path_str_list.append(audio_path)
+
+        # read 1st audio file for the test
+        if play_found:
+            test_start_time = play_ct - audio_start_time
+        else:
+            test_start_time = pre_test_time_ms - audio_start_time
+        audio_subject_data.extend(
+            read_audio_recording(beginning_audio_path_str, test_start_time, None)
+        )
+
+        # read middle audio files for the test
+        for audio_path in reversed(mid_audio_path_str_list):
+            audio_subject_data.extend(read_audio_recording(audio_path, 0, None))
+
+        # read last audio files for the test
+        test_finish_time = (
+            self.last_end_of_test_camera_frame_num * self.camera_frame_duration_ms
+            - time_current_recording_starts
+        ) + TEST_FINISH_DELAY
+        audio_subject_data.extend(
+            read_audio_recording(current_audio_path_str, 0, test_finish_time)
+        )
+        return audio_subject_data
+
     def process_audio_data(self, content_type: str) -> Tuple[float, list]:
         """Process audio data for audio observation
         returns audio_test_start_time and audio_subject_data"""
@@ -410,7 +478,7 @@ class ObservationFrameworkProcessor:
             )
 
             # Get time when test status = play
-            event_found, event_ct = Observation.find_event(
+            play_found, play_ct = Observation.find_event(
                 "play", self.test_status_qr_codes, self.camera_frame_duration_ms
             )
 
@@ -420,52 +488,25 @@ class ObservationFrameworkProcessor:
                 * self.camera_frame_duration_ms
             ):
                 # audio data can be read from single file
-                if event_found:
-                    test_start_time = event_ct - time_current_recording_starts
-                else:
-                    test_start_time = (
-                        self.pre_test_qr_code.last_camera_frame_num
-                        * self.camera_frame_duration_ms
-                        - time_current_recording_starts
-                    )
-                test_finish_time = (
-                    self.last_end_of_test_camera_frame_num
-                    * self.camera_frame_duration_ms
-                    - time_current_recording_starts
-                ) + TEST_FINISH_DELAY
-                audio_subject_data = read_audio_recording(
-                    current_audio_path_str, test_start_time, test_finish_time
+                audio_subject_data = self._read_audio_data_from_single_file(
+                    current_audio_path_str,
+                    time_current_recording_starts,
+                    play_found,
+                    play_ct,
                 )
             else:
-                # audio data separated into two files
-                previous_audio_path_str = self.input_audio_path_list[-2][0]
-                time_previous_recording_starts = (
-                    self.input_audio_path_list[-2][1] * self.camera_frame_duration_ms
-                )
-                if event_found:
-                    test_start_time = event_ct - time_previous_recording_starts
-                else:
-                    test_start_time = (
-                        self.pre_test_qr_code.last_camera_frame_num
-                        * self.camera_frame_duration_ms
-                        - time_previous_recording_starts
-                    )
-                audio_subject_data = read_audio_recording(
-                    previous_audio_path_str, test_start_time, None
-                )
-                test_finish_time = (
-                    self.last_end_of_test_camera_frame_num
-                    * self.camera_frame_duration_ms
-                    - time_current_recording_starts
-                ) + TEST_FINISH_DELAY
-                audio_subject_data.extend(
-                    read_audio_recording(current_audio_path_str, 0, test_finish_time)
+                # audio data separated into multiple files
+                audio_subject_data = self._read_audio_data_from_multiple_files(
+                    current_audio_path_str,
+                    time_current_recording_starts,
+                    play_found,
+                    play_ct,
                 )
 
             # audio recording time is relative time to audio_test_start_time
             # and also adjust audio and video sync on camera
-            if event_found:
-                audio_test_start_time = event_ct
+            if play_found:
+                audio_test_start_time = play_ct
             else:
                 audio_test_start_time = (
                     self.pre_test_qr_code.last_camera_frame_num

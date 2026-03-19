@@ -25,7 +25,6 @@ Contributor: Resillion UK Limited
 import dataclasses
 
 from .regular_playback_of_a_cmaf_presentation import RegularPlaybackOfACmafPresentation
-from .test import TestContentType
 from .test import TestType
 
 
@@ -40,11 +39,6 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
     def _set_test_type(self) -> None:
         """set test type"""
         self.test_type = TestType.LONGDURATIONPLAYBACK
-
-    # this function to be removed when we have audio stream for the test
-    def _set_test_content_type(self) -> None:
-        """set test type SINGLE|COMBINED"""
-        self.test_content_type = TestContentType.SINGLE
 
     # audio test to be uncommented when we have audio stream for the test
     def _init_observations(self) -> None:
@@ -90,7 +84,10 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
 
 @dataclasses.dataclass
 class LongDurationPlaybackData:
-    """Data class to hold long duration playback test related data and flags for optimized QR code detection during the test"""
+    """
+    Data class to hold long duration playback test related data and
+    flags for optimized QR code detection during the test
+    """
 
     def __init__(self):
         self.is_reduced_detection = False
