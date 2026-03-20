@@ -296,7 +296,7 @@ def decode_audio_segments(
     audio_sample_length: int,
     global_configurations: GlobalConfigurations,
     observation_data_export_file: str,
-) -> list:
+) -> Tuple[int, list]:
     """Decode audio segment and return starting offset and audio segment data"""
     audio_segments_list = []
     observation_period = sample_rate * audio_sample_length
