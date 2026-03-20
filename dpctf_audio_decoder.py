@@ -318,7 +318,7 @@ def decode_audio_segments(
             observation_data_export_file,
             is_long_duration_playback,
         )
-        if not first_offset:
+        if first_offset is None:
             first_offset = offset
 
         if is_long_duration_playback:

@@ -25,7 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from global_configurations import GlobalConfigurations
 from configuration_parser import PlayoutParser
@@ -118,7 +118,7 @@ class SampleMatchesCurrentTime(Observation):
         allowed_tolerance: float,
         ct_frame_tolerance: int,
         max_tolerance: int,
-    ) -> Tuple[bool, float]:
+    ) -> Tuple[Optional[bool], float]:
         """Applies the logic:
         for first_possible_camera_frame_num_of_target to last_possible_camera_frame_num_of_target
             foreach mezzanine_qr_code on camera_frame
@@ -135,7 +135,7 @@ class SampleMatchesCurrentTime(Observation):
             max_tolerance (int): Maximum tolerance as specified in test-config.json.
 
         Returns:
-            (bool, float): True if time difference passed, Actual time difference detected.
+            Tuple[Optional[bool], float]: True if time difference passed, Actual time difference detected.
         """
         result = False
         time_diff = sys.float_info.max
@@ -218,9 +218,9 @@ class SampleMatchesCurrentTime(Observation):
             # Exceeding allowed consecutive-fail threshold
             if consecutive_none_before >= max_consecutive_fails:
                 results_list[i]["final_result"] = False
-                results_list[i]["reason"] = (
-                    f"Exceeded max_consecutive_fails ({max_consecutive_fails})"
-                )
+                results_list[i][
+                    "reason"
+                ] = f"Exceeded max_consecutive_fails ({max_consecutive_fails})"
                 final_failure_count += 1
                 continue
 
@@ -231,9 +231,9 @@ class SampleMatchesCurrentTime(Observation):
                     true_count_before += 1
                     if true_count_before >= adjacent_pass_count:
                         results_list[i]["final_result"] = True
-                        results_list[i]["reason"] = (
-                            f"Found {adjacent_pass_count} adjacent passes before"
-                        )
+                        results_list[i][
+                            "reason"
+                        ] = f"Found {adjacent_pass_count} adjacent passes before"
                         break
                 elif results_list[j]["result"] is None:
                     continue
@@ -251,9 +251,9 @@ class SampleMatchesCurrentTime(Observation):
                     true_count_after += 1
                     if true_count_after >= adjacent_pass_count:
                         results_list[i]["final_result"] = True
-                        results_list[i]["reason"] = (
-                            f"Found {adjacent_pass_count} adjacent passes after"
-                        )
+                        results_list[i][
+                            "reason"
+                        ] = f"Found {adjacent_pass_count} adjacent passes after"
                         break
                 elif results_list[j]["result"] is None:
                     continue
@@ -263,9 +263,7 @@ class SampleMatchesCurrentTime(Observation):
             # ---------- Default Fail if nothing matches ----------
             if results_list[i]["final_result"] is None:
                 results_list[i]["final_result"] = False
-                results_list[i]["reason"] = (
-                    "No adjacent passes found before or after"
-                )
+                results_list[i]["reason"] = "No adjacent passes found before or after"
                 final_failure_count += 1
 
         return final_failure_count, results_list
@@ -410,13 +408,15 @@ class SampleMatchesCurrentTime(Observation):
                     time_differences.append(
                         (current_status.current_time * 1000, time_diff)
                     )
-                    results_list.append({
-                        "result": result,
-                        "time_diff": time_diff,
-                        "current_time": current_status.current_time,
-                        "final_result": None,
-                        "reason": None
-                    })
+                    results_list.append(
+                        {
+                            "result": result,
+                            "time_diff": time_diff,
+                            "current_time": current_status.current_time,
+                            "final_result": None,
+                            "reason": None,
+                        }
+                    )
 
         # Process results_list to resolve None values based on adjacent passes
         final_failure_count, results_list = self._resolve_results_and_get_final_count(
@@ -465,7 +465,7 @@ class SampleMatchesCurrentTime(Observation):
                     item["time_diff"],
                     item["result"],
                     item["final_result"],
-                    item["reason"]
+                    item["reason"],
                 )
                 for item in results_list
             ]

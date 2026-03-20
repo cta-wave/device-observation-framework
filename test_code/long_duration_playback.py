@@ -23,6 +23,7 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import dataclasses
+from typing import Optional
 
 from .regular_playback_of_a_cmaf_presentation import RegularPlaybackOfACmafPresentation
 from .test import TestType
@@ -33,8 +34,10 @@ class LongDurationPlayback(RegularPlaybackOfACmafPresentation):
     Derived from RegularPlaybackOfACmafPresentation test code.
     """
 
-    # holds the start frame number for the current observation window
-    _current_start: int = None
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # holds the start frame number for the current observation window
+        self._current_start: Optional[int] = None
 
     def _set_test_type(self) -> None:
         """set test type"""
@@ -89,14 +92,13 @@ class LongDurationPlaybackData:
     flags for optimized QR code detection during the test
     """
 
-    def __init__(self):
-        self.is_reduced_detection = False
-        """Flag indicating if reduced QR detection interval is active"""
-        self.is_initial_detection = True
-        """LD test starting check flag to handle starting check duration"""
-        self.is_last_detection = False
-        """LD test last check flag to handle ending check duration"""
-        self.ld_last_qr_detection_start_at = 0
-        """Starting frame number where last QR detection was performed for LD test"""
-        self.ready_for_next_interval = True
-        """Flag indicating if new QR detection interval is to be set for LD test"""
+    is_reduced_detection: bool = False
+    """Flag indicating if reduced QR detection interval is active"""
+    is_initial_detection: bool = True
+    """LD test starting check flag to handle starting check duration"""
+    is_last_detection: bool = False
+    """LD test last check flag to handle ending check duration"""
+    ld_last_qr_detection_start_at: int = 0
+    """Starting frame number where last QR detection was performed for LD test"""
+    ready_for_next_interval: bool = True
+    """Flag indicating if new QR detection interval is to be set for LD test"""
