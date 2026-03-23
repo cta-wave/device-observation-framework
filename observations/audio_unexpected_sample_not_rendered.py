@@ -69,7 +69,8 @@ class AudioUnexpectedSampleNotRendered(Observation):
             sample_rate,
             parameters["audio_sample_length"],
             self.global_configurations,
-            True,
+            is_long_duration_playback=False,
+            exact=True,
         )
         pre_segment_data = subject_data[0:trim_to].copy()
         duration = math.floor((len(unexpected_segment)) / sample_rate)

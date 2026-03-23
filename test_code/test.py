@@ -26,13 +26,15 @@ from enum import Enum
 
 
 class TestType(Enum):
-    """TestType Enum
+    """TestType Enum:
     SEQUENTIAL: general playback test with contents played back from starting point to the end.
     SWITCHING: switching test that contents switches between representations.
     SPLICING: splicing test which is concatenates different content at any point during the playback.
     GAPSINPLAYBACK: playback test which contents played back with some gaps between start to end.
     WAITINGINPLAYBACK: playback test which contents waiting time in playback but no gaps in frames.
         The original content may then be returned to (such as an advert insertion test).
+    TRUNCATED: playback test with truncated content.
+    LONGDURATIONPLAYBACK: playback test with long duration content.
     """
 
     SEQUENTIAL = 1
@@ -41,6 +43,7 @@ class TestType(Enum):
     GAPSINPLAYBACK = 4
     WAITINGINPLAYBACK = 5
     TRUNCATED = 6
+    LONGDURATIONPLAYBACK = 7
 
 
 class TestContentType(Enum):

@@ -51,6 +51,9 @@ class SwitchingSetPlayback(SequentialTrackPlayback):
             "audio_sample_length",
             "audio_tolerance",
             "audio_sample_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
         if "audio" in self.content_type:
             # maybe skip the playout for audio

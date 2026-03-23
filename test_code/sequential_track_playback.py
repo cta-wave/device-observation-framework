@@ -170,6 +170,9 @@ class SequentialTrackPlayback:
             "audio_sample_length",
             "audio_tolerance",
             "audio_sample_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _load_parameters_dict(
@@ -228,7 +231,7 @@ class SequentialTrackPlayback:
         """return first frame number"""
         return 1
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number"""
         half_frame_duration = (1000 / frame_rate) / 2
         return math.floor(
@@ -304,6 +307,8 @@ class SequentialTrackPlayback:
         ) = self._get_audio_segment_data(audio_content_ids)
 
         offset, audio_segments = decode_audio_segments(
+            self.__class__.__name__ == "LongDurationPlayback",
+            self.parameters_dict["audio_content_duration"],
             start_media_time,
             expected_audio_segment_data_list,
             audio_subject_data,
@@ -355,7 +360,7 @@ class SequentialTrackPlayback:
                 self.parameters_dict["first_frame_num"] = self._get_first_frame_num(
                     frame_rate
                 )
-                self.parameters_dict["last_frame_num"] = self._get_last_frame_num(
+                self.parameters_dict["last_frame_num"] = self.get_last_frame_num(
                     frame_rate
                 )
                 self.parameters_dict["gap_from_and_to_frames"] = (

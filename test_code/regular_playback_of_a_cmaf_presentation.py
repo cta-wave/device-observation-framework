@@ -62,6 +62,9 @@ class RegularPlaybackOfACmafPresentation(SequentialTrackPlayback):
             "audio_tolerance",
             "audio_sample_tolerance",
             "av_sync_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _set_test_content_type(self) -> None:

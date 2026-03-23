@@ -49,6 +49,9 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
             "playout",
             "second_playout",
             "second_playout_switching_time",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _init_observations(self) -> None:
@@ -60,7 +63,7 @@ class TruncatedPlaybackAndRestart(SequentialTrackPlayback):
             ("sample_matches_current_time", "SampleMatchesCurrentTime"),
         ]
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """

@@ -49,6 +49,9 @@ class LowLatencyPlaybackOverGaps(
             "gap_duration",
             "playback_mode",
             "stall_tolerance_margin",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
     def _get_gap_from_and_to_frames(self, frame_rate: Fraction) -> list:

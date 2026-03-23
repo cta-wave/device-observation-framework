@@ -48,9 +48,12 @@ class SourceBufferReInitializationWithoutChangetype(MseAppendWindow):
             "duration_tolerance",
             "duration_frame_tolerance",
             "playout",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """

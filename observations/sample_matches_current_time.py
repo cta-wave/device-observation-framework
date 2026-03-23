@@ -25,7 +25,7 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from global_configurations import GlobalConfigurations
 from configuration_parser import PlayoutParser
@@ -117,7 +117,8 @@ class SampleMatchesCurrentTime(Observation):
         last_possible: float,
         allowed_tolerance: float,
         ct_frame_tolerance: int,
-    ) -> Tuple[bool, float]:
+        max_tolerance: int,
+    ) -> Tuple[Optional[bool], float]:
         """Applies the logic:
         for first_possible_camera_frame_num_of_target to last_possible_camera_frame_num_of_target
             foreach mezzanine_qr_code on camera_frame
@@ -131,9 +132,10 @@ class SampleMatchesCurrentTime(Observation):
             last_possible (float): Last point (as fractional camera frame number) that could contain currentTime.
             allowed_tolerance (float): Test-specific tolerance as specified in test-config.json.
             ct_frame_tolerance(int): OF tolerance of frame number configured test-config.json.
+            max_tolerance (int): Maximum tolerance as specified in test-config.json.
 
         Returns:
-            (bool, float): True if time difference passed, Actual time difference detected.
+            Tuple[Optional[bool], float]: True if time difference passed, Actual time difference detected.
         """
         result = False
         time_diff = sys.float_info.max
@@ -162,7 +164,109 @@ class SampleMatchesCurrentTime(Observation):
                     result = True
                     break
 
+        # Return None if time difference is within max_tolerance.
+        # This is used to tolerate a small number of failures if they fall within
+        # max_tolerance threshold. These None results will be resolved later based on
+        # adjacent pass counts and max_consecutive_fails configuration.
+        if not result:
+            if time_diff <= max_tolerance + ct_frame_tolerance * 1000 / frame_rate:
+                result = None
+
         return result, time_diff
+
+    def _resolve_results_and_get_final_count(
+        self,
+        results_list: list,
+        adjacent_pass_count: int,
+        max_consecutive_fails: int,
+    ) -> Tuple[int, List[dict]]:
+        """Process results_list to resolve None values based on adjacent passes.
+        For direct pass/fail results, final_result is set to the result value.
+        For None results, resolve based on adjacent passes or consecutive fails.
+
+        Args:
+            results_list (list): List of result dictionaries to process.
+            adjacent_pass_count (int): Count of required Adjacent Passes.
+            max_consecutive_fails (int): Count of max Consecutive Fails.
+
+        Returns:
+            (int, List[dict]): Total count of final failures and the updated results_list.
+        """
+        final_failure_count = 0
+
+        for i in range(len(results_list)):
+            result = results_list[i]["result"]
+
+            # ---------- CASE 1: Normal boolean result ----------
+            if result is True or result is False:
+                results_list[i]["final_result"] = result
+                results_list[i]["reason"] = ""
+                if result is False:
+                    results_list[i]["reason"] = "Exceeded max_tolerance"
+                    final_failure_count += 1
+                continue
+
+            # ---------- CASE 2: result is None/deferred ----------
+            # Count consecutive Nones BEFORE
+            consecutive_none_before = 0
+            for j in range(i - 1, -1, -1):
+                if results_list[j]["result"] is None:
+                    consecutive_none_before += 1
+                else:
+                    break
+
+            # Exceeding allowed consecutive-fail threshold
+            if consecutive_none_before >= max_consecutive_fails:
+                results_list[i]["final_result"] = False
+                results_list[i][
+                    "reason"
+                ] = f"Exceeded max_consecutive_fails ({max_consecutive_fails})"
+                final_failure_count += 1
+                continue
+
+            # ---------- Check adjacent True BEFORE ----------
+            true_count_before = 0
+            for j in range(i - 1, -1, -1):
+                if results_list[j]["result"] is True:
+                    true_count_before += 1
+                    if true_count_before >= adjacent_pass_count:
+                        results_list[i]["final_result"] = True
+                        results_list[i][
+                            "reason"
+                        ] = f"Found {adjacent_pass_count} adjacent passes before"
+                        break
+                elif results_list[j]["result"] is None:
+                    continue
+                else:
+                    break
+
+            # Has satisfactory adjacent passes before, skip further checks
+            if results_list[i]["final_result"] is True:
+                continue
+
+            # ---------- Check adjacent True AFTER ----------
+            true_count_after = 0
+            for j in range(i + 1, len(results_list)):
+                if results_list[j]["result"] is True:
+                    true_count_after += 1
+                    if true_count_after >= adjacent_pass_count:
+                        results_list[i]["final_result"] = True
+                        results_list[i][
+                            "reason"
+                        ] = f"Found {adjacent_pass_count} adjacent passes after"
+                        break
+                elif results_list[j]["result"] is None:
+                    continue
+                else:
+                    break
+
+            # ---------- Default Fail if nothing matches ----------
+            if results_list[i]["final_result"] is None:
+                results_list[i]["final_result"] = False
+                results_list[i]["reason"] = "No adjacent passes found before or after"
+                final_failure_count += 1
+
+        return final_failure_count, results_list
 
     def make_observation(
         self,
@@ -202,6 +306,9 @@ class SampleMatchesCurrentTime(Observation):
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         allowed_tolerance = parameters_dict["tolerance"]
         ct_frame_tolerance = parameters_dict["frame_tolerance"]
+        max_tolerance = parameters_dict["max_tolerance"]
+        adjacent_pass_count = parameters_dict["adjacent_pass_count"]
+        max_consecutive_fails = parameters_dict["max_consecutive_fails"]
         failure_report_count = 0
 
         # for splicing test adjust media time in mezzanine_qr_codes
@@ -257,6 +364,7 @@ class SampleMatchesCurrentTime(Observation):
                     mezzanine_qr_codes[i].media_time += period_list[period_index - 1]
 
         time_differences = []
+        results_list = []
 
         first_current_time = None
         for i in range(0, len(test_status_qr_codes)):
@@ -290,6 +398,7 @@ class SampleMatchesCurrentTime(Observation):
                         last_possible,
                         allowed_tolerance,
                         ct_frame_tolerance,
+                        max_tolerance,
                     )
                     if time_diff == sys.float_info.max:
                         # when no rendered frame found for the current time report
@@ -299,41 +408,71 @@ class SampleMatchesCurrentTime(Observation):
                     time_differences.append(
                         (current_status.current_time * 1000, time_diff)
                     )
+                    results_list.append(
+                        {
+                            "result": result,
+                            "time_diff": time_diff,
+                            "current_time": current_status.current_time,
+                            "final_result": None,
+                            "reason": None,
+                        }
+                    )
 
-                    if not result:
-                        self.result["status"] = "FAIL"
-                        if failure_report_count == 0:
-                            self.result["message"] += (
-                                " Time difference between Test Runner reported media currentTime and actual media "
-                                "time exceeded tolerance for following events:"
-                            )
+        # Process results_list to resolve None values based on adjacent passes
+        final_failure_count, results_list = self._resolve_results_and_get_final_count(
+            results_list, adjacent_pass_count, max_consecutive_fails
+        )
 
-                        if failure_report_count < REPORT_NUM_OF_FAILURE:
-                            self.result[
-                                "message"
-                            ] += f" currentTime={current_status.current_time} time_diff={round(time_diff, 4)}; "
+        # Reset status and message for final evaluation
+        self.result["status"] = "PASS"
+        self.result["message"] = ""
 
-                        failure_report_count += 1
+        # Check if all final results are PASS
+        if final_failure_count > 0:
+            self.result["status"] = "FAIL"
+            self.result["message"] += (
+                " Time difference between Test Runner reported currentTime and actual media "
+                "time exceeded allowed tolerances for following events:"
+            )
+            failure_report_count = 0
+            for item in results_list:
+                if item["final_result"] is False:
+                    if failure_report_count < REPORT_NUM_OF_FAILURE:
+                        self.result["message"] += (
+                            f" currentTime={item['current_time']} time_diff={round(item['time_diff'], 4)}ms "
+                            f"reason={item['reason']};"
+                        )
+                    failure_report_count += 1
 
-        if failure_report_count >= REPORT_NUM_OF_FAILURE:
-            self.result["message"] += "...too many failures, reporting truncated."
+            if final_failure_count >= REPORT_NUM_OF_FAILURE:
+                self.result["message"] += "...too many failures, reporting truncated."
 
-        self.result["message"] += f" Total failure count is {failure_report_count}."
-        self.result[
-            "message"
-        ] += f" Tolerances: +/-({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms.)"
-
-        if self.result["status"] != "FAIL":
-            self.result["status"] = "PASS"
+        self.result["message"] += (
+            f" Total failures: {final_failure_count}. "
+            f"Allowed tolerance: +/-({ct_frame_tolerance} frame(s) + {allowed_tolerance}ms). "
+            f"Maximum tolerance: {max_tolerance}ms. "
+            f"Adjacent pass count: {adjacent_pass_count}. "
+            f"Max consecutive fails allowed: {max_consecutive_fails}."
+        )
 
         self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
 
-        # Exporting time diff data to a CSV file
-        if observation_data_export_file and time_differences:
+        # Exporting time diff data to a CSV file with additional columns
+        if observation_data_export_file and results_list:
+            export_data = [
+                (
+                    item["current_time"],
+                    item["time_diff"],
+                    item["result"],
+                    item["final_result"],
+                    item["reason"],
+                )
+                for item in results_list
+            ]
             write_data_to_csv_file(
                 observation_data_export_file + "video_ct_diff.csv",
-                ["Current Time", "Time Difference"],
-                time_differences,
+                ["Current Time", "Time Difference", "result", "final_result", "reason"],
+                export_data,
             )
 
         return self.result, [], []

@@ -48,7 +48,7 @@ class GlobalConfigurations:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read("config.ini", "UTF-8")
-        # Initialize the logger with the label 'event'. 
+        # Initialize the logger with the label 'event'.
         # When the session is unknown, log the information to the 'event.log' file.
         self.logger = logging.getLogger("event")
         self.ignore = ""
@@ -303,6 +303,31 @@ class GlobalConfigurations:
         except KeyError:
             enable_cropped_scan_for_pre_test_qr = False
         return enable_cropped_scan_for_pre_test_qr
+
+    def get_long_duration_config(self) -> Dict[str, int]:
+        """Get tolerances"""
+        long_duration = {
+            "starting_check_duration": 30,
+            "mid_check_duration": 30,
+            "ending_check_duration": 30,
+            "check_interval_seconds": 600,
+        }
+        try:
+            long_duration["starting_check_duration"] = int(
+                self.config["LONGDURATION"]["starting_check_duration"]
+            )
+            long_duration["mid_check_duration"] = int(
+                self.config["LONGDURATION"]["mid_check_duration"]
+            )
+            long_duration["ending_check_duration"] = int(
+                self.config["LONGDURATION"]["ending_check_duration"]
+            )
+            long_duration["check_interval_seconds"] = int(
+                self.config["LONGDURATION"]["check_interval_seconds"]
+            )
+        except KeyError:
+            pass
+        return long_duration
 
     def get_tolerances(self) -> Dict[str, int]:
         """Get tolerances"""

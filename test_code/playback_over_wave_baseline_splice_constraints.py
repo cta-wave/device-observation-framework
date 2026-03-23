@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""DPCTF device observation test code 
+"""DPCTF device observation test code
 playback_over_wave_baseline_splice_constraints
 
 test playback_over_wave_baseline_splice_constraints
@@ -59,9 +59,12 @@ class PlaybackOverWaveBaselineSpliceConstraints(SequentialTrackPlayback):
             "audio_sample_length",
             "audio_tolerance",
             "audio_sample_tolerance",
+            "max_tolerance",
+            "max_consecutive_fails",
+            "adjacent_pass_count",
         ]
 
-    def _get_last_frame_num(self, frame_rate: Fraction) -> int:
+    def get_last_frame_num(self, frame_rate: Fraction) -> int:
         """return last frame number
         this is calculated based on last track duration
         """
