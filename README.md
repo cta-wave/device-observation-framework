@@ -166,18 +166,3 @@ No audio switching for tests 8.8, 8.9, 8.13, 8.14 and 9.4
 ## Adding Support for New Tests to the Observation Framework
 Documentation for Adding Support for New Tests to the Observation Framework can be found [here](https://github.com/cta-wave/device-observation-framework/wiki/Adding-Support-for-New-Tests-to-the-Observation-Framework).
 
-## Release Notes for Release v2.1.0
-Resolved following GitHub issues:
-https://github.com/cta-wave/device-observation-framework/issues/134
-https://github.com/cta-wave/device-observation-framework/issues/129
-https://github.com/cta-wave/device-observation-framework/issues/123
-https://github.com/cta-wave/device-observation-framework/issues/106
-https://github.com/cta-wave/device-observation-framework/issues/100
-https://github.com/cta-wave/device-observation-framework/issues/96
-https://github.com/cta-wave/device-observation-framework/issues/95
-https://github.com/cta-wave/device-observation-framework/issues/93
-https://github.com/cta-wave/device-observation-framework/issues/92
-https://github.com/cta-wave/device-observation-framework/issues/91
-https://github.com/cta-wave/device-observation-framework/issues/90
-https://github.com/cta-wave/device-observation-framework/issues/87
-https://github.com/cta-wave/device-observation-framework/issues/86
