@@ -48,6 +48,12 @@ class GlobalConfigurations:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read("config.ini", "UTF-8")
+        # read() is silent about a missing file, and the [GENERAL] setters run
+        # before the log manager exists, so without a section to write into they
+        # raise KeyError as an unhandled traceback. The getters already fall
+        # back to their defaults when a value is absent.
+        if not self.config.has_section("GENERAL"):
+            self.config.add_section("GENERAL")
         # Initialize the logger with the label 'event'.
         # When the session is unknown, log the information to the 'event.log' file.
         self.logger = logging.getLogger("event")
@@ -252,6 +258,34 @@ class GlobalConfigurations:
             duplicated_qr_check_count = 3
         return duplicated_qr_check_count
 
+    def set_qr_scan_thread_count(self, qr_scan_thread_count: str):
+        """Set qr_scan_thread_count, overrides the configuration file value"""
+        if qr_scan_thread_count:
+            try:
+                thread_count = int(qr_scan_thread_count)
+            except ValueError:
+                raise ValueError(
+                    "Input argument for qr_scan_thread_count must be an integer"
+                )
+            if thread_count < 0:
+                raise ValueError(
+                    "Input argument for qr_scan_thread_count must be a positive integer"
+                )
+            self.config["GENERAL"]["qr_scan_thread_count"] = str(thread_count)
+
+    def get_qr_scan_thread_count(self) -> int:
+        """Get qr_scan_thread_count
+        number of worker threads used for the QR code full scan
+        1 means the scan is done sequentially on the reading thread
+        """
+        try:
+            qr_scan_thread_count = int(self.config["GENERAL"]["qr_scan_thread_count"])
+        except KeyError:
+            qr_scan_thread_count = 8
+        # 0 is accepted in the configuration to mean "disabled",
+        # which is the same as a single scanning thread
+        return max(1, qr_scan_thread_count)
+
     def get_audio_alignment_tolerance(self) -> int:
         """Get audio_alignment_tolerance"""
         try:
@@ -304,6 +338,38 @@ class GlobalConfigurations:
             enable_cropped_scan_for_pre_test_qr = False
         return enable_cropped_scan_for_pre_test_qr
 
+    def get_enable_reduced_scan_between_tests(self) -> bool:
+        """Get enable_reduced_scan_between_tests"""
+        try:
+            config_value = self.config["GENERAL"]["enable_reduced_scan_between_tests"]
+            if config_value == "False":
+                enable_reduced_scan_between_tests = False
+            else:
+                enable_reduced_scan_between_tests = True
+        except KeyError:
+            enable_reduced_scan_between_tests = True
+        return enable_reduced_scan_between_tests
+
+    def get_reduced_scan_between_tests_timeout(self) -> int:
+        """Get reduced_scan_between_tests_timeout"""
+        try:
+            reduced_scan_between_tests_timeout = int(
+                self.config["GENERAL"]["reduced_scan_between_tests_timeout"]
+            )
+        except KeyError:
+            reduced_scan_between_tests_timeout = 8
+        return reduced_scan_between_tests_timeout
+
+    def get_reduced_scan_between_tests_margin(self) -> int:
+        """Get reduced_scan_between_tests_margin"""
+        try:
+            reduced_scan_between_tests_margin = int(
+                self.config["GENERAL"]["reduced_scan_between_tests_margin"]
+            )
+        except KeyError:
+            reduced_scan_between_tests_margin = 50
+        return reduced_scan_between_tests_margin
+
     def get_long_duration_config(self) -> Dict[str, int]:
         """Get tolerances"""
         long_duration = {
@@ -312,21 +378,12 @@ class GlobalConfigurations:
             "ending_check_duration": 30,
             "check_interval_seconds": 600,
         }
-        try:
-            long_duration["starting_check_duration"] = int(
-                self.config["LONGDURATION"]["starting_check_duration"]
-            )
-            long_duration["mid_check_duration"] = int(
-                self.config["LONGDURATION"]["mid_check_duration"]
-            )
-            long_duration["ending_check_duration"] = int(
-                self.config["LONGDURATION"]["ending_check_duration"]
-            )
-            long_duration["check_interval_seconds"] = int(
-                self.config["LONGDURATION"]["check_interval_seconds"]
-            )
-        except KeyError:
-            pass
+        # read each key independently so a missing key only defaults that key,
+        # leaving the others (present in config) honored
+        section = self.config["LONGDURATION"] if "LONGDURATION" in self.config else {}
+        for key in long_duration:
+            if key in section:
+                long_duration[key] = int(section[key])
         return long_duration
 
     def get_tolerances(self) -> Dict[str, int]:
@@ -347,51 +404,12 @@ class GlobalConfigurations:
             "av_sync_end_tolerance": 0,
             "av_sync_pass_rate": 100,
         }
-        try:
-            tolerances["start_frame_num_tolerance"] = int(
-                self.config["TOLERANCES"]["start_frame_num_tolerance"]
-            )
-            tolerances["end_frame_num_tolerance"] = int(
-                self.config["TOLERANCES"]["end_frame_num_tolerance"]
-            )
-            tolerances["mid_frame_num_tolerance"] = int(
-                self.config["TOLERANCES"]["mid_frame_num_tolerance"]
-            )
-            tolerances["splice_start_frame_num_tolerance"] = int(
-                self.config["TOLERANCES"]["splice_start_frame_num_tolerance"]
-            )
-            tolerances["splice_end_frame_num_tolerance"] = int(
-                self.config["TOLERANCES"]["splice_end_frame_num_tolerance"]
-            )
-            tolerances["start_segment_num_tolerance"] = int(
-                self.config["TOLERANCES"]["start_segment_num_tolerance"]
-            )
-            tolerances["end_segment_num_tolerance"] = int(
-                self.config["TOLERANCES"]["end_segment_num_tolerance"]
-            )
-            tolerances["mid_segment_num_tolerance"] = int(
-                self.config["TOLERANCES"]["mid_segment_num_tolerance"]
-            )
-            tolerances["splice_start_segment_num_tolerance"] = int(
-                self.config["TOLERANCES"]["splice_start_segment_num_tolerance"]
-            )
-            tolerances["splice_end_segment_num_tolerance"] = int(
-                self.config["TOLERANCES"]["splice_end_segment_num_tolerance"]
-            )
-            tolerances["earliest_sample_alignment_tolerance"] = int(
-                self.config["TOLERANCES"]["earliest_sample_alignment_tolerance"]
-            )
-            tolerances["av_sync_start_tolerance"] = int(
-                self.config["TOLERANCES"]["av_sync_start_tolerance"]
-            )
-            tolerances["av_sync_end_tolerance"] = int(
-                self.config["TOLERANCES"]["av_sync_end_tolerance"]
-            )
-            tolerances["av_sync_pass_rate"] = int(
-                self.config["TOLERANCES"]["av_sync_pass_rate"]
-            )
-        except KeyError:
-            pass
+        # read each key independently so a missing key only defaults that key,
+        # leaving the others (present in config) honored
+        section = self.config["TOLERANCES"] if "TOLERANCES" in self.config else {}
+        for key in tolerances:
+            if key in section:
+                tolerances[key] = int(section[key])
         return tolerances
 
     def get_calibration(self) -> Dict[str, float]:
@@ -408,30 +426,10 @@ class GlobalConfigurations:
             "beep_threshold": 0.3,
             "min_silence_duration": 0.9,
         }
-        try:
-            calibration["start_frame_num_tolerance"] = float(
-                self.config["CALIBRATION"]["flash_and_beep_count"]
-            )
-            calibration["max_allowed_offset"] = float(
-                self.config["CALIBRATION"]["max_allowed_offset"]
-            )
-            calibration["allowed_offset"] = float(
-                self.config["CALIBRATION"]["allowed_offset"]
-            )
-            calibration["flash_threshold"] = float(
-                self.config["CALIBRATION"]["flash_threshold"]
-            )
-            calibration["x_ratio"] = float(self.config["CALIBRATION"]["x_ratio"])
-            calibration["y_ratio"] = float(self.config["CALIBRATION"]["y_ratio"])
-            calibration["fade_out_frames"] = float(
-                self.config["CALIBRATION"]["fade_out_frames"]
-            )
-            calibration["beep_threshold"] = float(
-                self.config["CALIBRATION"]["beep_threshold"]
-            )
-            calibration["min_silence_duration"] = float(
-                self.config["CALIBRATION"]["min_silence_duration"]
-            )
-        except KeyError:
-            pass
+        # read each key independently so a missing key only defaults that key,
+        # leaving the others (present in config) honored
+        section = self.config["CALIBRATION"] if "CALIBRATION" in self.config else {}
+        for key in calibration:
+            if key in section:
+                calibration[key] = float(section[key])
         return calibration

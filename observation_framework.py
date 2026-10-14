@@ -162,17 +162,16 @@ def iter_to_get_qr_area(
         detected_qr_codes = analysis.all_codes()
 
         for detected_code in detected_qr_codes:
-            if (
-                isinstance(detected_code, PreTestDecodedQr)
-                and not first_pre_test_found
-                and starting_frame == 0
-            ):
-                first_pre_test_qr_time = capture_frame_num / camera_frame_rate * 1000
-                first_pre_test_found = True
-                logger.debug(
-                    "First pre-test QR code is detected at time %f.",
-                    first_pre_test_qr_time,
-                )
+            if isinstance(detected_code, PreTestDecodedQr):
+                if not first_pre_test_found and starting_frame == 0:
+                    first_pre_test_qr_time = (
+                        capture_frame_num / camera_frame_rate * 1000
+                    )
+                    first_pre_test_found = True
+                    logger.debug(
+                        "First pre-test QR code is detected at time %f.",
+                        first_pre_test_qr_time,
+                    )
             elif isinstance(detected_code, MezzanineDecodedQr) and not mezzanine_found:
                 logger.debug(
                     "Frame Number=%d Location=%s",
@@ -279,7 +278,7 @@ def get_qr_code_area(
     Returns:
         first_pre_test_qr_time: first pre test qr code detection time in ms
         qr_code_areas: qr_code_areas to crop when detecting qr code
-        pre_test_qr_code_area: qr_code_area to crop for pre test qr code
+        pre_test_qr_code_area: qr_code_area the pre test qr code is expected in
     """
     logger = global_configurations.get_logger()
     logger.info("Search '%s' to get QR code location...", input_video_path_str)
@@ -301,6 +300,13 @@ def get_qr_code_area(
     fps: float = vid_cap.get(cv2.CAP_PROP_FPS)
     width: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height: int = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    if fps < 1 or width <= 0 or height <= 0:
+        vid_cap.release()
+        open(input_video_path_str, "rb")
+        # File is readable but invalid.
+        raise OSError(errno.EINVAL, "Video is invalid")
+
     duration = int(vid_cap.get(cv2.CAP_PROP_FRAME_COUNT)) / fps
 
     # if user input range parameter defined then update defaults
@@ -310,12 +316,6 @@ def get_qr_code_area(
         if starting_point_s > duration:
             raise ValueError("Starting point larger than recording duration.")
         search_qr_area_to = starting_point_s + qr_code_search_duration
-
-    if fps < 1 or width <= 0 or height <= 0:
-        vid_cap.release()
-        open(input_video_path_str, "rb")
-        # File is readable but invalid.
-        raise OSError(errno.EINVAL, "Video is invalid")
 
     if search_qr_area_to != 0:
         try:
@@ -352,7 +352,7 @@ def get_qr_code_area(
             if qr_code_areas[i][2] > width:
                 qr_code_areas[i][2] = width
             if qr_code_areas[i][3] > height:
-                qr_code_areas[i][2] = height
+                qr_code_areas[i][3] = height
         else:
             # when qr_code_areas can not be detected
             if i == 0:
@@ -434,15 +434,19 @@ def run(
         qr_code_areas[1],
     )
 
-    # add pre-test qr code area
-    # this removes the first and last vertical quarter of image
-    if global_configurations.get_enable_cropped_scan_for_pre_test_qr():
-        qr_code_areas.append(pre_test_qr_code_area)
+    # scan only the pre-test qr code area between tests
+    scan_area_between_tests = None
+    if global_configurations.get_enable_reduced_scan_between_tests():
+        scan_area_between_tests = pre_test_qr_code_area
         logger.info(
-            "Additional QR code scan with roughly cropped area "
-            "%s for pre-test QR code is enabled.",
-            qr_code_areas[2],
+            "QR code scan between tests is narrowed to the cropped area %s "
+            "once a pre-test QR code has been detected inside it.",
+            pre_test_qr_code_area,
         )
+
+    enable_cropped_scan_for_pre_test_qr = (
+        global_configurations.get_enable_cropped_scan_for_pre_test_qr()
+    )
     for i in range(0, len(input_video_files)):
         input_video_path_str = input_video_files[i]
         logger.info("Analysing recording '%s'.", input_video_path_str)
@@ -462,6 +466,19 @@ def run(
             # File is readable but invalid.
             raise OSError(errno.EINVAL, "Video is invalid")
 
+        # add pre-test qr code area
+        # this removes the first and last vertical quarter of image
+        scan_areas = qr_code_areas
+        if enable_cropped_scan_for_pre_test_qr:
+            scan_areas = qr_code_areas + [
+                [int(width / 4), 0, int((width / 4) * 3), height]
+            ]
+            logger.info(
+                "Additional QR code scan with roughly cropped area "
+                "%s for pre-test QR code is enabled.",
+                scan_areas[2],
+            )
+
         try:
             if observation_framework is None:
                 observation_framework = ObservationFrameworkProcessor(
@@ -471,6 +488,7 @@ def run(
                     global_configurations,
                     fps,
                     do_adaptive_threshold_scan,
+                    scan_area_between_tests,
                 )
 
             observation_framework.extract_audio(
@@ -480,7 +498,7 @@ def run(
             last_camera_frame_number = observation_framework.iter_qr_codes_in_video(
                 vid_cap,
                 starting_camera_frame_number,
-                qr_code_areas,
+                scan_areas,
                 print_processed_frame,
             )
             starting_camera_frame_number += last_camera_frame_number
@@ -547,10 +565,10 @@ def check_python_version(logger: logging.Logger) -> bool:
     Returns:
         True if version is OK.
     """
-    if sys.version_info.major == 3 and sys.version_info.minor >= 9:
+    if sys.version_info.major == 3 and sys.version_info.minor >= 10:
         return True
     logger.critical(
-        "Aborting! Python version 3.9 or greater is required.\nCurrent Python version is %d.%d.",
+        "Aborting! Python version 3.10 or greater is required.\nCurrent Python version is %d.%d.",
         sys.version_info.major,
         sys.version_info.minor,
     )
@@ -589,7 +607,7 @@ def process_input_video_files(
     # sort input files based on the configuration
     sort_input_files_by = global_configurations.get_sort_input_files_by()
     if sort_input_files_by == "filename":
-        sorted(input_video_files)
+        input_video_files.sort()
     else:
         input_video_files.sort(key=os.path.getmtime)
     return input_video_files
@@ -679,6 +697,14 @@ def main() -> None:
     parser.add_argument(
         "--calibration", help="Camera calibration recording file path.", default=""
     )
+    parser.add_argument(
+        "--qr_scan_thread_count",
+        help="Number of worker threads used for the QR code full scan, "
+        "overrides qr_scan_thread_count in config.ini. "
+        "Set to 0 or 1 to scan frames sequentially.",
+        default="",
+        metavar="count",
+    )
 
     args = parser.parse_args()
     do_adaptive_threshold_scan = False
@@ -690,6 +716,7 @@ def main() -> None:
     global_configurations.set_system_mode(args.mode)
     global_configurations.set_qr_search_range(args.range)
     global_configurations.set_calibration_file_path(args.calibration)
+    global_configurations.set_qr_scan_thread_count(args.qr_scan_thread_count)
 
     log_file_path = global_configurations.get_log_file_path()
     log_file = log_file_path + "/events.log"

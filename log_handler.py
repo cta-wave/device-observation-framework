@@ -51,7 +51,7 @@ class LogManager:
         if not isinstance(numeric_level, int):
             raise ValueError(f"Invalid log level: {loglevel}")
         numeric_level_console = getattr(logging, console_loglevel.upper(), None)
-        if not isinstance(numeric_level, int):
+        if not isinstance(numeric_level_console, int):
             raise ValueError(f"Invalid log level: {console_loglevel}")
 
         self._logger_handler = RotatingFileHandler(

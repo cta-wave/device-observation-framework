@@ -26,6 +26,7 @@ Licensor: Consumer Technology Association
 Contributor: Resillion UK Limited
 """
 import logging
+import statistics
 import sys
 from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
@@ -208,9 +209,8 @@ class AudioVideoSynchronization(Observation):
         audio_offsets = []
         video_offsets = []
         time_differences = []
-        total_count = 0
-        failure_count = 0
-        failure_within_tolerance = 0
+        # unrounded, so the tolerance check is exact
+        filtered_diffs = []
 
         camera_frame_duration_ms = parameters_dict["camera_frame_duration_ms"]
         audio_sample_length = parameters_dict["audio_sample_length"]
@@ -245,12 +245,13 @@ class AudioVideoSynchronization(Observation):
                 # ignore the audio samples which failed to find matching audio
                 # where the sync is not measurable
                 if abs(audio_offsets[i][2] - video_offsets[j][0]) < audio_sample_length:
-                    time_diff = audio_offsets[i][3] - video_offsets[j][1]
-                    # check next video in case it is a better match
+                    # check next video in case its media time is a better match
                     if j < len(video_offsets) - 1 and abs(
-                        audio_offsets[i][3] - video_offsets[j + 1][1]
-                    ) < abs(time_diff):
-                        time_diff = audio_offsets[i][3] - video_offsets[j + 1][1]
+                        audio_offsets[i][2] - video_offsets[j + 1][0]
+                    ) < abs(audio_offsets[i][2] - video_offsets[j][0]):
+                        j += 1
+                    # positive when audio leads video, as in ITU-R BT.1359
+                    time_diff = video_offsets[j][1] - audio_offsets[i][3]
                     break
 
             # ignore those failing audio and video matches
@@ -258,37 +259,49 @@ class AudioVideoSynchronization(Observation):
                 continue
 
             time_differences.append((audio_offsets[i][2], round(time_diff, 2)))
+            if check_from <= audio_offsets[i][2] <= check_to:
+                filtered_diffs.append(time_diff)
 
-            if time_diff > av_sync_tolerance[0] or time_diff < av_sync_tolerance[1]:
-                failure_count += 1
-                if audio_offsets[i][2] < check_from or audio_offsets[i][2] > check_to:
-                    failure_within_tolerance += 1
-            total_count += 1
+        lead_failure_count = sum(1 for diff in filtered_diffs if diff > av_sync_tolerance[0])
+        lag_failure_count = sum(1 for diff in filtered_diffs if diff < av_sync_tolerance[1])
+        matched_count = len(filtered_diffs)
+        in_sync_count = matched_count - lead_failure_count - lag_failure_count
+        expected_count = max(0, int((check_to - check_from) / audio_sample_length))
 
-        pass_rate = (
-            (total_count - failure_count + failure_within_tolerance) / total_count
-        ) * 100
+        # matched_count is 0 when no audio/video matches were found in the checked
+        # range; avoid a division by zero and fall through to "unable to detect"
+        pass_rate = 0.0
+        if matched_count > 0:
+            pass_rate = in_sync_count / matched_count * 100
+        coverage = 0.0
+        if expected_count > 0:
+            coverage = matched_count / expected_count * 100
         self.result["message"] += (
-            f"Total failure count is {failure_count}, with {failure_within_tolerance} failures "
-            f"within the start and end tolerance. AV Sync was checked from {check_from}ms to "
-            f"{check_to}ms, and {round(pass_rate, 2)}% was in sync. "
+            f"AV Sync was checked from {check_from}ms to {check_to}ms. "
+            f"{in_sync_count} of {matched_count} matched samples were in sync "
+            f"({round(pass_rate, 2)}%). {matched_count} of {expected_count} expected "
+            f"samples were matched ({round(coverage, 2)}%). "
+            f"{lead_failure_count} samples had audio leading by more than "
+            f"{av_sync_tolerance[0]}ms and {lag_failure_count} had audio lagging by "
+            f"more than {-av_sync_tolerance[1]}ms. "
         )
 
-        # get filtered time differences between check_from and check_to
-        filtered_time_differences = [
-            item for item in time_differences if check_from <= item[0] <= check_to
-        ]
-        if filtered_time_differences:
-            maximum_diff = max(filtered_time_differences, key=lambda x: x[1])
-            minimum_diff = min(filtered_time_differences, key=lambda x: x[1])
+        if filtered_diffs:
             self.result["message"] += (
-                f"The AV Sync offset range is [{round(minimum_diff[1], 2)}, "
-                f"{round(maximum_diff[1], 2)}] ms."
+                f"The AV Sync median offset is {round(statistics.median(filtered_diffs), 2)}ms "
+                f"and the offset range is [{round(min(filtered_diffs), 2)}, "
+                f"{round(max(filtered_diffs), 2)}] ms."
             )
             if pass_rate >= av_sync_pass_rate:
                 self.result["status"] = "PASS"
             else:
                 self.result["status"] = "FAIL"
+        elif expected_count == 0:
+            self.result["status"] = "FAIL"
+            self.result["message"] += (
+                " The checked range is empty: playback is shorter than the "
+                "start and end tolerances."
+            )
         else:
             self.result["status"] = "FAIL"
             self.result["message"] += " Unable to detect any audio and video matches."
@@ -298,22 +311,22 @@ class AudioVideoSynchronization(Observation):
             file_name = observation_data_export_file + "av_sync_diff.csv"
             write_data_to_csv_file(
                 file_name,
-                ["audio sample", "time diff"],
+                ["audio media time (ms)", "audio lead (ms)"],
                 time_differences,
             )
 
-            audio_sample, time_diff = zip(*time_differences)
-            plt.figure(0)
-            plt.figure(figsize=(20, 15))
-            plt.xlabel("Audio Segment Media Time")
-            plt.ylabel("Audio Video differences")
-            plt.title("Detected Audio Video Synchronization")
-            file_name = file_name.replace(".csv", ".png")
-            plt.plot(audio_sample, time_diff, color="b")
-            plt.axhline(y=av_sync_tolerance[0], color="g", linestyle="dashed")
-            plt.axhline(y=av_sync_tolerance[1], color="g", linestyle="dashed")
-            plt.savefig(file_name)
-            plt.close()
+            if time_differences:
+                audio_sample, time_diff = zip(*time_differences)
+                plt.figure(figsize=(20, 15))
+                plt.xlabel("Audio Segment Media Time (ms)")
+                plt.ylabel("Audio lead (ms), negative when audio lags")
+                plt.title("Detected Audio Video Synchronization")
+                file_name = file_name.replace(".csv", ".png")
+                plt.plot(audio_sample, time_diff, color="b")
+                plt.axhline(y=av_sync_tolerance[0], color="g", linestyle="dashed")
+                plt.axhline(y=av_sync_tolerance[1], color="g", linestyle="dashed")
+                plt.savefig(file_name)
+                plt.close()
 
         self.logger.debug("[%s] %s", self.result["status"], self.result["message"])
         return self.result, [], []

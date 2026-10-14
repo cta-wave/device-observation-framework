@@ -57,7 +57,10 @@ class StartUpDelay(Observation):
                     < parameters_dict["video_fragment_durations"][i + 1]
                 ):
                     break
-            additional_tolerance = random_access_to_time
+            # additional tolerance only widens the permitted delay; never let it
+            # go negative (which would happen when random_access_time falls inside
+            # the first fragment) and tighten ts_max
+            additional_tolerance = max(0, random_access_to_time)
         return additional_tolerance
 
     def make_observation(

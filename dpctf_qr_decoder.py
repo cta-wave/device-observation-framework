@@ -29,11 +29,12 @@ import json
 import re
 from datetime import datetime
 from fractions import Fraction
+from pathlib import Path
 
 from qr_recognition.qr_decoder import DecodedQr, QrDecoder
 
 _mezzanine_qr_data_re = re.compile(
-    r"(.+);(\d{2}:[0-6][0-9]:[0-6][0-9].\d{3});(\d{7});([0-9.]+)"
+    r"(.+);((?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9].\d{3});(\d{7});([0-9.]+)"
 )
 
 
@@ -174,48 +175,29 @@ class DPCTFQrDecoder(QrDecoder):
         code = DecodedQr("", [])
 
         try:
+            # a test-status QR always has status ("s") and action ("a");
+            # current time ("ct") and delay ("d") are optional and default to 0
+            # independently so a missing one does not discard the other
             code = TestStatusDecodedQr(
                 data,
                 location,
                 json_data["s"],
                 json_data["a"],
-                float(json_data["ct"]),
-                int(json_data["d"]),
+                float(json_data["ct"]) if "ct" in json_data else 0,
+                int(json_data["d"]) if "d" in json_data else 0,
                 camera_frame_num,
             )
         except KeyError:
             try:
-                code = TestStatusDecodedQr(
+                code = PreTestDecodedQr(
                     data,
                     location,
-                    json_data["s"],
-                    json_data["a"],
-                    0,
-                    int(json_data["d"]),
+                    json_data["session_token"],
+                    json_data["test_id"],
                     camera_frame_num,
                 )
             except KeyError:
-                try:
-                    code = TestStatusDecodedQr(
-                        data,
-                        location,
-                        json_data["s"],
-                        json_data["a"],
-                        0,
-                        0,
-                        camera_frame_num,
-                    )
-                except KeyError:
-                    try:
-                        code = PreTestDecodedQr(
-                            data,
-                            location,
-                            json_data["session_token"],
-                            json_data["test_id"],
-                            camera_frame_num,
-                        )
-                    except KeyError:
-                        pass  # Do nothing if a KeyError occurs
+                pass  # Do nothing if a KeyError occurs
 
         return code
 
@@ -239,7 +221,7 @@ class DPCTFQrDecoder(QrDecoder):
         """Convert string frame rate to float
         fractional frame rate fund match from map to get accurate number"""
         frame_rate_map = {}
-        with open("frame_rate_map.json", encoding="utf-8") as f:
+        with open(Path(__file__).with_name("frame_rate_map.json"), encoding="utf-8") as f:
             frame_rate_map = json.load(f)
         try:
             res = frame_rate_map[frame_rate_str].split("/")

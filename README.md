@@ -71,6 +71,7 @@ THe Observation Framework can be run with specific modes enabled by passing some
   --mode debug                                    System mode is for development purposes only.
   --ignore_corrupted video                        Specific condition to ignore. To support recording devices that has corrupted video or audio.
   --calibration                                   Camera calibration recording file path.
+  --qr_scan_thread_count 12                       Number of worker threads used for the QR code full scan.
 ```
 
 * Where **range** this is optional argument for video only tests. However, when the 1st test is audio only test it is important to set scan range so that the process can find mezzanine QR code area correctly for mixed video and audio tests. Setting the range is also useful to speed up the processing time when observing audio only tests. The range argument requires three digit variables separated by ":", ```{id(file_index):start(s):duration(s)}```.
@@ -93,6 +94,10 @@ This includes information such as decoding of QR codes:
 * Where is it not recommended, **ignore_corrupted** specifies the special condition to be ignored by observation framework. We have added this feature to work around some cameras produce corrupted capture. When "--ignore_corrupted video" is set, the Observation Framework will ignore the corrupted recording frame and carry on reading the next frames in the recording instead of ending the process early. Impact of using this option for audio testing is to be confirmed, it might cause the audio tests and A/V sync test to fail.
 
 * Where **calibration** specifies the calibration recording file path. After processing the calibration recording file prior to the observation process, the audio and video recording offset will be applied to the Observation Framework.
+
+* Where **qr_scan_thread_count** overrides ```qr_scan_thread_count``` in ```config.ini``` for a single run. The QR code scan is CPU bound, so the useful maximum is the number of physical cores the Observation Framework is allowed to use, which in a container is what ```--cpus``` or ```--cpuset-cpus``` allows and not what the host reports. Set it to 0 or 1 to scan frames sequentially. Two frames per thread are held in memory until the batch is drained, roughly 6MB each at 1080p and 25MB at 4K.
+
+    For example, ```--qr_scan_thread_count 12``` runs the scan across 12 worker threads. This is useful to match the run to the machine or agent it is running on without editing ```config.ini```.
 
 ## Troubleshooting
 

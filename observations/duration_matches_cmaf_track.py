@@ -395,7 +395,7 @@ class DurationMatchesCMAFTrack(Observation):
             first_result = self.check_duration_equal_or_greater(
                 parameters_dict["expected_video_track_duration"][0],
                 camera_frame_duration_ms,
-                mezzanine_qr_codes[: change_starting_index_list[1] - 1],
+                mezzanine_qr_codes[: change_starting_index_list[1]],
                 parameters_dict,
                 first_mid_missing_frame_duration,
             )

@@ -217,6 +217,9 @@ class AudioEverySampleRendered(Observation):
                 error_count += 1
 
         self.total_error_count += error_count
+        # if no segment rendered correctly, starting_error_count was never set
+        if starting_error_count is None:
+            starting_error_count = 0
         mid_error_count = error_count - starting_error_count - ending_error_count
         if error_count > 0:
             self.result[

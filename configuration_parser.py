@@ -233,7 +233,8 @@ class ConfigurationParser:
                 )
                 ms = video_config_value.microseconds / 1000
                 s_to_ms = video_config_value.seconds * 1000
-                result = ms + s_to_ms
+                days_to_ms = video_config_value.days * 24 * 60 * 60 * 1000
+                result = ms + s_to_ms + days_to_ms
         except KeyError as exc:
             raise ConfigError(
                 f"Failed to get a parameter:{exc} for the test '{test_path}'"
@@ -388,6 +389,7 @@ class ConfigurationParser:
                 fragment_duration_list = self._convert_fragment_duration_to_list(
                     representation, test_path
                 )
+                break
         return fragment_duration_list
 
     def _get_fragment_duration_multi_reps(
@@ -462,12 +464,14 @@ class ConfigurationParser:
                         fragment_durations = self._convert_fragment_duration_to_list(
                             representation, test_path
                         )
-                for i in range(len(fragment_durations)):
-                    fragment_index = i + 1
-                    results[parameter][(content_index, rep_index, fragment_index)] = (
-                        fragment_durations[i]
-                    )
-                rep_index += 1
+                    # only representations of the requested content_type consume a
+                    # rep_index slot (consistent with _get_fragment_duration_multi_reps)
+                    for i in range(len(fragment_durations)):
+                        fragment_index = i + 1
+                        results[parameter][
+                            (content_index, rep_index, fragment_index)
+                        ] = fragment_durations[i]
+                    rep_index += 1
             content_index += 1
 
         return results
@@ -487,7 +491,7 @@ class ConfigurationParser:
                 "Both video and audio are not defined."
             )
         if test_content_type == TestContentType.COMBINED:
-            if not self.video_config or not self.video_config:
+            if not self.video_config or not self.audio_config:
                 raise ConfigError(
                     "Failed to get video or audio content parameters from test configuration. "
                     "Both video and audio should be defined."

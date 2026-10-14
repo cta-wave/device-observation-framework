@@ -131,11 +131,11 @@ class RenderingDelayWithinThreshold(Observation):
                 f"Maximum permitted rendering delay is render_threshold={render_threshold}ms."
                 f"The presentation rendering delay is {round(render_delay, 4)}ms"
             )
-            if render_delay < render_threshold:
-                self.result["status"] = "PASS"
-            elif render_delay < 0:
+            if render_delay < 0:
                 self.result["status"] = "FAIL"
                 self.result["message"] = f"{render_delay} is negative"
+            elif render_delay < render_threshold:
+                self.result["status"] = "PASS"
             else:
                 self.result["status"] = "FAIL"
 

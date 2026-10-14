@@ -44,6 +44,7 @@ class DecodedQr:
     def __eq__(self, other) -> bool:
         if isinstance(other, DecodedQr):
             return self.data == other.data
+        return NotImplemented
 
 
 class QrDecoder:

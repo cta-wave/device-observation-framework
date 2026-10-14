@@ -223,10 +223,10 @@ class NoVisibleVideoShifts(Observation):
             # get qr codes on both sides of switching point
             # we only want to go back to number_of_qr_codes (defined in config.ini)
             backwards_qr_codes = mezzanine_qr_codes[
-                switching_point - self.max_search_frames :: switching_point
+                switching_point - self.max_search_frames : switching_point
             ]
             forwards_qr_codes = mezzanine_qr_codes[
-                switching_point :: switching_point + self.max_search_frames
+                switching_point : switching_point + self.max_search_frames
             ]
 
             # search for four different qr code positions

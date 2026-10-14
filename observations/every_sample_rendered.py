@@ -48,6 +48,9 @@ class EverySampleRendered(Observation):
     mid_missing_frame_count: int
     """mid missing frame count not include frame missing at start and end and
     when contents switches"""
+    mid_out_of_order_frame_count: int
+    """mid out-of-order frame count; counted against the mid-frame tolerance
+    alongside mid_missing_frame_count"""
     mid_missing_frame_duration: list
     """sum of all mid missing frame duration for
     presentation one and presentation two"""
@@ -61,6 +64,7 @@ class EverySampleRendered(Observation):
         super().__init__(name, global_configurations)
         self.missing_frame_count = 0
         self.mid_missing_frame_count = 0
+        self.mid_out_of_order_frame_count = 0
         self.mid_missing_frame_duration = [0, 0]
 
     def _check_first_frame(
@@ -176,6 +180,9 @@ class EverySampleRendered(Observation):
                 missing_frames.remove(out_of_order_frame)
 
         self.mid_missing_frame_count += len(missing_frames)
+        # out-of-order frames are removed from missing_frames above, so track
+        # them separately; both count against the mid-frame tolerance below
+        self.mid_out_of_order_frame_count += len(out_of_order_frames)
         if missing_frames and len(mezzanine_qr_codes) > 0:
             missing_frame_duration = (
                 len(missing_frames) * 1000 / mezzanine_qr_codes[0].frame_rate
@@ -217,7 +224,10 @@ class EverySampleRendered(Observation):
             raise ObsFrameTerminate(self.result["message"])
 
         # missing frame within the tolerance
-        if self.mid_missing_frame_count <= mid_frame_num_tolerance:
+        if (
+            self.mid_missing_frame_count + self.mid_out_of_order_frame_count
+            <= mid_frame_num_tolerance
+        ):
             check = True
 
         return check
@@ -242,7 +252,9 @@ class EverySampleRendered(Observation):
                     presentation_id,
                 )
             else:
-                last_index = change_index_list[i + 1] - 1
+                # slice up to (not through) the next block's first frame so the
+                # current block's last frame is included in the continuity check
+                last_index = change_index_list[i + 1]
                 mid_frame_result = mid_frame_result and self._check_every_frame(
                     mezzanine_qr_codes[starting_index:last_index],
                     playout_sequence[i],
@@ -404,7 +416,9 @@ class EverySampleRendered(Observation):
                 )
                 mid_frame_result = mid_frame_result and check_frame_result
             else:
-                last_index = change_starting_index_list[i + 1] - 1
+                # include the current block's last frame (slice up to, not
+                # through, the next block's first frame)
+                last_index = change_starting_index_list[i + 1]
                 check_frame_result = mid_frame_result and self._check_every_frame(
                     mezzanine_qr_codes[starting_index:last_index], i + 1
                 )
@@ -942,6 +956,9 @@ class EverySampleRendered(Observation):
                 missing_frames.remove(out_of_order_frame)
 
         self.mid_missing_frame_count += len(missing_frames)
+        # out-of-order frames are removed from missing_frames above, so track
+        # them separately; both count against the mid-frame tolerance below
+        self.mid_out_of_order_frame_count += len(out_of_order_frames)
         if missing_frames and len(mezzanine_qr_codes) > 0:
             missing_frame_duration = (
                 len(missing_frames) * 1000 / mezzanine_qr_codes[0].frame_rate
@@ -976,7 +993,10 @@ class EverySampleRendered(Observation):
             raise ObsFrameTerminate(self.result["message"])
 
         # missing frame within the tolerance
-        if self.mid_missing_frame_count <= mid_frame_num_tolerance:
+        if (
+            self.mid_missing_frame_count + self.mid_out_of_order_frame_count
+            <= mid_frame_num_tolerance
+        ):
             check = True
 
         return check
@@ -1079,6 +1099,11 @@ class EverySampleRendered(Observation):
         self.result[
             "message"
         ] += f" Total of missing frame count is {self.missing_frame_count}."
+        if self.mid_out_of_order_frame_count > 0:
+            self.result["message"] += (
+                f" Total of out-of-order frame count is "
+                f"{self.mid_out_of_order_frame_count}."
+            )
 
         if first_frame_result and last_frame_result and mid_frame_result:
             self.result["status"] = "PASS"

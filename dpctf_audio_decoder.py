@@ -37,6 +37,11 @@ from global_configurations import GlobalConfigurations
 
 logging.getLogger("matplotlib.font_manager").disabled = True
 
+# Maximum number of points drawn for a waveform. Matplotlib keeps a float64
+# x/y pair per point, so plotting a multi-hour recording sample by sample
+# needs gigabytes of memory for detail no figure can show.
+PLOT_MAX_POINTS = 20000
+
 
 class AudioSegment:
     """audio segment class"""
@@ -228,6 +233,27 @@ def get_trim_to(
     return trim_to
 
 
+def _downsample_for_plot(data: list) -> Tuple[np.ndarray, np.ndarray]:
+    """Reduce a waveform to at most PLOT_MAX_POINTS points for plotting.
+
+    Each bucket of samples contributes its minimum and its maximum, so the
+    peaks of the original waveform survive. The returned x values are original
+    sample positions, so markers drawn at a sample number still line up.
+    """
+    data = np.asarray(data)
+    if len(data) <= PLOT_MAX_POINTS:
+        return np.arange(len(data)), data
+
+    bucket_size = math.ceil(len(data) / (PLOT_MAX_POINTS // 2))
+    bucket_starts = np.arange(0, len(data), bucket_size)
+    values = np.empty(bucket_starts.size * 2, dtype=data.dtype)
+    values[0::2] = np.minimum.reduceat(data, bucket_starts)
+    values[1::2] = np.maximum.reduceat(data, bucket_starts)
+    indices = np.repeat(bucket_starts, 2)
+    indices[1::2] += bucket_size // 2
+    return np.minimum(indices, len(data) - 1), values
+
+
 def trim_audio(
     index: int,
     subject_data: list,
@@ -269,15 +295,15 @@ def trim_audio(
 
     logger = global_configurations.get_logger()
     if logger.getEffectiveLevel() == logging.DEBUG and observation_data_export_file:
-        plt.figure(index)
-        plt.figure(figsize=(30, 6))
+        plt.figure(index, figsize=(30, 6))
         plt.xlabel("Time")
         plt.ylabel("Audio Wave")
         subject_data_file = (
             observation_data_export_file + "subject_data_" + str(index) + ".png"
         )
         plt.title("subject_data")
-        plt.plot(subject_data)
+        plot_x, plot_y = _downsample_for_plot(subject_data)
+        plt.plot(plot_x, plot_y)
         plt.axvline(x=trim_from, color="b")
         plt.axvline(x=trim_to, color="g")
         plt.savefig(subject_data_file)

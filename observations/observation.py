@@ -63,15 +63,10 @@ class Observation:
             "name": name,
         }
         self.global_configurations = global_configurations
-
-        if global_configurations is None:
-            self.tolerances = {}
-            self.missing_frame_threshold = 0
-        else:
-            self.tolerances = global_configurations.get_tolerances()
-            self.missing_frame_threshold = (
-                global_configurations.get_missing_frame_threshold()
-            )
+        self.tolerances = global_configurations.get_tolerances()
+        self.missing_frame_threshold = (
+            global_configurations.get_missing_frame_threshold()
+        )
 
     @staticmethod
     def find_event(
@@ -164,6 +159,6 @@ class Observation:
                 end = i
                 audio_segments_chunk_list.append(audio_segments[start:end])
                 current_content_id = audio_segments[i].audio_content_id
-                start = i + 1
+                start = i
         audio_segments_chunk_list.append(audio_segments[start:])
         return audio_segments_chunk_list

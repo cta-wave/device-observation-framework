@@ -127,6 +127,34 @@ class FrameAnalysis:
 
         self._scan_image(crop, qr_code_area, cropped=True)
 
+    def cropped_scan(
+        self,
+        webcam_image: OpenCvImageHint,
+        qr_code_area: list,
+        do_adaptive_threshold_scan: bool,
+    ) -> None:
+        """Do a scan of the specified area of the webcam capture video frame.
+
+        Unlike scan_cropped_image no other pass is made over the frame, so the
+        crop is taken first and neither the conversion nor the inversion is paid
+        for the whole frame. The plain pass and the adaptiveThreshold retry are
+        the ones full_scan makes over the whole image, so intensive scanning
+        reaches the crop too.
+        """
+        crop = webcam_image[
+            qr_code_area[1] : qr_code_area[3], qr_code_area[0] : qr_code_area[2]
+        ]
+        image = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        np.bitwise_not(image, out=image)
+        self._scan_image(image, qr_code_area, cropped=True)
+
+        # do adaptiveThreshold scan when it is defined to do so
+        if do_adaptive_threshold_scan and not self.all_code_found():
+            threshold_image = cv2.adaptiveThreshold(
+                image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+            )
+            self._scan_image(threshold_image, qr_code_area, cropped=True)
+
     def full_scan(
         self,
         webcam_image: OpenCvImageHint,

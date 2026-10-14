@@ -1,6 +1,6 @@
 echo off
 :: Observation Framework installer for use on Windows.
-:: This requires python version 3.6 or greater and pip version 3 to be installed and on the execution PATH.
+:: This requires python version 3.10 or greater and pip version 3 to be installed and on the execution PATH.
 SETLOCAL EnableDelayedExpansion
 SETLOCAL ENABLEEXTENSIONS
 IF ERRORLEVEL 1 ECHO Unable to enable extensions
@@ -9,53 +9,53 @@ IF ERRORLEVEL 1 ECHO Unable to enable extensions
 python --version >nul 2>&1
 if not errorlevel 1 goto hasPython
 echo.
-echo Error - Python installation not found. Python 3.6 or greater must be installed and on the PATH.
+echo Error - Python installation not found. Python 3.10 or greater must be installed and on the PATH.
 goto :EOF
 
 :hasPython
 :: Check Python version
 set "PYEXE=python"
-python -c "import sys; assert sys.version_info >= (3,6)" >nul 2>&1
+python -c "import sys; assert sys.version_info >= (3,10)" >nul 2>&1
 if not errorlevel 1 goto pythonOK
 echo Default python version too low, trying python3...
 python3 --version >nul 2>&1
 if not errorlevel 1 goto hasPython3
 echo.
-echo Error - Python 3.6 or greater must be installed and on the PATH. Python found is:
+echo Error - Python 3.10 or greater must be installed and on the PATH. Python found is:
 python --version
 goto :EOF
 
 :hasPython3
 :: Check Python3 version
 set "PYEXE=python3"
-python3 -c "import sys; assert sys.version_info >= (3,6)" >nul 2>&1
+python3 -c "import sys; assert sys.version_info >= (3,10)" >nul 2>&1
 if not errorlevel 1 goto pythonOK
 echo.
-echo Error - Python 3.6 or greater must be installed and on the PATH. Python found is:
+echo Error - Python 3.10 or greater must be installed and on the PATH. Python found is:
 python --version
 goto :EOF
 
 :pythonOK
 :: Install required packages
 %PYEXE% -m pip install --upgrade pip
-%PYEXE% -m pip install --no-cache-dir numpy==2.0.2
-if errorlevel 1 goto numpy
-%PYEXE% -m pip install --no-cache-dir opencv-python==4.10.0.84
+%PYEXE% -m pip install --no-cache-dir numpy==2.2.6
+if errorlevel 1 goto installFail
+%PYEXE% -m pip install --no-cache-dir opencv-python==4.14.0.94
 if errorlevel 1 goto installFail
 %PYEXE% -m pip install --no-cache-dir pyzbar==0.1.9
 if errorlevel 1 goto installFail
-%PYEXE% -m pip install --no-cache-dir isodate
+%PYEXE% -m pip install --no-cache-dir isodate==0.7.2
 if errorlevel 1 goto installFail
-%PYEXE% -m pip install --no-cache-dir configparser
+%PYEXE% -m pip install --no-cache-dir configparser==7.2.0
 if errorlevel 1 goto installFail
-%PYEXE% -m pip install --no-cache-dir requests
+%PYEXE% -m pip install --no-cache-dir requests==2.34.2
 if errorlevel 1 goto installFail
-%PYEXE% -m pip install --no-cache-dir pyaudio
-if errorlevel 1 goto pyaudio
-%PYEXE% -m pip install --no-cache-dir sounddevice
-if errorlevel 1 goto sounddevice
-%PYEXE% -m pip install --no-cache-dir matplotlib
-if errorlevel 1 goto matplotlib
+%PYEXE% -m pip install --no-cache-dir pyaudio==0.2.14
+if errorlevel 1 goto installFail
+%PYEXE% -m pip install --no-cache-dir sounddevice==0.5.6
+if errorlevel 1 goto installFail
+%PYEXE% -m pip install --no-cache-dir matplotlib==3.10.9
+if errorlevel 1 goto installFail
 
 :: Check something (anything) is listening on the Test Runner port.
 FOR /F "delims=" %%i IN ('netstat -an ^| findstr "8000"  ^| findstr "LISTEN"') DO (set cmdout=%%i)

@@ -54,12 +54,12 @@ REQUIRED_SAMPLE_FORMAT = 8
 
 def _next_power_of_2(value):
     """
-    calculate and return next power of 2
+    calculate and return the smallest power of 2 that is >= value
     if given value is less then 2 then return 0
     """
     if value < 2:
         return 0
-    next2 = 2 ** (math.ceil(math.log2(value - 1)))
+    next2 = 2 ** (math.ceil(math.log2(value)))
     return next2
 
 
